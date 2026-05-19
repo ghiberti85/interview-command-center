@@ -176,8 +176,10 @@ function Spinner() {
 }
 
 // ─── AI call ──────────────────────────────────────────────────────────────────
+const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL || "https://api.anthropic.com/v1/messages";
+
 async function callAI(messages, system) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch(AI_PROXY_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, system, messages }),
@@ -457,7 +459,7 @@ A resposta deve soar natural e humana. Não mencione IA. Em português.`;
   const generate = async () => {
     setLoading(true); setGenerated(null);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:buildPrompt()}]})});
+      const res = await fetch(AI_PROXY_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:buildPrompt()}]})});
       const d = await res.json();
       const raw = d.content?.find(b=>b.type==="text")?.text||"{}";
       const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());

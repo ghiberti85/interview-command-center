@@ -50,9 +50,10 @@ const DARK_VARS = {
   "--red":        "#FF6A6A",
   "--red-d":      "rgba(255,106,106,0.12)",
   "--red-b":      "rgba(255,106,106,0.25)",
-  "--cyan":       "#22D3EE",
-  "--cyan-d":     "rgba(34,211,238,0.12)",
-  "--cyan-b":     "rgba(34,211,238,0.25)",
+  "--cyan":               "#22D3EE",
+  "--cyan-d":             "rgba(34,211,238,0.12)",
+  "--cyan-b":             "rgba(34,211,238,0.25)",
+  "--date-picker-filter": "invert(1)",
 };
 const LIGHT_VARS = {
   "--bg":         "#FAFAF9",
@@ -78,9 +79,10 @@ const LIGHT_VARS = {
   "--red":        "#CC3333",
   "--red-d":      "rgba(204,51,51,0.10)",
   "--red-b":      "rgba(204,51,51,0.25)",
-  "--cyan":       "#0891B2",
-  "--cyan-d":     "rgba(8,145,178,0.10)",
-  "--cyan-b":     "rgba(8,145,178,0.25)",
+  "--cyan":               "#0891B2",
+  "--cyan-d":             "rgba(8,145,178,0.10)",
+  "--cyan-b":             "rgba(8,145,178,0.25)",
+  "--date-picker-filter": "none",
 };
 
 // ─── Stage config ─────────────────────────────────────────────────────────────
@@ -370,14 +372,21 @@ function LoginScreen({ onDemo }) {
 }
 
 // ─── AI call ──────────────────────────────────────────────────────────────────
-const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL || "https://api.anthropic.com/v1/messages";
+const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL;
+if (!AI_PROXY_URL) console.error("[ICC] VITE_AI_PROXY_URL não configurada — chamadas de IA vão falhar.");
 
-async function callAI(messages, system) {
+async function callAI(messages, system, token) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(AI_PROXY_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, system, messages }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
   const d = await res.json();
   return d.content?.find(b=>b.type==="text")?.text || "Erro.";
 }
@@ -560,7 +569,7 @@ function OverviewTab({ process, onUpdate, onDelete }) {
             <div style={{ ...T.label, marginBottom:3 }}>Contato</div>
             <div style={{ fontSize:13, color:"var(--acc)" }}>{process.recruiter} · {process.recruiterEmail}</div>
           </div>
-          {process.jobUrl && <a href={process.jobUrl} target="_blank" rel="noreferrer" style={{ padding:"5px 12px", borderRadius:7, border:"1px solid var(--acc-b)", color:"var(--acc)", textDecoration:"none", fontSize:11, ...T.mono }}>↗ Vaga</a>}
+          {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && <a href={process.jobUrl} target="_blank" rel="noreferrer noopener" style={{ padding:"5px 12px", borderRadius:7, border:"1px solid var(--acc-b)", color:"var(--acc)", textDecoration:"none", fontSize:11, ...T.mono }}>↗ Vaga</a>}
         </div>
       )}
       {process.notes && (
@@ -653,9 +662,8 @@ A resposta deve soar natural e humana. Não mencione IA. Em português.`;
   const generate = async () => {
     setLoading(true); setGenerated(null);
     try {
-      const res = await fetch(AI_PROXY_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:buildPrompt()}]})});
-      const d = await res.json();
-      const raw = d.content?.find(b=>b.type==="text")?.text||"{}";
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const raw = await callAI([{role:"user",content:buildPrompt()}], undefined, s?.access_token);
       const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
       const entry = {...parsed, channel, scenario:scenLabel, recruiterMsg, ts:Date.now()};
       setGenerated(entry);
@@ -814,7 +822,8 @@ Seja direto, prático e orientado a ação. Responda em português.`;
     const updated = [...messages,{role:"user",content:text}];
     setMessages(updated); setInput(""); setLoading(true);
     try {
-      const reply = await callAI(updated,sys);
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const reply = await callAI(updated, sys, s?.access_token);
       setMessages([...updated,{role:"assistant",content:reply}]);
     } catch { setMessages([...updated,{role:"assistant",content:"Erro ao conectar. Tente novamente."}]); }
     setLoading(false);
@@ -1047,7 +1056,7 @@ function MobileDashboard({ processes }) {
   );
 }
 
-function SetPasswordModal({ onClose }) {
+function SetPasswordModal({ onClose, onSuccess }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1060,12 +1069,13 @@ function SetPasswordModal({ onClose }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
-    if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
+    if (password.length < 12) { setError("A senha deve ter pelo menos 12 caracteres."); return; }
     setLoading(true); setError(null);
     const { error: err } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (err) { setError(err.message); return; }
     setDone(true);
+    onSuccess?.();
   }
 
   return (
@@ -1116,7 +1126,7 @@ function NewProcessModal({ onClose, onSave, isMobile }) {
     setSaving(true);
     await onSave({
       ...form,
-      id: "p" + Date.now(),
+      id: crypto.randomUUID(),
       contactedDate: new Date().toISOString().split("T")[0],
       tags: form.tags.split(",").map(t=>t.trim()).filter(Boolean),
       steps: [{ date:new Date().toISOString().split("T")[0], type:form.stage, note:form.origin==="inbound"?"Recrutador entrou em contato":"Aplicação enviada" }],
@@ -1229,7 +1239,7 @@ export default function App() {
         .from("processes")
         .select("*")
         .order("created_at", { ascending: false });
-      if (error) { setDbError(error.message); setDbLoading(false); return; }
+      if (error) { console.error("[ICC] DB load error:", error); setDbError(true); setDbLoading(false); return; }
       const mapped = (data || []).map(rowToProcess);
       setProcesses(mapped);
       if (mapped.length > 0) setSelected(mapped[0]);
@@ -1240,14 +1250,14 @@ export default function App() {
 
   // Auto-show set password modal after password recovery redirect
   useEffect(() => {
-    if (isRecovery) { setShowSetPassword(true); clearRecovery(); }
+    if (isRecovery) { setShowSetPassword(true); }
   }, [isRecovery]);
 
   const updateProcess = useCallback(async (updated) => {
     setProcesses(prev => prev.map(p => p.id === updated.id ? updated : p));
     setSelected(updated);
-    if (!isDemo) await supabase.from("processes").upsert(processToRow(updated));
-  }, [isDemo]);
+    if (!isDemo) await supabase.from("processes").upsert({ ...processToRow(updated), user_id: session?.user?.id });
+  }, [isDemo, session]);
 
   const deleteProcess = useCallback(async () => {
     if (!selected) return;
@@ -1295,7 +1305,7 @@ export default function App() {
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
     @keyframes spin { to{transform:rotate(360deg)} }
-    input[type='date']::-webkit-calendar-picker-indicator { filter: ${dark?"invert(1)":"none"}; opacity:0.5; }
+    input[type='date']::-webkit-calendar-picker-indicator { filter: var(--date-picker-filter); opacity:0.5; }
     select option { background: var(--bg-r); color: var(--t1); }
     button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid var(--acc); outline-offset: 2px;
@@ -1352,7 +1362,7 @@ export default function App() {
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"var(--bg)", flexDirection:"column", gap:12 }}>
         <Ic n="alert" s={32} c="var(--red)"/>
         <div style={{ fontSize:14, color:"var(--red)" }}>Erro ao conectar com o banco de dados</div>
-        <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>{dbError}</div>
+        <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>Verifique sua conexão ou tente novamente mais tarde.</div>
       </div>
     </>
   );
@@ -1451,7 +1461,7 @@ export default function App() {
         </div>
       </div>
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={false}/>}
-      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)}/>}
+      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
     </>
   );
 
@@ -1548,7 +1558,7 @@ export default function App() {
         </div>
       </div>
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={true}/>}
-      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)}/>}
+      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
     </>
   );
 }

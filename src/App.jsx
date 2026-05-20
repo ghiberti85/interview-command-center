@@ -179,19 +179,33 @@ function Spinner() {
 // ─── Auth hook ───────────────────────────────────────────────────────────────
 function useAuth() {
   const [session, setSession] = useState(undefined); // undefined = loading
+  const [isRecovery, setIsRecovery] = useState(false);
   useEffect(() => {
     supabase.auth.getSession()
       .then(({ data, error }) => setSession(error ? null : (data?.session ?? null)))
       .catch(() => setSession(null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setIsRecovery(true);
+      setSession(s ?? null);
+    });
     return () => subscription.unsubscribe();
   }, []);
-  return session;
+  return { session, isRecovery, clearRecovery: () => setIsRecovery(false) };
 }
 
+// ─── Demo data ────────────────────────────────────────────────────────────────
+const DEMO_PROCESSES = [
+  { id:"demo1", company:"Nubank", role:"Senior Front-End Engineer", stage:"interview", location:"Remoto", salary:"R$ 22.000 – 28.000", recruiter:"Ana Paula Costa", recruiterEmail:"ana.costa@nubank.com.br", origin:"inbound", contactedDate:"2026-05-01", nextStepDate:"2026-05-22", nextStepNote:"Entrevista técnica com o time de plataforma", jobUrl:"", tags:["fintech","react","typescript"], notes:"Vaga para o time de design system. Stack: React, TypeScript, Storybook.", steps:[{date:"2026-05-01",type:"contacted",note:"Contato via LinkedIn"},{date:"2026-05-08",type:"screening",note:"Conversa com recruiter — 30min"},{date:"2026-05-15",type:"interview",note:"Entrevista com o gestor de engenharia"}], aiContext:"", starred:true },
+  { id:"demo2", company:"Mercado Livre", role:"Front-End Tech Lead", stage:"screening", location:"São Paulo (híbrido)", salary:"R$ 30.000 – 38.000", recruiter:"Carlos Mendes", recruiterEmail:"carlos@meli.com", origin:"inbound", contactedDate:"2026-05-05", nextStepDate:"2026-05-23", nextStepNote:"Ligação de alinhamento com Head de Eng", jobUrl:"", tags:["lead","react","scale"], notes:"Liderança de time de 8 pessoas. Foco em performance e micro-frontends.", steps:[{date:"2026-05-05",type:"contacted",note:"Mensagem pelo LinkedIn"},{date:"2026-05-12",type:"screening",note:"Entrevista de fit cultural"}], aiContext:"", starred:false },
+  { id:"demo3", company:"Itaú Unibanco", role:"Especialista UI/UX Engineering", stage:"technical", location:"São Paulo (presencial)", salary:"R$ 18.000 – 22.000", recruiter:"Fernanda Lima", recruiterEmail:"fernanda.lima@itau.com.br", origin:"inbound", contactedDate:"2026-04-20", nextStepDate:"2026-05-21", nextStepNote:"Apresentação do case técnico", jobUrl:"", tags:["banco","next.js","design-system"], notes:"Case: construir componente de input com validação e acessibilidade.", steps:[{date:"2026-04-20",type:"contacted",note:"Indicação interna"},{date:"2026-04-28",type:"screening",note:"Triagem com RH"},{date:"2026-05-10",type:"interview",note:"Entrevista comportamental"},{date:"2026-05-18",type:"technical",note:"Recebeu o case técnico"}], aiContext:"", starred:true },
+  { id:"demo4", company:"Spotify", role:"Senior Software Engineer — Web", stage:"offer", location:"Remoto (global)", salary:"USD 140k – 160k", recruiter:"James Harrington", recruiterEmail:"j.harrington@spotify.com", origin:"outbound", contactedDate:"2026-04-10", nextStepDate:"2026-05-25", nextStepNote:"Prazo para aceitar ou recusar a proposta", jobUrl:"", tags:["global","typescript","streaming"], notes:"Proposta formal recebida. Equity + RSU incluídos. Analisar junto ao advogado.", steps:[{date:"2026-04-10",type:"contacted",note:"Aplicação direta no site"},{date:"2026-04-18",type:"screening",note:"Recruiter screen"},{date:"2026-04-28",type:"interview",note:"System design interview"},{date:"2026-05-08",type:"technical",note:"Coding challenge — 4h"},{date:"2026-05-15",type:"offer",note:"Proposta recebida por e-mail"}], aiContext:"", starred:true },
+  { id:"demo5", company:"Stone", role:"Front-End Engineer", stage:"rejected", location:"Rio de Janeiro (híbrido)", salary:"R$ 15.000 – 18.000", recruiter:"Mariana Souza", recruiterEmail:"mariana@stone.com.br", origin:"inbound", contactedDate:"2026-04-05", nextStepDate:null, nextStepNote:"", jobUrl:"", tags:["fintech","vue"], notes:"Feedack: buscavam experiência com Vue. Recontato possível no futuro.", steps:[{date:"2026-04-05",type:"contacted",note:"Contato via LinkedIn"},{date:"2026-04-12",type:"screening",note:"Triagem técnica"},{date:"2026-04-22",type:"rejected",note:"Feedack recebido por e-mail"}], aiContext:"", starred:false },
+  { id:"demo6", company:"Creditas", role:"Senior React Developer", stage:"contacted", location:"Remoto", salary:"R$ 16.000 – 20.000", recruiter:"Roberto Alves", recruiterEmail:"roberto.alves@creditas.com", origin:"inbound", contactedDate:"2026-05-18", nextStepDate:"2026-05-27", nextStepNote:"Aguardando retorno para agendar conversa inicial", jobUrl:"", tags:["fintech","react","node"], notes:"Primeiro contato recebido hoje. Vaga para o time de crédito.", steps:[{date:"2026-05-18",type:"contacted",note:"Mensagem no LinkedIn"}], aiContext:"", starred:false },
+];
+
 // ─── Login screen ─────────────────────────────────────────────────────────────
-function LoginScreen() {
-  const [mode, setMode] = useState("password"); // "password" | "magic"
+function LoginScreen({ onDemo }) {
+  const [mode, setMode] = useState("password"); // "password" | "magic" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [sent, setSent] = useState(false);
@@ -200,6 +214,7 @@ function LoginScreen() {
 
   const inputFocus = e => { e.target.style.borderColor="var(--acc)"; e.target.style.boxShadow="0 0 0 3px var(--acc-d)"; };
   const inputBlur  = e => { e.target.style.borderColor="var(--border)"; e.target.style.boxShadow="none"; };
+  const switchMode = m => { setMode(m); setError(null); setSent(false); };
 
   async function handlePassword(e) {
     e.preventDefault();
@@ -221,6 +236,17 @@ function LoginScreen() {
     setSent(true);
   }
 
+  async function handleForgot(e) {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setSent(true);
+  }
+
   const Logo = () => (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:32 }}>
       <div style={{ width:52, height:52, borderRadius:15, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:14 }}>
@@ -235,27 +261,16 @@ function LoginScreen() {
     <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", color:"var(--red)", fontSize:12, marginBottom:14 }}>{error}</div>
   ) : null;
 
-  if (sent) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"var(--bg)", padding:24 }}>
-      <div style={{ width:"100%", maxWidth:380, animation:"fadeIn 0.3s ease" }}>
-        <Logo/>
-        <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28, textAlign:"center" }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:"var(--grn-d)", border:"1px solid var(--grn-b)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-            <Ic n="send" s={20} c="var(--grn)"/>
-          </div>
-          <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", marginBottom:8 }}>Link enviado!</div>
-          <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.6 }}>
-            Verifique seu e-mail <strong style={{ color:"var(--t1)" }}>{email}</strong> e clique no link para entrar.
-          </div>
-          <div style={{ marginTop:16, padding:"10px 14px", borderRadius:10, background:"var(--acc-d)", border:"1px solid var(--acc-b)" }}>
-            <div style={{ fontSize:12, color:"var(--acc)", fontWeight:600, marginBottom:4 }}>Dica</div>
-            <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>Após entrar, vá em <strong>Configurações → Definir senha</strong> para não precisar de link nas próximas vezes.</div>
-          </div>
-          <button onClick={()=>{setSent(false);setEmail("");setMode("password");}} style={{ marginTop:16, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
-            Voltar ao login
-          </button>
-        </div>
+  const SentBox = ({ title, subtitle }) => (
+    <div style={{ textAlign:"center", padding:"8px 0" }}>
+      <div style={{ width:44, height:44, borderRadius:12, background:"var(--grn-d)", border:"1px solid var(--grn-b)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+        <Ic n="send" s={20} c="var(--grn)"/>
       </div>
+      <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", marginBottom:8 }}>{title}</div>
+      <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.6 }}>{subtitle} <strong style={{ color:"var(--t1)" }}>{email}</strong></div>
+      <button onClick={()=>switchMode("password")} style={{ marginTop:20, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+        Voltar ao login
+      </button>
     </div>
   );
 
@@ -264,7 +279,10 @@ function LoginScreen() {
       <div style={{ width:"100%", maxWidth:380, animation:"fadeIn 0.3s ease" }}>
         <Logo/>
         <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28 }}>
-          {mode === "password" ? (
+          {sent && mode === "magic" && <SentBox title="Link enviado!" subtitle="Verifique seu e-mail em"/>}
+          {sent && mode === "forgot" && <SentBox title="E-mail enviado!" subtitle="Verifique as instruções de recuperação em"/>}
+
+          {!sent && mode === "password" && (
             <form onSubmit={handlePassword}>
               <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:4, letterSpacing:"-0.02em" }}>Entrar</div>
               <div style={{ fontSize:13, color:"var(--t3)", marginBottom:20 }}>Use seu e-mail e senha para acessar.</div>
@@ -272,21 +290,28 @@ function LoginScreen() {
                 <label style={{ ...T.label, display:"block", marginBottom:6 }}>E-mail</label>
                 <input type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
               </div>
-              <div style={{ marginBottom:16 }}>
+              <div style={{ marginBottom:6 }}>
                 <label style={{ ...T.label, display:"block", marginBottom:6 }}>Senha</label>
                 <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
+              </div>
+              <div style={{ textAlign:"right", marginBottom:16 }}>
+                <button type="button" onClick={()=>switchMode("forgot")} style={{ background:"none", border:"none", color:"var(--t3)", cursor:"pointer", fontSize:11, fontFamily:"'Outfit',sans-serif" }}>
+                  Esqueci minha senha
+                </button>
               </div>
               <ErrorBox/>
               <Btn full disabled={loading || !email.trim() || !password}>
                 {loading ? "Entrando…" : "Entrar"}
               </Btn>
               <div style={{ marginTop:16, textAlign:"center" }}>
-                <button type="button" onClick={()=>{setMode("magic");setError(null);}} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                <button type="button" onClick={()=>switchMode("magic")} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
                   Entrar sem senha (link mágico)
                 </button>
               </div>
             </form>
-          ) : (
+          )}
+
+          {!sent && mode === "magic" && (
             <form onSubmit={handleMagicLink}>
               <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:4, letterSpacing:"-0.02em" }}>Link mágico</div>
               <div style={{ fontSize:13, color:"var(--t3)", marginBottom:20 }}>Receba um link de acesso no seu e-mail.</div>
@@ -299,13 +324,40 @@ function LoginScreen() {
                 {loading ? "Enviando…" : <><Ic n="send" s={14} c="#fff"/>Enviar link</>}
               </Btn>
               <div style={{ marginTop:16, textAlign:"center" }}>
-                <button type="button" onClick={()=>{setMode("password");setError(null);}} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                <button type="button" onClick={()=>switchMode("password")} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
                   Voltar ao login com senha
                 </button>
               </div>
             </form>
           )}
+
+          {!sent && mode === "forgot" && (
+            <form onSubmit={handleForgot}>
+              <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:4, letterSpacing:"-0.02em" }}>Recuperar senha</div>
+              <div style={{ fontSize:13, color:"var(--t3)", marginBottom:20 }}>Enviaremos um link para você criar uma nova senha.</div>
+              <div style={{ marginBottom:16 }}>
+                <label style={{ ...T.label, display:"block", marginBottom:6 }}>E-mail</label>
+                <input type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
+              </div>
+              <ErrorBox/>
+              <Btn full disabled={loading || !email.trim()}>
+                {loading ? "Enviando…" : <><Ic n="send" s={14} c="#fff"/>Enviar e-mail de recuperação</>}
+              </Btn>
+              <div style={{ marginTop:16, textAlign:"center" }}>
+                <button type="button" onClick={()=>switchMode("password")} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                  Voltar ao login
+                </button>
+              </div>
+            </form>
+          )}
         </div>
+
+        <button onClick={onDemo} style={{ width:"100%", marginTop:12, padding:"12px", borderRadius:12, border:"1px dashed var(--border)", background:"transparent", color:"var(--t2)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:500, transition:"all 0.15s" }}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--border-md)";e.currentTarget.style.color="var(--t1)";}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--t2)";}}
+        >
+          Ver demonstração sem cadastro →
+        </button>
       </div>
     </div>
   );
@@ -1136,7 +1188,8 @@ function NewProcessModal({ onClose, onSave, isMobile }) {
 export default function App() {
   const isMobile = useIsMobile();
   const { dark, toggle: toggleTheme } = useTheme();
-  const session = useAuth();
+  const { session, isRecovery, clearRecovery } = useAuth();
+  const [isDemo, setIsDemo] = useState(false);
   const [processes, setProcesses] = useState([]);
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState("pipeline");
@@ -1155,8 +1208,14 @@ export default function App() {
     document.body.style.color = vars["--t1"];
   }, [dark]);
 
-  // Load from Supabase
+  // Load processes
   useEffect(() => {
+    if (isDemo) {
+      setProcesses(DEMO_PROCESSES);
+      setSelected(DEMO_PROCESSES[0]);
+      setDbLoading(false);
+      return;
+    }
     async function load() {
       setDbLoading(true);
       const { data, error } = await supabase
@@ -1170,26 +1229,38 @@ export default function App() {
       setDbLoading(false);
     }
     load();
-  }, []);
+  }, [isDemo]);
+
+  // Auto-show set password modal after password recovery redirect
+  useEffect(() => {
+    if (isRecovery) { setShowSetPassword(true); clearRecovery(); }
+  }, [isRecovery]);
 
   const updateProcess = useCallback(async (updated) => {
     setProcesses(prev => prev.map(p => p.id === updated.id ? updated : p));
     setSelected(updated);
-    await supabase.from("processes").upsert(processToRow(updated));
-  }, []);
+    if (!isDemo) await supabase.from("processes").upsert(processToRow(updated));
+  }, [isDemo]);
 
   const deleteProcess = useCallback(async () => {
     if (!selected) return;
-    await supabase.from("processes").delete().eq("id", selected.id);
+    if (!isDemo) await supabase.from("processes").delete().eq("id", selected.id);
     setProcesses(prev => {
       const next = prev.filter(p => p.id !== selected.id);
       setSelected(next[0] || null);
       return next;
     });
     if (isMobile) setMobileScreen("list");
-  }, [selected, isMobile]);
+  }, [selected, isMobile, isDemo]);
 
   const addProcess = useCallback(async (p) => {
+    if (isDemo) {
+      setProcesses(prev => [p, ...prev]);
+      setSelected(p);
+      setView("pipeline");
+      if (isMobile) setMobileScreen("detail");
+      return;
+    }
     const row = { ...processToRow(p), user_id: session?.user?.id };
     const { error } = await supabase.from("processes").insert(row);
     if (!error) {
@@ -1245,10 +1316,10 @@ export default function App() {
   );
 
   // Not authenticated
-  if (!session) return (
+  if (!session && !isDemo) return (
     <>
       <style>{GLOBAL_CSS}</style>
-      <LoginScreen dark={dark}/>
+      <LoginScreen onDemo={()=>setIsDemo(true)}/>
     </>
   );
 
@@ -1270,6 +1341,16 @@ export default function App() {
       <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:"var(--bg)" }}>
         {/* Sidebar */}
         <div style={{ width:268, borderRight:"1px solid var(--border)", display:"flex", flexDirection:"column", background:"var(--bg)", flexShrink:0 }}>
+          {isDemo && (
+            <div style={{ margin:"10px 10px 0", padding:"8px 12px", borderRadius:10, background:"var(--amb-d)", border:"1px solid var(--amb-b)", display:"flex", alignItems:"center", gap:8 }}>
+              <Ic n="info" s={13} c="var(--amb)"/>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:"var(--amb)", fontWeight:600 }}>Modo demonstração</div>
+                <div style={{ fontSize:10, color:"var(--amb)", opacity:0.7 }}>Dados não são salvos</div>
+              </div>
+              <button onClick={()=>setIsDemo(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:10, color:"var(--amb)", fontFamily:"'Outfit',sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>Sair</button>
+            </div>
+          )}
           <div style={{ padding:"18px 16px 14px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:30, height:30, borderRadius:9, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
               <Ic n="target" s={15} c="#fff"/>
@@ -1282,12 +1363,8 @@ export default function App() {
               <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Alternar tema">
                 <Ic n={dark?"sun":"moon"} s={16} c="var(--t3)"/>
               </button>
-              <button onClick={()=>setShowSetPassword(true)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Definir senha">
-                <Ic n="edit" s={15} c="var(--t3)"/>
-              </button>
-              <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Sair">
-                <Ic n="logout" s={15} c="var(--t3)"/>
-              </button>
+              {!isDemo && <button onClick={()=>setShowSetPassword(true)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Definir senha"><Ic n="edit" s={15} c="var(--t3)"/></button>}
+              {!isDemo && <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>}
             </div>
           </div>
           <div style={{ padding:"10px 10px 0" }}>

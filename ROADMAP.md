@@ -81,7 +81,7 @@ Estado atual e próximas melhorias do projeto.
 |---|---|
 | Componentizar `App.jsx` (atualmente arquivo único, ~1600 linhas) | Média — quando arquivo superar 2000 linhas |
 | Migrar para TypeScript (`.tsx`) | Baixa |
-| Testes automatizados (Vitest + Playwright) | Média |
+| **Testes automatizados** — ver plano completo em `TESTING.md` | Média — MVP de testes ~20–22h |
 | Configurar `ALLOWED_ORIGIN` na Edge Function (restringir CORS ao domínio Vercel) | Alta — pendente ação manual no Supabase dashboard |
 | Aumentar senha mínima no Supabase Auth dashboard para 12 caracteres | Alta — pendente ação manual |
 | Rate limiting persistente na Edge Function (Redis / Supabase KV) | Baixa — atual é in-memory, reseta com cold start |

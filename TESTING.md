@@ -1,35 +1,521 @@
-# Testes — Interview Command Center
+# Estratégia de Testes — Interview Command Center
 
-Estratégia de testes, setup e exemplos para o projeto.
-
----
-
-## Estado atual
-
-A versão atual não possui testes automatizados. Este documento define a estratégia recomendada para implementação progressiva.
+Plano completo de testes para o projeto, baseado na análise do código atual.
 
 ---
 
-## Stack de testes recomendada
+## 1. Diagnóstico atual
 
-| Camada | Ferramenta | Finalidade |
+**Estado:** zero cobertura. Não há runner, scripts de teste, dependências ou mocks configurados. Apenas ESLint como análise estática.
+
+**Implicações:**
+- Funções puras (`fmtDate`, `daysDiff`, `rowToProcess`, `processToRow`) são testáveis imediatamente — ponto de entrada mais fácil
+- `callAI` e chamadas Supabase estão misturadas ao código dos componentes, sem camadas de abstração — aumenta o esforço de mock
+- O arquivo único `App.jsx` não impede testes, mas exige **3 extrações mínimas** de funções antes de cobrir os casos de maior valor (ver seção 6)
+
+---
+
+## 2. Stack recomendada
+
+| Ferramenta | Papel | Motivo |
 |---|---|---|
-| Unit / componentes | Vitest + React Testing Library | Lógica de componentes e hooks |
-| Integração | Vitest + MSW | Fluxos com mock da API |
-| E2E | Playwright | Fluxos completos no browser |
-| Visual | Chromatic (opcional) | Regressão visual do design system |
+| **Vitest** | Runner principal | Integração nativa com Vite, suporte a ES modules, API compatível com Jest, modo `jsdom` |
+| **React Testing Library** | Testes de componente | Testa comportamento visível, não implementação; funciona com inline styles |
+| **@testing-library/user-event** | Interações realistas | Simula foco, digitação caractere a caractere, eventos de teclado |
+| **MSW** | Mock de rede | Intercepta `fetch` na camada de rede — cobre Supabase e AI proxy com um único mecanismo |
+| **Playwright** | E2E | Suporte a múltiplos browsers, viewport mobile, múltiplos tabs (magic link), clipboard API |
+| **@vitest/coverage-v8** | Cobertura | Sem dependência extra, relatório lcov para integração futura com CI |
 
 ---
 
-## Setup inicial
+## 3. Pirâmide de testes
 
-### 1. Instale as dependências de teste
-
-```bash
-npm install --save-dev vitest @vitest/ui @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom msw
+```
+         /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+        /    E2E  (8)      \    Playwright — fluxos críticos reais
+       /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+      /  Integration (18)    \  RTL + MSW — Supabase e proxy mockados
+     /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+    /      Unit  (35+)         \  Vitest puro — funções e componentes isolados
+   /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
 ```
 
-### 2. Configure o Vitest em `vite.config.js`
+**Proporção:** 60% unit / 30% integration / 10% E2E.
+
+Justificativa: a lógica de negócio (mapeadores, filtros, cálculos de data, prompt builder) tem ROI imediato em unit tests. O E2E cobre fluxos que seriam caros de mockar, como redirect de auth e clipboard.
+
+---
+
+## 4. Casos de teste por camada
+
+### 4.1 Unit tests — funções puras
+
+#### `fmtDate`
+
+```
+fmtDate("2026-05-20") → "20 mai."
+fmtDate(null)         → "—"
+fmtDate("")           → "—"
+fmtDate("2026-01-01") → "01 jan."  — confirmar que sufixo T12:00:00 evita off-by-one de timezone
+```
+
+> **Crítico:** sem `T12:00:00`, `new Date("2026-05-20")` retorna meia-noite UTC, que em UTC-3 cai no dia 19. O teste deve garantir que o resultado nunca é o dia anterior.
+
+#### `daysDiff`
+
+Requer `vi.setSystemTime` para fixar "hoje".
+
+```
+daysDiff(null)         → null
+daysDiff(hoje)         → 0
+daysDiff(amanhã)       → 1
+daysDiff(ontem)        → -1
+daysDiff("2026-05-22") → 2  (com hoje fixado em 2026-05-20)
+```
+
+#### `rowToProcess` — `src/supabase.js`
+
+```
+campo completo:
+  row.recruiter_email  → processo.recruiterEmail
+  row.contacted_date   → processo.contactedDate
+  row.next_step_date   → processo.nextStepDate
+  row.starred = true   → processo.starred === true
+
+campos ausentes/nulos:
+  sem recruiter_email  → ""
+  sem tags             → []
+  sem steps            → []
+  sem starred          → false
+  sem origin           → "inbound"
+```
+
+#### `processToRow` — `src/supabase.js`
+
+```
+round-trip: processToRow(rowToProcess(row)) reproduz snake_case original
+jobUrl         → job_url
+recruiterEmail → recruiter_email
+nextStepDate   → next_step_date (null quando vazio, não "")
+contactedDate  → contacted_date (null quando vazio)
+```
+
+#### `buildPrompt` *(extrair de `MessagesTab` antes de testar)*
+
+```
+channel="linkedin", origin="inbound"  → contém '"""' (bloco do recrutador) e JSON {"body":"..."}
+channel="email"                       → contém {"subject":"assunto","body":"..."}
+origin="outbound"                     → contém "Fernando se candidatou ativamente"
+origin="inbound"                      → contém "Fernando foi contactado pelo recrutador"
+sem recruiterMsg                      → NÃO contém '"""'
+```
+
+#### `filterProcesses` *(extrair do `App.jsx` linha ~1294 antes de testar)*
+
+```
+busca "nubank"          → retorna apenas processos com company "Nubank"
+busca "react"           → retorna processos com tags incluindo "react"
+stageFilter="interview" → retorna apenas stage interview
+stageFilter="all" + ""  → retorna todos
+busca vazia + "offer"   → apenas offers
+busca case-insensitive  → "NUBANK" encontra "Nubank"
+```
+
+#### Urgência (`daysDiff` aplicado a `nextStepDate`)
+
+```
+diff = 0  → urgente
+diff = 1  → urgente
+diff = 2  → urgente
+diff = 3  → não urgente
+diff = -1 → não urgente
+diff = null → não urgente
+```
+
+#### Constantes — `STAGE` e `ACTIVE_STAGES`
+
+```
+STAGE tem exatamente as chaves: contacted, screening, interview, technical, offer, rejected, archived
+Todo entry de STAGE tem: label, bar, badgeBg, badgeColor, badgeBorder
+ACTIVE_STAGES tem 5 itens
+ACTIVE_STAGES não contém "rejected" nem "archived"
+Todo item de ACTIVE_STAGES existe em STAGE
+```
+
+#### Edge Function — `checkRateLimit` *(extrair para `utils.ts` antes de testar)*
+
+```
+1ª chamada de "user1"              → true
+20ª chamada de "user1" no minuto   → true
+21ª chamada                        → false
+após reset de 60s (vi.setSystemTime) → true
+"user1" não afeta limite de "user2"
+```
+
+#### Edge Function — `corsHeaders`
+
+```
+ALLOWED_ORIGIN="*", origin="https://app.com"          → retorna origin como Allow-Origin
+ALLOWED_ORIGIN="https://app.com", origin="evil.com"   → retorna ALLOWED_ORIGIN, não o origin malicioso
+```
+
+---
+
+### 4.2 Component tests (RTL)
+
+#### `Badge`
+
+```
+<Badge stage="interview"/> → texto "Entrevista"
+<Badge stage="offer"/>     → texto "Proposta"
+<Badge stage="rejected"/>  → texto "Encerrado"
+<Badge stage="xyz"/>       → fallback sem crash
+Badge renderiza dot (border-radius 50%)
+```
+
+#### `Btn`
+
+```
+variant="primary"  → renderiza e chama onClick ao clicar
+disabled           → tem atributo disabled; onClick não é chamado
+variant="danger"   → smoke test sem crash
+size sm/md/lg      → smoke test sem crash
+children renderizado corretamente
+```
+
+#### `Ic`
+
+```
+<Ic n="plus" s={16} c="red"/> → SVG com width=16 height=16
+ícone desconhecido             → renderiza sem crash
+```
+
+#### `ProcessCard`
+
+```
+Renderiza company, role, Badge correto para o stage
+nextStepDate=hoje (diff=0) → indicador urgente visível
+starred=true               → ícone starF visível
+tags=["react","typescript","node"] → exibe apenas as 2 primeiras
+onClick → chama callback
+selected=true vs false → border diferente visualmente
+```
+
+#### `Tabs`
+
+```
+active="a" → botão "a" com fontWeight 600
+clicar tab "b" → onChange chamado com "b"
+```
+
+#### `LoginScreen`
+
+```
+Modo "password": formulário email + senha visível
+Botão "Entrar" desabilitado sem credenciais
+Botão habilitado com email + senha preenchidos
+Clicar "Entrar sem senha"     → modo "magic"
+Clicar "Esqueci minha senha"  → modo "forgot"
+Clicar "Voltar ao login"      → volta para "password"
+Submit com credenciais inválidas (MSW → erro) → "E-mail ou senha incorretos."
+Submit magic link com sucesso (MSW → ok)      → "Link enviado!"
+Clicar "Ver demonstração" → chama onDemo
+```
+
+#### `SetPasswordModal`
+
+```
+Campos "Nova senha" e "Confirmar senha" renderizados
+Senhas diferentes    → "As senhas não coincidem."
+Senha < 12 chars     → "A senha deve ter pelo menos 12 caracteres."
+Senha válida + match (MSW → ok) → "Senha definida!"
+Clicar fora do modal → chama onClose
+```
+
+#### `NewProcessModal`
+
+```
+Sem company ou role → botão "Adicionar Processo" desabilitado
+Com ambos preenchidos → botão habilitado
+Tags "react, typescript" → split por vírgula, trim, filter empty
+Origem "inbound" selecionada por padrão
+Salvar → onSave chamado com id (uuid), contactedDate (hoje), steps[0]
+Cancelar → onClose chamado
+```
+
+#### `PipelineBar`
+
+```
+stage="interview" (idx=2 de 5):
+  barras 0 e 1 preenchidas (contacted, screening)
+  barra 2 com glow (current)
+  barras 3 e 4 vazias
+Clicar barra "offer" → onStageClick("offer") chamado
+```
+
+#### `OverviewTab`
+
+```
+Modo leitura: company, role, salary, recruiter, nextStepDate formatado visíveis
+Clicar "Editar" → campos de edição aparecem
+Alterar salary + "Salvar" → onUpdate chamado com dados atualizados
+"Cancelar" → volta ao modo leitura sem chamar onUpdate
+jobUrl "https://..." → renderiza link "↗ Vaga"
+jobUrl "" ou "javascript:..." → link não renderizado
+```
+
+#### `TimelineTab`
+
+```
+Steps renderizados em ordem reversa (mais recente primeiro)
+Note vazia → addStep não chamado
+Note preenchida + clicar "+" → onUpdate com step adicionado
+Enter no input → aciona addStep
+Badge correto para cada step
+```
+
+#### `Dashboard`
+
+```
+Com 2 ativos, 1 interview, 1 offer, 1 urgente:
+  MetricCard "Ativos" → 2
+  MetricCard "Entrevistas" → 1
+  MetricCard "Propostas" → 1
+  MetricCard "Urgentes" → 1
+starred não-encerrados → listados em "Prioridades"
+```
+
+#### `useIsMobile`
+
+```
+innerWidth=1024 → false
+innerWidth=375  → true
+resize 1024→375 → true
+```
+
+#### `useTheme`
+
+```
+localStorage sem "icc-theme" → dark=true (default)
+localStorage com "light"     → dark=false
+toggle() → inverte e persiste no localStorage
+```
+
+---
+
+### 4.3 Integration tests (RTL + MSW)
+
+#### Auth — login com senha
+
+```
+1. App renderizado (session=null)
+2. LoginScreen visível
+3. Preencher email + senha
+4. Clicar "Entrar"
+5. MSW retorna session → App transita para layout autenticado
+6. Sidebar e pipeline visíveis
+```
+
+#### Auth — credenciais inválidas
+
+```
+MSW retorna {error:"Invalid login credentials"}
+→ "E-mail ou senha incorretos." exibido
+→ botão habilitado novamente
+```
+
+#### Auth — password recovery
+
+```
+1. App recebe evento PASSWORD_RECOVERY (simulado via onAuthStateChange)
+2. SetPasswordModal aparece automaticamente (isRecovery=true)
+3. Preencher senha válida (≥12 chars)
+4. MSW → updateUser ok
+5. Tela de sucesso; clearRecovery chamado após salvar (não antes)
+```
+
+#### Modo demo
+
+```
+1. App com session=null
+2. Clicar "Ver demonstração"
+3. DEMO_PROCESSES carregados em memória
+4. Banner âmbar "Modo demonstração" visível
+5. ProcessCard "Nubank" visível
+6. Editar stage → local apenas, sem request para Supabase
+7. Clicar "Sair" → LoginScreen reaparece
+```
+
+#### CRUD — criar processo
+
+```
+1. App autenticado, lista vazia (MSW)
+2. Clicar "Novo Processo" → modal
+3. Preencher company="VTEX", role="Senior Engineer"
+4. MSW intercepta POST /rest/v1/processes → 201
+5. ProcessCard "VTEX" aparece na lista
+6. selected é o novo processo
+```
+
+#### CRUD — atualizar processo
+
+```
+1. Processo selecionado
+2. OverviewTab → "Editar" → alterar salary
+3. "Salvar" → MSW intercepta PATCH → 200
+4. UI mostra salary atualizado sem reload
+```
+
+#### CRUD — deletar processo
+
+```
+1. Processo selecionado
+2. "Excluir" → MSW intercepta DELETE → 204
+3. Processo removido da lista; selected passa para o próximo
+```
+
+#### Busca e filtro
+
+```
+3 processos: Nubank(interview), Spotify(offer), Stone(contacted)
+Digitar "nu"            → apenas Nubank
+Filtro "Proposta"       → apenas Spotify
+Clicar "Todos"          → os 3 voltam
+view="archived"         → apenas rejected/archived
+```
+
+#### AI — MessagesTab (gerador de respostas)
+
+```
+1. Tab "Respostas" aberta
+2. Selecionar LinkedIn + cenário
+3. MSW → {"body":"Olá Fernando..."}
+4. Clicar "Gerar resposta"
+5. Loading state aparece
+6. Card com resposta renderizado
+7. Clicar "copiar" → clipboard.writeText chamado com o body
+8. Botão muda para "Copiado!" por 2s
+```
+
+#### AI — erro (rate limit 429)
+
+```
+MSW retorna 429 → generated.body exibe "Erro ao gerar. Tente novamente."
+loading=false após erro
+```
+
+#### TimelineTab — adicionar step
+
+```
+1. Selecionar type="technical", data, note="Case técnico"
+2. Clicar "+"
+3. MSW → PATCH 200
+4. Novo step no topo da lista
+5. Badge "Técnica" visível
+```
+
+---
+
+### 4.4 E2E tests (Playwright)
+
+#### E2E-1: Login + navegação básica
+
+```
+/ → tela de login visível
+Preencher email + senha de conta de teste
+Clicar "Entrar" → sidebar com "Pipeline" visível
+Clicar em ProcessCard → ProcessDetail abre
+Clicar estrela → starred toggle visual imediato
+```
+
+#### E2E-2: Criar e editar processo
+
+```
+Clicar "Novo Processo" → modal abre
+Preencher "TestCo E2E" + "Dev" → Adicionar
+Card "TestCo E2E" visível na sidebar
+Clicar barra "Entrevista" no PipelineBar → Badge muda
+Recarregar → stage persiste no Supabase
+Excluir processo (limpeza)
+```
+
+#### E2E-3: Magic link (requer Mailpit local)
+
+```
+"Entrar sem senha" → preencher email → "Enviar link"
+Acessar link no Mailpit via API → seguir redirect
+App abre com sessão ativa
+```
+
+Alternativa para CI sem Mailpit: verificar apenas "Link enviado!" aparecer.
+
+#### E2E-4: Password reset
+
+```
+"Esqueci minha senha" → email → "Enviar e-mail de recuperação"
+"E-mail enviado!" visível
+(Com Mailpit) Seguir link → app com ?type=recovery
+SetPasswordModal aparece automaticamente
+Preencher nova senha ≥12 chars → "Definir senha"
+Modal fecha, usuário logado
+```
+
+#### E2E-5: Mobile (viewport iPhone 12)
+
+```
+Playwright.use(devices["iPhone 12"])
+Login → bottom navigation visível (min-height 52px)
+Filtro "Entrevista" → apenas interviews
+Clicar card → detail com animação slideUp
+Botão "Voltar" → volta para lista
+Header "Interview OS" visível
+Botões de ação com 44px de touch target
+```
+
+#### E2E-6: Gerador de IA (staging com proxy real)
+
+```
+Abrir processo → tab "Respostas"
+Selecionar LinkedIn + cenário
+Clicar "Gerar resposta" → loading state ≥500ms
+Card com resposta aparece
+Texto não vazio e não é "Erro."
+Clicar "copiar" → sem erro
+```
+
+#### E2E-7: Demo mode
+
+```
+Tela de login → "Ver demonstração"
+Banner "Modo demonstração" visível
+6 ProcessCards visíveis (DEMO_PROCESSES)
+Nubank selecionado por padrão
+Clicar "Sair" → LoginScreen
+```
+
+#### E2E-8: Tema dark/light
+
+```
+Login → clicar botão sol/lua
+Background-color do body muda
+Recarregar → tema persiste (localStorage)
+```
+
+---
+
+## 5. Configuração e instalação
+
+### Pacotes
+
+```bash
+npm install -D vitest @vitest/coverage-v8 \
+  @testing-library/react @testing-library/user-event @testing-library/jest-dom \
+  jsdom msw \
+  @playwright/test
+npx playwright install chromium
+```
+
+### `vite.config.js` — adicionar bloco `test`
 
 ```js
 import { defineConfig } from 'vite'
@@ -40,427 +526,256 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: './src/test/setup.js',
+    setupFiles: ['./src/test/setup.js'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{js,jsx}'],
     },
   },
 })
 ```
 
-### 3. Crie o arquivo de setup
+### `src/test/setup.js`
 
 ```js
-// src/test/setup.js
 import '@testing-library/jest-dom'
+import { afterEach, beforeAll, afterAll } from 'vitest'
+import { cleanup } from '@testing-library/react'
+import { server } from './mocks/server'
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+afterEach(() => { cleanup(); server.resetHandlers() })
+afterAll(() => server.close())
 ```
 
-### 4. Adicione os scripts no `package.json`
-
-```json
-"scripts": {
-  "test":         "vitest",
-  "test:ui":      "vitest --ui",
-  "test:run":     "vitest run",
-  "test:coverage":"vitest run --coverage"
-}
-```
-
----
-
-## Testes unitários
-
-### Utilitários (`fmtDate`, `daysDiff`)
+### `src/test/mocks/server.js`
 
 ```js
-// src/test/utils.test.js
-import { describe, it, expect } from 'vitest'
-
-const fmtDate = (d) => d
-  ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
-  : "—"
-
-const daysDiff = (d) => d
-  ? Math.ceil((new Date(d) - new Date()) / 86400000)
-  : null
-
-describe('fmtDate', () => {
-  it('formata data em pt-BR', () => {
-    expect(fmtDate('2026-05-16')).toMatch(/\d{2} de \w+|^\d{2} \w+/)
-  })
-
-  it('retorna — para data nula', () => {
-    expect(fmtDate(null)).toBe('—')
-  })
-
-  it('retorna — para undefined', () => {
-    expect(fmtDate(undefined)).toBe('—')
-  })
-})
-
-describe('daysDiff', () => {
-  it('retorna null para data nula', () => {
-    expect(daysDiff(null)).toBeNull()
-  })
-
-  it('retorna número positivo para data futura', () => {
-    const future = new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0]
-    expect(daysDiff(future)).toBeGreaterThan(0)
-  })
-
-  it('retorna número negativo para data passada', () => {
-    const past = new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0]
-    expect(daysDiff(past)).toBeLessThan(0)
-  })
-})
-```
-
-### Hook `useIsMobile`
-
-```js
-// src/test/useIsMobile.test.js
-import { renderHook } from '@testing-library/react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-
-// Import do hook isolado (após componentizar)
-import { useIsMobile } from '../hooks/useIsMobile'
-
-describe('useIsMobile', () => {
-  beforeEach(() => {
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 1024,
-    })
-  })
-
-  it('retorna false em telas largas', () => {
-    const { result } = renderHook(() => useIsMobile())
-    expect(result.current).toBe(false)
-  })
-
-  it('retorna true em telas pequenas', () => {
-    Object.defineProperty(window, 'innerWidth', { value: 375 })
-    const { result } = renderHook(() => useIsMobile())
-    expect(result.current).toBe(true)
-  })
-})
-```
-
----
-
-## Testes de componente
-
-### Badge
-
-```jsx
-// src/test/Badge.test.jsx
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
-import { Badge } from '../App'
-
-describe('Badge', () => {
-  it('renderiza label do stage corretamente', () => {
-    render(<Badge stage="interview" />)
-    expect(screen.getByText('Entrevista')).toBeInTheDocument()
-  })
-
-  it('renderiza badge para stage desconhecido sem quebrar', () => {
-    render(<Badge stage="unknown_stage" />)
-    expect(screen.getByText('Arquivado')).toBeInTheDocument() // fallback
-  })
-
-  it('renderiza dot colorido', () => {
-    render(<Badge stage="offer" />)
-    const dot = document.querySelector('span > span')
-    expect(dot).toBeInTheDocument()
-  })
-})
-```
-
-### ProcessCard
-
-```jsx
-// src/test/ProcessCard.test.jsx
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import { ProcessCard } from '../App'
-
-const mockProcess = {
-  id: 'p1',
-  company: 'Nubank',
-  role: 'Senior Frontend Engineer',
-  stage: 'interview',
-  tags: ['React', 'TypeScript'],
-  starred: true,
-  nextStepDate: null,
-  nextStepNote: '',
-}
-
-describe('ProcessCard', () => {
-  it('renderiza nome da empresa e cargo', () => {
-    render(<ProcessCard process={mockProcess} onClick={vi.fn()} selected={false} />)
-    expect(screen.getByText('Nubank')).toBeInTheDocument()
-    expect(screen.getByText('Senior Frontend Engineer')).toBeInTheDocument()
-  })
-
-  it('chama onClick ao clicar', () => {
-    const onClick = vi.fn()
-    render(<ProcessCard process={mockProcess} onClick={onClick} selected={false} />)
-    fireEvent.click(screen.getByText('Nubank'))
-    expect(onClick).toHaveBeenCalledOnce()
-  })
-
-  it('renderiza badge do stage correto', () => {
-    render(<ProcessCard process={mockProcess} onClick={vi.fn()} selected={false} />)
-    expect(screen.getByText('Entrevista')).toBeInTheDocument()
-  })
-
-  it('renderiza tags', () => {
-    render(<ProcessCard process={mockProcess} onClick={vi.fn()} selected={false} />)
-    expect(screen.getByText('React')).toBeInTheDocument()
-    expect(screen.getByText('TypeScript')).toBeInTheDocument()
-  })
-
-  it('mostra alerta de urgência para datas próximas', () => {
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
-    const urgentProcess = { ...mockProcess, nextStepDate: tomorrow }
-    render(<ProcessCard process={urgentProcess} onClick={vi.fn()} selected={false} />)
-    // Verifica que a data é exibida
-    expect(screen.getByText(/em 1d/)).toBeInTheDocument()
-  })
-})
-```
-
----
-
-## Testes de integração com mock da API
-
-### Setup do MSW
-
-```js
-// src/test/mocks/handlers.js
-import { http, HttpResponse } from 'msw'
-
-export const handlers = [
-  http.post('https://api.anthropic.com/v1/messages', () => {
-    return HttpResponse.json({
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            body: 'Olá Ana, obrigado pelo contato! Tenho interesse na vaga e disponibilidade para conversar.',
-          }),
-        },
-      ],
-    })
-  }),
-]
-```
-
-```js
-// src/test/mocks/server.js
 import { setupServer } from 'msw/node'
 import { handlers } from './handlers'
 export const server = setupServer(...handlers)
 ```
 
+### `src/test/mocks/handlers.js`
+
 ```js
-// src/test/setup.js (atualizado)
-import '@testing-library/jest-dom'
-import { server } from './mocks/server'
+import { http, HttpResponse } from 'msw'
 
-beforeAll(() => server.listen())
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())
-```
+const SUPABASE_URL = 'https://sumzkwjthwcdtjqheehn.supabase.co'
+const AI_PROXY_URL = 'https://sumzkwjthwcdtjqheehn.supabase.co/functions/v1/anthropic-proxy'
 
-### Teste do gerador de respostas
-
-```jsx
-// src/test/MessagesTab.test.jsx
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, it, expect } from 'vitest'
-import App from '../App'
-
-const mockProcess = {
-  id: 'p1',
-  company: 'Nubank',
-  role: 'Senior Frontend Engineer',
-  stage: 'interview',
-  origin: 'inbound',
-  recruiter: 'Ana Lima',
-  salary: 'R$ 25k–30k',
-  // ... outros campos
-}
-
-describe('MessagesTab — gerador de respostas', () => {
-  it('gera resposta ao clicar em "Gerar resposta"', async () => {
-    const user = userEvent.setup()
-    render(<App />)
-
-    // Navega para a aba de respostas
-    fireEvent.click(screen.getByText('Respostas'))
-
-    // Cola mensagem do recrutador
-    const textarea = screen.getByPlaceholderText(/cole aqui a mensagem/i)
-    await user.type(textarea, 'Olá Fernando, temos uma vaga para você!')
-
-    // Clica em gerar
-    fireEvent.click(screen.getByText(/gerar resposta/i))
-
-    // Aguarda resposta da IA (mockada)
-    await waitFor(() => {
-      expect(screen.getByText(/obrigado pelo contato/i)).toBeInTheDocument()
+export const handlers = [
+  // Auth — login com senha
+  http.post(`${SUPABASE_URL}/auth/v1/token`, () =>
+    HttpResponse.json({ access_token: 'mock-token', user: { id: 'user-1', email: 'test@example.com' } })
+  ),
+  // Auth — magic link
+  http.post(`${SUPABASE_URL}/auth/v1/otp`, () => HttpResponse.json({})),
+  // Auth — password reset
+  http.post(`${SUPABASE_URL}/auth/v1/recover`, () => HttpResponse.json({})),
+  // Auth — update user (set password)
+  http.put(`${SUPABASE_URL}/auth/v1/user`, () => HttpResponse.json({ id: 'user-1' })),
+  // Processes — GET
+  http.get(`${SUPABASE_URL}/rest/v1/processes`, () => HttpResponse.json([])),
+  // Processes — INSERT
+  http.post(`${SUPABASE_URL}/rest/v1/processes`, () => HttpResponse.json({}, { status: 201 })),
+  // Processes — UPSERT / UPDATE
+  http.patch(`${SUPABASE_URL}/rest/v1/processes`, () => HttpResponse.json({}, { status: 200 })),
+  // Processes — DELETE
+  http.delete(`${SUPABASE_URL}/rest/v1/processes`, () => new HttpResponse(null, { status: 204 })),
+  // AI proxy
+  http.post(AI_PROXY_URL, () =>
+    HttpResponse.json({
+      content: [{ type: 'text', text: '{"body":"Olá Fernando, obrigado pelo contato."}' }]
     })
-  })
+  ),
+]
+```
 
-  it('desabilita botão sem mensagem no cenário "Responder contato inicial"', () => {
-    render(<App />)
-    fireEvent.click(screen.getByText('Respostas'))
+### `src/test/mocks/fixtures.js`
 
-    const btn = screen.getByRole('button', { name: /gerar resposta/i })
-    expect(btn).toBeDisabled()
-  })
+```js
+export const mockProcesses = [
+  { id: 'p1', company: 'Nubank', role: 'Senior FE', stage: 'interview',
+    location: 'Remoto', salary: 'R$ 22k', recruiter: 'Ana', recruiterEmail: 'ana@nu.com',
+    origin: 'inbound', contactedDate: '2026-05-01', nextStepDate: '2026-05-22',
+    nextStepNote: 'Entrevista técnica', jobUrl: '', tags: ['react'], notes: '',
+    steps: [], aiContext: '', starred: true },
+  { id: 'p2', company: 'Spotify', role: 'SWE', stage: 'offer',
+    location: 'Remoto', salary: 'USD 140k', recruiter: 'James', recruiterEmail: 'j@spotify.com',
+    origin: 'outbound', contactedDate: '2026-04-10', nextStepDate: '2026-05-25',
+    nextStepNote: 'Prazo proposta', jobUrl: 'https://spotify.com/jobs/1', tags: ['typescript'],
+    notes: '', steps: [], aiContext: '', starred: true },
+  { id: 'p3', company: 'Stone', role: 'FE Engineer', stage: 'rejected',
+    location: 'RJ', salary: 'R$ 15k', recruiter: 'Mariana', recruiterEmail: 'm@stone.com',
+    origin: 'inbound', contactedDate: '2026-04-05', nextStepDate: null,
+    nextStepNote: '', jobUrl: '', tags: ['vue'], notes: '', steps: [], aiContext: '', starred: false },
+]
+```
+
+### `.env.test`
+
+```env
+VITE_SUPABASE_URL=https://sumzkwjthwcdtjqheehn.supabase.co
+VITE_SUPABASE_ANON_KEY=mock-anon-key
+VITE_AI_PROXY_URL=https://sumzkwjthwcdtjqheehn.supabase.co/functions/v1/anthropic-proxy
+```
+
+### `playwright.config.ts`
+
+```ts
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './e2e',
+  baseURL: process.env.E2E_BASE_URL || 'http://localhost:4173',
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile',   use: { ...devices['iPhone 12'] } },
+  ],
+  webServer: {
+    command: 'npm run preview',
+    url: 'http://localhost:4173',
+    reuseExistingServer: !process.env.CI,
+  },
 })
+```
+
+### Scripts no `package.json`
+
+```json
+"scripts": {
+  "test":          "vitest",
+  "test:ui":       "vitest --ui",
+  "test:coverage": "vitest run --coverage",
+  "test:e2e":      "playwright test",
+  "test:e2e:ui":   "playwright test --ui"
+}
 ```
 
 ---
 
-## Testes E2E com Playwright
+## 6. Refatorações mínimas necessárias
 
-### Setup
+Três extrações que desbloqueiam os unit tests de maior valor. Nenhuma quebra o código existente.
 
-```bash
-npm init playwright@latest
-```
-
-### Fluxo: adicionar novo processo
+### 1. Extrair `buildPrompt` de `MessagesTab`
 
 ```js
-// e2e/new-process.spec.js
-import { test, expect } from '@playwright/test'
-
-test('adicionar novo processo', async ({ page }) => {
-  await page.goto('http://localhost:5173')
-
-  // Abre o modal
-  await page.getByText('Novo Processo').click()
-  await expect(page.getByText('Como surgiu esta oportunidade?')).toBeVisible()
-
-  // Preenche os campos
-  await page.getByLabel('Empresa *').fill('Nubank')
-  await page.getByLabel('Cargo *').fill('Senior Frontend Engineer')
-
-  // Salva
-  await page.getByText('Adicionar Processo').click()
-
-  // Verifica que apareceu na lista
-  await expect(page.getByText('Nubank')).toBeVisible()
-})
+// src/utils/buildPrompt.js
+export function buildPrompt({ process, channel, channelHint, scenario, recruiterMsg, extra }) {
+  // ... lógica atual da função buildPrompt dentro de MessagesTab
+}
 ```
 
-### Fluxo: avançar stage no pipeline
+### 2. Extrair `filterProcesses` do corpo do App
 
 ```js
-// e2e/pipeline.spec.js
-test('avançar stage clicando na barra de progresso', async ({ page }) => {
-  await page.goto('http://localhost:5173')
-
-  // Seleciona o processo Nubank (já em "Entrevista")
-  await page.getByText('Nubank').first().click()
-
-  // Clica em "Técnica" na barra de pipeline
-  await page.getByText('Técnica').click()
-
-  // Verifica que o badge mudou
-  await expect(page.locator('.badge').first()).toContainText('Técnica')
-})
+// src/utils/filterProcesses.js
+export function filterProcesses(list, search, stageFilter) {
+  const q = search.toLowerCase();
+  return list.filter(p =>
+    (stageFilter === "all" || p.stage === stageFilter) &&
+    (!q || p.company.toLowerCase().includes(q) ||
+           p.role.toLowerCase().includes(q) ||
+           p.tags.some(t => t.toLowerCase().includes(q)))
+  );
+}
 ```
 
-### Fluxo: dark/light mode
+### 3. Extrair `checkRateLimit` e `corsHeaders` da Edge Function
 
-```js
-// e2e/theme.spec.js
-test('alternar entre dark e light mode', async ({ page }) => {
-  await page.goto('http://localhost:5173')
-
-  // Background inicial é escuro
-  const bg = await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
-  )
-  expect(bg).toBe('#111113')
-
-  // Clica no toggle de tema
-  await page.locator('[data-testid="theme-toggle"]').click()
-
-  // Background muda para light
-  const bgLight = await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
-  )
-  expect(bgLight).toBe('#FAFAF9')
-})
+```ts
+// supabase/functions/anthropic-proxy/utils.ts
+export function checkRateLimit(map: Map<string, { count: number; resetAt: number }>, userId: string): boolean { ... }
+export function corsHeaders(origin: string, allowedOrigin: string): Record<string, string> { ... }
 ```
 
 ---
 
-## Cobertura mínima sugerida
+## 7. Prioridade de implementação
 
-| Área | Cobertura alvo |
+| Fase | O quê | Esforço | Prioridade |
+|---|---|---|---|
+| **1** | Configurar Vitest + RTL + MSW + setup files | 2–3h | Bloqueante |
+| **2** | Unit tests de funções puras (`fmtDate`, `daysDiff`, `rowToProcess`, `processToRow`) | 3–4h | Alta — risco real de bug de timezone |
+| **3** | Component tests críticos (`LoginScreen`, `SetPasswordModal`, `Badge`, `Btn`) | 3–4h | Alta — porta de entrada do app |
+| **4** | Integration tests de auth (login, demo, recovery) | 4–5h | Alta — bug aqui torna o app inacessível |
+| **5** | Integration tests de CRUD + busca/filtro | 4–5h | Média |
+| **6** | E2E básico (E2E-1, E2E-2, E2E-7) | 4–5h | Média |
+| **7** | Component tests restantes (`OverviewTab`, `TimelineTab`, `ProcessCard`, `Dashboard`) | 4–6h | Média |
+| **8** | Unit tests de Edge Function (`checkRateLimit`, `corsHeaders`) | 1–2h | Média |
+| **9** | E2E avançado (mobile, magic link com Mailpit, AI real em staging) | 6–8h | Baixa |
+
+**MVP de testes (fases 1–5):** ~20–22h — cobre 80% do risco com 40% do esforço total.
+
+---
+
+## 8. Estimativa de esforço
+
+| Grupo | Estimativa |
 |---|---|
-| Utilitários (`fmtDate`, `daysDiff`) | 100% |
-| Hooks (`useIsMobile`, `useTheme`) | 80% |
-| Componentes de UI (Badge, Btn, ProcessCard) | 80% |
-| Fluxos críticos (add process, gerador) | Cobertos por E2E |
-| Chamadas à API | Cobertos por MSW |
-
-Para ver a cobertura atual:
-
-```bash
-npm run test:coverage
-```
+| Configuração e infra | 2–3h |
+| Unit tests — funções puras + constantes + Edge Function | 5–6h |
+| Component tests — todos os componentes | 14–18h |
+| Integration tests — auth + CRUD + AI | 10–13h |
+| E2E básico (3 cenários) | 4–5h |
+| E2E avançado (5 cenários) | 6–8h |
+| **Total MVP (fases 1–5)** | **~20–22h** |
+| **Total completo** | **~45–55h** |
 
 ---
 
-## CI com GitHub Actions
+## 9. Estrutura de arquivos esperada
 
-Crie `.github/workflows/test.yml`:
+```
+src/
+├── test/
+│   ├── setup.js
+│   └── mocks/
+│       ├── server.js
+│       ├── handlers.js
+│       └── fixtures.js
+├── utils/
+│   ├── buildPrompt.js        ← extrair de MessagesTab
+│   └── filterProcesses.js   ← extrair de App.jsx
+└── __tests__/
+    ├── unit/
+    │   ├── fmtDate.test.js
+    │   ├── daysDiff.test.js
+    │   ├── supabase.test.js        (rowToProcess, processToRow)
+    │   ├── buildPrompt.test.js
+    │   ├── filterProcesses.test.js
+    │   └── constants.test.js       (STAGE, ACTIVE_STAGES)
+    ├── components/
+    │   ├── Badge.test.jsx
+    │   ├── Btn.test.jsx
+    │   ├── Ic.test.jsx
+    │   ├── ProcessCard.test.jsx
+    │   ├── Tabs.test.jsx
+    │   ├── PipelineBar.test.jsx
+    │   ├── LoginScreen.test.jsx
+    │   ├── SetPasswordModal.test.jsx
+    │   ├── NewProcessModal.test.jsx
+    │   ├── OverviewTab.test.jsx
+    │   ├── TimelineTab.test.jsx
+    │   └── Dashboard.test.jsx
+    └── integration/
+        ├── auth.test.jsx
+        ├── crud.test.jsx
+        ├── search-filter.test.jsx
+        └── ai-calls.test.jsx
 
-```yaml
-name: Tests
+e2e/
+├── login.spec.ts
+├── crud.spec.ts
+├── mobile.spec.ts
+├── demo.spec.ts
+├── ai.spec.ts
+└── theme.spec.ts
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - run: npm ci
-      - run: npm run test:run
-      - run: npm run build
-
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps
-      - run: npm run build
-      - run: npx playwright test
+supabase/functions/anthropic-proxy/
+├── index.ts
+└── utils.ts    ← extrair checkRateLimit e corsHeaders
 ```

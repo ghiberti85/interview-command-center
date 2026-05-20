@@ -379,6 +379,23 @@ Na Vercel, estas variáveis estão configuradas nas Environment Variables do pro
 
 ---
 
+## Testes
+
+O projeto tem estratégia de testes documentada em `TESTING.md`. Ao implementar qualquer funcionalidade nova:
+
+- Se a lógica é uma função pura, adicione um unit test em `src/__tests__/unit/`
+- Se envolve um componente React, adicione um component test em `src/__tests__/components/`
+- Se cruza auth, Supabase ou proxy de IA, adicione um integration test com MSW
+
+**Stack:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E).
+
+**Refatorações pendentes antes de testar:**
+- Extrair `buildPrompt` de `MessagesTab` → `src/utils/buildPrompt.js`
+- Extrair `filterProcesses` do App.jsx → `src/utils/filterProcesses.js`
+- Extrair `checkRateLimit` e `corsHeaders` → `supabase/functions/anthropic-proxy/utils.ts`
+
+---
+
 ## O que NÃO fazer
 
 - ❌ Não instale dependências novas sem necessidade

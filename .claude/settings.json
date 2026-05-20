@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"📋 Lembrete: atualize CLAUDE.md, ROADMAP.md e TESTING.md para refletir as mudanças feitas nesta sessão.\"}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -4,6 +4,18 @@ Este arquivo orienta o Claude (e outros assistentes de IA) sobre a arquitetura, 
 
 ---
 
+## ⚠️ Regra obrigatória — Atualização de documentação
+
+**Após toda e qualquer implementação, correção ou mudança de comportamento, você DEVE atualizar:**
+
+1. **`CLAUDE.md`** — atualizar seções de arquitetura, convenções, histórico de decisões ou tarefas frequentes que mudaram
+2. **`ROADMAP.md`** — marcar itens concluídos como feitos, adicionar novos itens descobertos, atualizar o status das fases
+3. **`TESTING.md`** — documentar novos testes criados, cenários cobertos, e atualizar o status de cobertura
+
+Esta regra vale para toda sessão, inclusive quando a mudança parece pequena. Não finalize a tarefa sem atualizar as três documentações.
+
+---
+
 ## Visão geral do projeto
 
 Aplicação React de gestão de processos seletivos para profissionais de tecnologia. O usuário central é **Fernando**, Senior Full-Stack Engineer / Front-End Tech Lead, frequentemente contactado por recrutadores (inbound) e que precisa gerenciar múltiplos processos simultaneamente.

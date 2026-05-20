@@ -402,16 +402,18 @@ O projeto tem estratégia de testes documentada em `TESTING.md`. Ao implementar 
 **Stack:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E).
 
 **Refatorações pendentes antes de testar:**
-- Extrair `buildPrompt` de `MessagesTab` → `src/utils/buildPrompt.js`
-- Extrair `filterProcesses` do App.jsx → `src/utils/filterProcesses.js`
+- Extrair `buildPrompt` de `MessagesTab` → `src/utils/buildPrompt.ts` (após migração TS)
+- Extrair `filterProcesses` do App.jsx → `src/utils/filterProcesses.ts` (após migração TS)
 - Extrair `checkRateLimit` e `corsHeaders` → `supabase/functions/anthropic-proxy/utils.ts`
+
+**Migração TypeScript planejada para v1.4:** o projeto será componentizado e migrado de `.jsx` para `.tsx` com `strict: true`. Até lá, manter o padrão `.jsx` + inline styles existente. Ver ROADMAP.md para o plano detalhado de componentização.
 
 ---
 
 ## O que NÃO fazer
 
 - ❌ Não instale dependências novas sem necessidade
-- ❌ Não quebre o arquivo único em múltiplos sem necessidade real
+- ❌ Não quebre o arquivo único em múltiplos antes da v1.4 — componentização é uma fase dedicada, não patches incrementais
 - ❌ Não use cores hardcoded — sempre use CSS vars do Signal DS
 - ❌ Não chame a API Anthropic diretamente do frontend — use sempre o proxy com token
 - ❌ Não altere o modelo de IA (`claude-sonnet-4-20250514`) sem testar os prompts

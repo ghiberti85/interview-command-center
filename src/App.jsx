@@ -190,17 +190,28 @@ function useAuth() {
 }
 
 // ─── Login screen ─────────────────────────────────────────────────────────────
-function LoginScreen({ dark }) {
+function LoginScreen() {
+  const [mode, setMode] = useState("password"); // "password" | "magic"
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  async function handleSend(e) {
+  const inputFocus = e => { e.target.style.borderColor="var(--acc)"; e.target.style.boxShadow="0 0 0 3px var(--acc-d)"; };
+  const inputBlur  = e => { e.target.style.borderColor="var(--border)"; e.target.style.boxShadow="none"; };
+
+  async function handlePassword(e) {
     e.preventDefault();
-    if (!email.trim()) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
+    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setLoading(false);
+    if (err) setError(err.message === "Invalid login credentials" ? "E-mail ou senha incorretos." : err.message);
+  }
+
+  async function handleMagicLink(e) {
+    e.preventDefault();
+    setLoading(true); setError(null);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: window.location.origin },
@@ -210,56 +221,88 @@ function LoginScreen({ dark }) {
     setSent(true);
   }
 
+  const Logo = () => (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:32 }}>
+      <div style={{ width:52, height:52, borderRadius:15, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:14 }}>
+        <Ic n="target" s={24} c="#fff"/>
+      </div>
+      <div style={{ fontWeight:800, fontSize:22, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
+      <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.08em", textTransform:"uppercase", marginTop:4 }}>Command Center</div>
+    </div>
+  );
+
+  const ErrorBox = () => error ? (
+    <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", color:"var(--red)", fontSize:12, marginBottom:14 }}>{error}</div>
+  ) : null;
+
+  if (sent) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"var(--bg)", padding:24 }}>
+      <div style={{ width:"100%", maxWidth:380, animation:"fadeIn 0.3s ease" }}>
+        <Logo/>
+        <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28, textAlign:"center" }}>
+          <div style={{ width:44, height:44, borderRadius:12, background:"var(--grn-d)", border:"1px solid var(--grn-b)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+            <Ic n="send" s={20} c="var(--grn)"/>
+          </div>
+          <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", marginBottom:8 }}>Link enviado!</div>
+          <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.6 }}>
+            Verifique seu e-mail <strong style={{ color:"var(--t1)" }}>{email}</strong> e clique no link para entrar.
+          </div>
+          <div style={{ marginTop:16, padding:"10px 14px", borderRadius:10, background:"var(--acc-d)", border:"1px solid var(--acc-b)" }}>
+            <div style={{ fontSize:12, color:"var(--acc)", fontWeight:600, marginBottom:4 }}>Dica</div>
+            <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>Após entrar, vá em <strong>Configurações → Definir senha</strong> para não precisar de link nas próximas vezes.</div>
+          </div>
+          <button onClick={()=>{setSent(false);setEmail("");setMode("password");}} style={{ marginTop:16, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+            Voltar ao login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"var(--bg)", padding:24 }}>
       <div style={{ width:"100%", maxWidth:380, animation:"fadeIn 0.3s ease" }}>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:36 }}>
-          <div style={{ width:52, height:52, borderRadius:15, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16 }}>
-            <Ic n="target" s={24} c="#fff"/>
-          </div>
-          <div style={{ fontWeight:800, fontSize:22, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
-          <div style={{ fontSize:12, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.08em", textTransform:"uppercase", marginTop:4 }}>Command Center</div>
-        </div>
-
+        <Logo/>
         <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28 }}>
-          {sent ? (
-            <div style={{ textAlign:"center", padding:"8px 0" }}>
-              <div style={{ width:44, height:44, borderRadius:12, background:"var(--grn-d)", border:"1px solid var(--grn-b)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                <Ic n="send" s={20} c="var(--grn)"/>
-              </div>
-              <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", marginBottom:8 }}>Link enviado!</div>
-              <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.6 }}>
-                Verifique seu e-mail <strong style={{ color:"var(--t1)" }}>{email}</strong> e clique no link para entrar.
-              </div>
-              <button onClick={()=>{setSent(false);setEmail("");}} style={{ marginTop:20, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
-                Usar outro e-mail
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSend}>
-              <div style={{ marginBottom:20 }}>
-                <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6, letterSpacing:"-0.02em" }}>Entrar</div>
-                <div style={{ fontSize:13, color:"var(--t3)" }}>Receba um link mágico no seu e-mail. Sem senha.</div>
-              </div>
-              <div style={{ marginBottom:14 }}>
+          {mode === "password" ? (
+            <form onSubmit={handlePassword}>
+              <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:4, letterSpacing:"-0.02em" }}>Entrar</div>
+              <div style={{ fontSize:13, color:"var(--t3)", marginBottom:20 }}>Use seu e-mail e senha para acessar.</div>
+              <div style={{ marginBottom:12 }}>
                 <label style={{ ...T.label, display:"block", marginBottom:6 }}>E-mail</label>
-                <input
-                  type="email" required autoFocus
-                  value={email} onChange={e=>setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  style={{ ...T.input, fontSize:14 }}
-                  onFocus={e=>{ e.target.style.borderColor="var(--acc)"; e.target.style.boxShadow="0 0 0 3px var(--acc-d)"; }}
-                  onBlur={e=>{ e.target.style.borderColor="var(--border)"; e.target.style.boxShadow="none"; }}
-                />
+                <input type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
               </div>
-              {error && (
-                <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", color:"var(--red)", fontSize:12, marginBottom:14 }}>
-                  {error}
-                </div>
-              )}
-              <Btn full disabled={loading || !email.trim()}>
-                {loading ? "Enviando…" : <><Ic n="send" s={14} c="#fff"/>Enviar link de acesso</>}
+              <div style={{ marginBottom:16 }}>
+                <label style={{ ...T.label, display:"block", marginBottom:6 }}>Senha</label>
+                <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
+              </div>
+              <ErrorBox/>
+              <Btn full disabled={loading || !email.trim() || !password}>
+                {loading ? "Entrando…" : "Entrar"}
               </Btn>
+              <div style={{ marginTop:16, textAlign:"center" }}>
+                <button type="button" onClick={()=>{setMode("magic");setError(null);}} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                  Entrar sem senha (link mágico)
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleMagicLink}>
+              <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:4, letterSpacing:"-0.02em" }}>Link mágico</div>
+              <div style={{ fontSize:13, color:"var(--t3)", marginBottom:20 }}>Receba um link de acesso no seu e-mail.</div>
+              <div style={{ marginBottom:16 }}>
+                <label style={{ ...T.label, display:"block", marginBottom:6 }}>E-mail</label>
+                <input type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
+              </div>
+              <ErrorBox/>
+              <Btn full disabled={loading || !email.trim()}>
+                {loading ? "Enviando…" : <><Ic n="send" s={14} c="#fff"/>Enviar link</>}
+              </Btn>
+              <div style={{ marginTop:16, textAlign:"center" }}>
+                <button type="button" onClick={()=>{setMode("password");setError(null);}} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                  Voltar ao login com senha
+                </button>
+              </div>
             </form>
           )}
         </div>
@@ -946,6 +989,65 @@ function MobileDashboard({ processes }) {
   );
 }
 
+function SetPasswordModal({ onClose }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState(null);
+
+  const inputFocus = e => { e.target.style.borderColor="var(--acc)"; e.target.style.boxShadow="0 0 0 3px var(--acc-d)"; };
+  const inputBlur  = e => { e.target.style.borderColor="var(--border)"; e.target.style.boxShadow="none"; };
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+    if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
+    setLoading(true); setError(null);
+    const { error: err } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setDone(true);
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:24 }} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28, width:"100%", maxWidth:380, animation:"slideUp 0.2s ease" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+          <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", letterSpacing:"-0.02em" }}>Definir senha</div>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:6 }}><Ic n="close" s={16} c="var(--t3)"/></button>
+        </div>
+        {done ? (
+          <div style={{ textAlign:"center", padding:"8px 0" }}>
+            <div style={{ width:44, height:44, borderRadius:12, background:"var(--grn-d)", border:"1px solid var(--grn-b)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+              <Ic n="check" s={20} c="var(--grn)"/>
+            </div>
+            <div style={{ fontWeight:700, fontSize:15, color:"var(--t1)", marginBottom:8 }}>Senha definida!</div>
+            <div style={{ fontSize:13, color:"var(--t2)", marginBottom:20 }}>Nos próximos acessos use seu e-mail e senha.</div>
+            <Btn onClick={onClose}>Fechar</Btn>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ fontSize:13, color:"var(--t3)", marginBottom:20 }}>Crie uma senha para entrar diretamente sem precisar de link mágico.</div>
+            <div style={{ marginBottom:12 }}>
+              <label style={{ ...T.label, display:"block", marginBottom:6 }}>Nova senha</label>
+              <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
+            </div>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ ...T.label, display:"block", marginBottom:6 }}>Confirmar senha</label>
+              <input type="password" required value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Repita a senha" style={{ ...T.input, fontSize:14 }} onFocus={inputFocus} onBlur={inputBlur}/>
+            </div>
+            {error && <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", color:"var(--red)", fontSize:12, marginBottom:14 }}>{error}</div>}
+            <Btn full disabled={loading || !password || !confirm}>
+              {loading ? "Salvando…" : "Definir senha"}
+            </Btn>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NewProcessModal({ onClose, onSave, isMobile }) {
   const [form, setForm] = useState({ company:"", role:"", stage:"contacted", location:"", salary:"", recruiter:"", recruiterEmail:"", jobUrl:"", nextStepNote:"", nextStepDate:"", tags:"", notes:"", origin:"inbound" });
   const [saving, setSaving] = useState(false);
@@ -1043,6 +1145,7 @@ export default function App() {
   const [mobileScreen, setMobileScreen] = useState("list");
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
+  const [showSetPassword, setShowSetPassword] = useState(false);
 
   // Apply CSS vars
   useEffect(() => {
@@ -1179,6 +1282,9 @@ export default function App() {
               <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Alternar tema">
                 <Ic n={dark?"sun":"moon"} s={16} c="var(--t3)"/>
               </button>
+              <button onClick={()=>setShowSetPassword(true)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Definir senha">
+                <Ic n="edit" s={15} c="var(--t3)"/>
+              </button>
               <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Sair">
                 <Ic n="logout" s={15} c="var(--t3)"/>
               </button>
@@ -1248,6 +1354,7 @@ export default function App() {
         </div>
       </div>
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={false}/>}
+      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)}/>}
     </>
   );
 
@@ -1341,6 +1448,7 @@ export default function App() {
         </div>
       </div>
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={true}/>}
+      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)}/>}
     </>
   );
 }

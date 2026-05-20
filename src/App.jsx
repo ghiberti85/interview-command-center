@@ -141,6 +141,9 @@ const T = {
   input: { width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid var(--border)", background:"var(--bg-o)", color:"var(--t1)", fontSize:14, outline:"none", fontFamily:"'Outfit',sans-serif", transition:"border-color 0.15s, box-shadow 0.15s" },
 };
 
+// Shared icon-button style — 36×36, meets touch target with padding
+const iconBtn = (extra={}) => ({ display:"flex", alignItems:"center", justifyContent:"center", width:32, height:32, borderRadius:8, border:"none", background:"transparent", cursor:"pointer", transition:"background 0.15s", flexShrink:0, ...extra });
+
 function Badge({ stage }) {
   const s = STAGE[stage] || STAGE.archived;
   return (
@@ -152,16 +155,19 @@ function Badge({ stage }) {
 }
 
 function Btn({ children, variant="primary", size="md", full, onClick, disabled, style={} }) {
-  const base = { display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, borderRadius:10, fontFamily:"'Outfit',sans-serif", fontWeight:600, cursor:disabled?"not-allowed":"pointer", border:"none", transition:"all 0.15s", letterSpacing:"-0.01em", opacity:disabled?0.45:1, ...style };
-  const sizes = { sm:{padding:"6px 12px",fontSize:12,borderRadius:6}, md:{padding:"10px 18px",fontSize:13}, lg:{padding:"13px 22px",fontSize:14,borderRadius:12} };
+  const [hov, setHov] = useState(false);
+  const base = { display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, borderRadius:10, fontFamily:"'Outfit',sans-serif", fontWeight:600, cursor:disabled?"not-allowed":"pointer", border:"none", transition:"all 0.15s", letterSpacing:"-0.01em", opacity:disabled?0.5:1, ...style };
+  const sizes = { sm:{padding:"6px 14px",fontSize:12,borderRadius:8}, md:{padding:"10px 20px",fontSize:13}, lg:{padding:"13px 24px",fontSize:14,borderRadius:12} };
   const variants = {
-    primary:   { background:"var(--acc)", color:"#fff" },
-    secondary: { background:"var(--acc-d)", color:"var(--acc)", border:"1px solid var(--acc-b)" },
-    ghost:     { background:"transparent", color:"var(--t2)", border:"1px solid var(--border)" },
-    danger:    { background:"var(--red-d)", color:"var(--red)", border:"1px solid var(--red-b)" },
+    primary:   { background: hov&&!disabled ? "var(--acc)" : "var(--acc)", color:"#fff", filter: hov&&!disabled ? "brightness(1.12)" : "none" },
+    secondary: { background: hov&&!disabled ? "var(--acc-d)" : "transparent", color:"var(--acc)", border:"1px solid var(--acc-b)" },
+    ghost:     { background: hov&&!disabled ? "var(--bg-s)" : "transparent", color:"var(--t2)", border:"1px solid var(--border)" },
+    danger:    { background: hov&&!disabled ? "var(--red-d)" : "transparent", color:"var(--red)", border:"1px solid var(--red-b)" },
   };
   return (
-    <button onClick={onClick} disabled={disabled} style={{ ...base, ...sizes[size], ...variants[variant], ...(full?{width:"100%"}:{}) }}>
+    <button onClick={onClick} disabled={disabled}
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{ ...base, ...sizes[size], ...variants[variant], ...(full?{width:"100%"}:{}) }}>
       {children}
     </button>
   );
@@ -404,21 +410,21 @@ function ProcessCard({ process, onClick, selected }) {
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
   return (
-    <div onClick={onClick} style={{ background:"var(--bg-r)", border:`1px solid ${selected?"var(--acc-b)":"var(--border)"}`, borderLeft:`3px solid ${s.bar}`, borderRadius:12, padding:"14px 14px 12px", cursor:"pointer", transition:"all 0.15s", marginBottom:8 }}>
+    <div className="process-card" onClick={onClick} style={{ background:"var(--bg-r)", border:`1.5px solid ${selected?"var(--acc-b)":"var(--border)"}`, borderLeft:`3px solid ${s.bar}`, borderRadius:12, padding:"12px 14px", cursor:"pointer", marginBottom:6 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
-        <div style={{ minWidth:0 }}>
+        <div style={{ minWidth:0, flex:1 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <span style={{ fontWeight:700, fontSize:15, color:"var(--t1)", letterSpacing:"-0.02em", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{process.company}</span>
-            {process.starred && <Ic n="starF" s={13} c="#F5A623"/>}
+            <span style={{ fontWeight:700, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.company}</span>
+            {process.starred && <Ic n="starF" s={12} c="#F5A623"/>}
           </div>
           <div style={{ fontSize:12, color:"var(--t2)", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.role}</div>
         </div>
         <Badge stage={process.stage}/>
       </div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
-        <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8, gap:8 }}>
+        <div style={{ display:"flex", gap:4, flexWrap:"wrap", minWidth:0 }}>
           {process.tags.slice(0,2).map(t=>(
-            <span key={t} style={{ padding:"2px 7px", borderRadius:6, background:"var(--bg-s)", color:"var(--t3)", fontSize:10, ...T.mono }}>{t}</span>
+            <span key={t} style={{ padding:"2px 7px", borderRadius:6, background:"var(--bg-s)", color:"var(--t3)", fontSize:10, ...T.mono, whiteSpace:"nowrap" }}>{t}</span>
           ))}
         </div>
         {process.nextStepDate && (
@@ -463,7 +469,7 @@ function Tabs({ tabs, active, onChange }) {
   return (
     <div style={{ display:"flex", gap:2, padding:4, background:"var(--bg-o)", borderRadius:12, border:"1px solid var(--border)", overflowX:"auto", scrollbarWidth:"none" }}>
       {tabs.map(t => (
-        <button key={t.id} onClick={()=>onChange(t.id)} style={{ flex:1, padding:"8px 12px", borderRadius:9, border:"none", background:active===t.id?"var(--acc-d)":"transparent", color:active===t.id?"var(--acc)":"var(--t3)", fontSize:12, fontWeight:active===t.id?600:400, fontFamily:"'Outfit',sans-serif", cursor:"pointer", whiteSpace:"nowrap", transition:"all 0.15s" }}>
+        <button key={t.id} onClick={()=>onChange(t.id)} className="tab-btn" style={{ flex:1, padding:"9px 12px", borderRadius:9, border:"none", background:active===t.id?"var(--bg-r)":"transparent", color:active===t.id?"var(--t1)":"var(--t3)", fontSize:13, fontWeight:active===t.id?600:400, fontFamily:"'Outfit',sans-serif", cursor:"pointer", whiteSpace:"nowrap", transition:"all 0.15s", boxShadow:active===t.id?"0 1px 4px rgba(0,0,0,0.12)":"none" }}>
           {t.label}
         </button>
       ))}
@@ -1195,6 +1201,7 @@ export default function App() {
   const [view, setView] = useState("pipeline");
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
   const [mobileScreen, setMobileScreen] = useState("list");
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
@@ -1274,22 +1281,38 @@ export default function App() {
   const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   const archived = processes.filter(p=>["rejected","archived"].includes(p.stage));
   const listSrc = view==="archived" ? archived : active;
-  const filtered = listSrc.filter(p=>{ const q=search.toLowerCase(); return !q||p.company.toLowerCase().includes(q)||p.role.toLowerCase().includes(q)||p.tags.some(t=>t.toLowerCase().includes(q)); });
+  const filtered = listSrc.filter(p=>{ const q=search.toLowerCase(); return (stageFilter==="all"||p.stage===stageFilter)&&(!q||p.company.toLowerCase().includes(q)||p.role.toLowerCase().includes(q)||p.tags.some(t=>t.toLowerCase().includes(q))); });
   const urgent = active.filter(p=>{ const d=daysDiff(p.nextStepDate); return d!==null&&d>=0&&d<=2; }).length;
 
   const GLOBAL_CSS = `
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { font-family: 'Outfit', sans-serif; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
     @keyframes pulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
     @keyframes spin { to{transform:rotate(360deg)} }
-    input[type='date']::-webkit-calendar-picker-indicator { filter: ${dark?"invert(1)":"none"}; }
+    input[type='date']::-webkit-calendar-picker-indicator { filter: ${dark?"invert(1)":"none"}; opacity:0.5; }
     select option { background: var(--bg-r); color: var(--t1); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--acc); outline-offset: 2px;
+    }
+    .nav-btn:hover { background: var(--bg-s) !important; }
+    .nav-btn.active:hover { background: var(--acc-d) !important; }
+    .icon-btn:hover { background: var(--bg-s) !important; }
+    .card-hover:hover { border-color: var(--border-md) !important; }
+    .process-card:hover { border-color: var(--border-md) !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .process-card { transition: all 0.15s ease !important; }
+    .tab-btn:hover { color: var(--t1) !important; }
+    .quick-action:hover { background: var(--bg-s) !important; border-color: var(--border-md) !important; }
+    .channel-btn:hover { opacity: 0.85; }
+    .scenario-btn:hover { background: var(--bg-s) !important; border-color: var(--border-md) !important; }
+    .mobile-tab:hover { opacity: 0.8; }
+    .bottom-nav-btn { transition: color 0.15s; min-height: 52px; }
+    .bottom-nav-btn:active { opacity: 0.7; }
   `;
 
   const EmptyState = () => (
@@ -1351,66 +1374,63 @@ export default function App() {
               <button onClick={()=>setIsDemo(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:10, color:"var(--amb)", fontFamily:"'Outfit',sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>Sair</button>
             </div>
           )}
-          <div style={{ padding:"18px 16px 14px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:30, height:30, borderRadius:9, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <Ic n="target" s={15} c="#fff"/>
+          <div style={{ padding:"16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:32, height:32, borderRadius:10, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <Ic n="target" s={16} c="#fff"/>
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:800, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
-              <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)" }}>Command Center</div>
+              <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)", marginTop:1 }}>Command Center</div>
             </div>
-            <div style={{ display:"flex", gap:4 }}>
-              <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Alternar tema">
-                <Ic n={dark?"sun":"moon"} s={16} c="var(--t3)"/>
+            <div style={{ display:"flex", gap:2 }}>
+              <button className="icon-btn" onClick={toggleTheme} style={iconBtn()} title="Alternar tema" aria-label="Alternar tema">
+                <Ic n={dark?"sun":"moon"} s={15} c="var(--t3)"/>
               </button>
-              {!isDemo && <button onClick={()=>setShowSetPassword(true)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Definir senha"><Ic n="edit" s={15} c="var(--t3)"/></button>}
-              {!isDemo && <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:7 }} title="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>}
+              {!isDemo && <button className="icon-btn" onClick={()=>setShowSetPassword(true)} style={iconBtn()} title="Definir senha" aria-label="Definir senha"><Ic n="edit" s={15} c="var(--t3)"/></button>}
+              {!isDemo && <button className="icon-btn" onClick={()=>supabase.auth.signOut()} style={iconBtn()} title="Sair" aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>}
             </div>
           </div>
-          <div style={{ padding:"10px 10px 0" }}>
+          <div style={{ padding:"8px" }}>
             {[
               { id:"pipeline",  icon:"pipeline", label:"Pipeline",   count:active.length },
               { id:"dashboard", icon:"chart",    label:"Dashboard"   },
               { id:"archived",  icon:"archive",  label:"Arquivados", count:archived.length },
             ].map(n=>(
-              <button key={n.id} onClick={()=>setView(n.id)} style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:9, border:"none", marginBottom:2, background:view===n.id?"var(--acc-d)":"transparent", color:view===n.id?"var(--acc)":"var(--t3)", cursor:"pointer", fontSize:13, fontWeight:view===n.id?600:400, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}>
+              <button key={n.id} onClick={()=>setView(n.id)} className={`nav-btn${view===n.id?" active":""}`} style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:9, border:"none", marginBottom:2, background:view===n.id?"var(--acc-d)":"transparent", color:view===n.id?"var(--acc)":"var(--t2)", cursor:"pointer", fontSize:13, fontWeight:view===n.id?600:500, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}>
                 <Ic n={n.icon} s={15} c={view===n.id?"var(--acc)":"var(--t3)"}/>
                 <span style={{ flex:1 }}>{n.label}</span>
-                {n.count!=null && <span style={{ padding:"1px 7px", borderRadius:999, background:view===n.id?"rgba(124,106,255,0.2)":"var(--bg-s)", color:view===n.id?"var(--acc)":"var(--t4)", fontSize:11, fontFamily:"'JetBrains Mono',monospace" }}>{n.count}</span>}
+                {n.count!=null && <span style={{ padding:"2px 7px", borderRadius:999, background:view===n.id?"var(--acc-d)":"var(--bg-s)", color:view===n.id?"var(--acc)":"var(--t3)", fontSize:11, fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${view===n.id?"var(--acc-b)":"var(--border)"}` }}>{n.count}</span>}
               </button>
             ))}
           </div>
           {urgent>0 && (
-            <div style={{ margin:"10px", padding:"10px 12px", borderRadius:10, background:"var(--red-d)", border:"1px solid var(--red-b)", display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ margin:"0 8px 4px", padding:"10px 12px", borderRadius:10, background:"var(--red-d)", border:"1px solid var(--red-b)", display:"flex", alignItems:"center", gap:8 }}>
               <Ic n="alert" s={13} c="var(--red)"/>
               <div>
-                <div style={{ fontSize:11, color:"var(--red)", fontWeight:600 }}>{urgent} etapa{urgent>1?"s urgentes":" urgente"}</div>
-                <div style={{ fontSize:10, color:"var(--red)", opacity:0.6, marginTop:1 }}>Ação necessária em 48h</div>
+                <div style={{ fontSize:12, color:"var(--red)", fontWeight:600 }}>{urgent} etapa{urgent>1?"s urgentes":" urgente"}</div>
+                <div style={{ fontSize:11, color:"var(--red)", opacity:0.7, marginTop:1 }}>Ação necessária em 48h</div>
               </div>
             </div>
           )}
-          <div style={{ padding:"8px 10px 6px" }}>
+          <div style={{ padding:"4px 8px 6px" }}>
             <div style={{ position:"relative" }}>
-              <div style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={13} c="var(--t4)"/></div>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." style={{ ...T.input, paddingLeft:30, fontSize:12, borderRadius:8 }}/>
+              <div style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}><Ic n="search" s={13} c="var(--t4)"/></div>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." aria-label="Buscar processos" style={{ ...T.input, paddingLeft:32, fontSize:13, borderRadius:9 }}/>
             </div>
           </div>
-          <div style={{ flex:1, overflowY:"auto", padding:"4px 10px" }}>
+          <div style={{ flex:1, overflowY:"auto", padding:"4px 8px" }}>
             {dbLoading ? (
-              <div style={{ padding:"30px 0" }}><Spinner/></div>
+              <div style={{ padding:"24px 0" }}><Spinner/></div>
             ) : filtered.length===0 ? (
-              <div style={{ color:"var(--t4)", fontSize:12, textAlign:"center", padding:"20px 0" }}>
-                {processes.length===0 ? "Nenhum processo" : "Sem resultados"}
+              <div style={{ color:"var(--t3)", fontSize:12, textAlign:"center", padding:"24px 0" }}>
+                {processes.length===0 ? "Nenhum processo ainda" : "Sem resultados"}
               </div>
             ) : filtered.map(p=>(
               <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}/>
             ))}
           </div>
-          <div style={{ padding:"10px" }}>
-            <button onClick={()=>setShowNew(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1px dashed var(--border)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}
-              onMouseEnter={e=>{e.currentTarget.style.background="var(--acc-d)";e.currentTarget.style.borderColor="var(--acc-b)";}}
-              onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="var(--border)";}}
-            >
+          <div style={{ padding:"8px" }}>
+            <button className="nav-btn" onClick={()=>setShowNew(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--border)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <Ic n="plus" s={14} c="var(--acc)"/>Novo Processo
             </button>
           </div>
@@ -1458,14 +1478,14 @@ export default function App() {
                 <span style={{ fontSize:11, color:"var(--red)", fontWeight:600 }}>{urgent}</span>
               </div>
             )}
-            <button onClick={toggleTheme} style={{ width:28, height:28, borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-r)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
-              <Ic n={dark?"sun":"moon"} s={14} c="var(--t3)"/>
+            <button className="icon-btn" onClick={toggleTheme} style={iconBtn({ width:44, height:44, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-r)" })} aria-label="Alternar tema">
+              <Ic n={dark?"sun":"moon"} s={16} c="var(--t3)"/>
             </button>
-            <button onClick={()=>supabase.auth.signOut()} style={{ width:28, height:28, borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-r)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }} title="Sair">
-              <Ic n="logout" s={14} c="var(--t3)"/>
+            <button className="icon-btn" onClick={()=>supabase.auth.signOut()} style={iconBtn({ width:44, height:44, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-r)" })} title="Sair" aria-label="Sair">
+              <Ic n="logout" s={16} c="var(--t3)"/>
             </button>
-            <button onClick={()=>setShowNew(true)} style={{ width:28, height:28, borderRadius:8, border:"none", background:"var(--acc-d)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
-              <Ic n="plus" s={15} c="var(--acc)"/>
+            <button className="icon-btn" onClick={()=>setShowNew(true)} style={iconBtn({ width:44, height:44, borderRadius:10, border:"none", background:"var(--acc-d)" })} aria-label="Novo processo">
+              <Ic n="plus" s={17} c="var(--acc)"/>
             </button>
           </div>
         </div>
@@ -1486,9 +1506,12 @@ export default function App() {
                 </div>
               </div>
               <div style={{ display:"flex", gap:6, padding:"0 16px 12px", overflowX:"auto", scrollbarWidth:"none" }}>
-                {[{id:"all",label:"Todos"},...ACTIVE_STAGES.map(s=>({id:s,label:STAGE[s].label}))].map(p=>(
-                  <div key={p.id} style={{ flexShrink:0, padding:"5px 12px", borderRadius:20, border:"1px solid var(--border)", background:"var(--bg-r)", color:"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap" }}>{p.label}</div>
-                ))}
+                {[{id:"all",label:"Todos"},...ACTIVE_STAGES.map(s=>({id:s,label:STAGE[s].label}))].map(p=>{
+                  const active = stageFilter===p.id;
+                  return (
+                    <div key={p.id} onClick={()=>setStageFilter(p.id)} style={{ flexShrink:0, padding:"7px 14px", borderRadius:20, border:`1px solid ${active?"var(--acc-b)":"var(--border)"}`, background:active?"var(--acc-d)":"var(--bg-r)", color:active?"var(--acc)":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap", fontWeight:active?600:400, transition:"all 0.15s" }}>{p.label}</div>
+                  );
+                })}
               </div>
               <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:8 }}>
                 {filtered.length===0 ? (
@@ -1515,10 +1538,10 @@ export default function App() {
           ].map(n=>{
             const on = view===n.id;
             return (
-              <button key={n.id} onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", padding:"10px 0 8px", gap:3, background:"none", border:"none", cursor:"pointer", color:on?"var(--acc)":"var(--t4)", transition:"color 0.15s" }}>
-                <Ic n={n.icon} s={19} c={on?"var(--acc)":"var(--t4)"}/>
-                <span style={{ fontSize:9, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.06em" }}>{n.label}</span>
-                {on && <div style={{ width:4, height:4, borderRadius:"50%", background:"var(--acc)" }}/>}
+              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:4, background:"none", border:"none", cursor:"pointer", color:on?"var(--acc)":"var(--t4)", minHeight:52, position:"relative" }}>
+                {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:24, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
+                <Ic n={n.icon} s={22} c={on?"var(--acc)":"var(--t4)"}/>
+                <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.05em" }}>{n.label}</span>
               </button>
             );
           })}

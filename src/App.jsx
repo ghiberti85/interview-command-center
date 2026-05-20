@@ -796,7 +796,7 @@ A resposta deve soar natural e humana. Não mencione IA. Em português.`;
   );
 }
 
-function AITab({ process }) {
+function AITab({ process, isMobile }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -831,29 +831,31 @@ Seja direto, prático e orientado a ação. Responda em português.`;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
-      <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--border)" }}>
-        <div style={{ ...T.label, marginBottom:8, display:"flex", alignItems:"center", gap:6, color:"var(--acc)" }}>
+      {/* Quick actions — scroll horizontal no mobile, wrap no desktop */}
+      <div style={{ padding:isMobile?"10px 14px":"12px 16px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+        <div style={{ ...T.label, marginBottom:6, display:"flex", alignItems:"center", gap:6, color:"var(--acc)" }}>
           <Ic n="ai" s={11} c="var(--acc)"/>Quick Actions
         </div>
-        <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:6, overflowX:isMobile?"auto":"visible", flexWrap:isMobile?"nowrap":"wrap", paddingBottom:isMobile?4:0, WebkitOverflowScrolling:"touch" }}>
           {quickActions.map(qa=>(
-            <button key={qa.label} onClick={()=>send(qa.prompt)} style={{ padding:"5px 11px", borderRadius:20, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}
+            <button key={qa.label} onClick={()=>send(qa.prompt)} style={{ padding:"6px 12px", borderRadius:20, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:isMobile?12:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", whiteSpace:"nowrap", flexShrink:0 }}
               onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--acc-b)";e.currentTarget.style.color="var(--acc)"}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--t2)"}}
             >{qa.label}</button>
           ))}
         </div>
       </div>
-      <div style={{ flex:1, overflowY:"auto", padding:16, display:"flex", flexDirection:"column", gap:10, minHeight:0 }}>
+      {/* Messages area */}
+      <div style={{ flex:1, overflowY:"auto", padding:isMobile?"12px 14px":16, display:"flex", flexDirection:"column", gap:10, minHeight:0, WebkitOverflowScrolling:"touch" }}>
         {messages.length===0 && (
-          <div style={{ textAlign:"center", padding:"36px 20px" }}>
-            <div style={{ display:"flex", justifyContent:"center", marginBottom:10, opacity:0.2 }}><Ic n="ai" s={30} c="var(--t2)"/></div>
+          <div style={{ textAlign:"center", padding:isMobile?"24px 16px":"36px 20px" }}>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:10, opacity:0.2 }}><Ic n="ai" s={28} c="var(--t2)"/></div>
             <div style={{ color:"var(--t3)", fontSize:13 }}>IA contextualizada para <strong style={{color:"var(--t2)"}}>{process.company}</strong></div>
             <div style={{ color:"var(--t4)", fontSize:12, marginTop:4 }}>Use os quick actions ou faça sua pergunta</div>
           </div>
         )}
         {messages.map((m,i)=>(
-          <div key={i} style={{ alignSelf:m.role==="user"?"flex-end":"flex-start", maxWidth:"85%", padding:"10px 14px", borderRadius:12, background:m.role==="user"?"var(--acc-d)":"var(--bg-r)", border:`1px solid ${m.role==="user"?"var(--acc-b)":"var(--border)"}`, fontSize:13, color:"var(--t1)", lineHeight:1.65, whiteSpace:"pre-wrap" }}>
+          <div key={i} style={{ alignSelf:m.role==="user"?"flex-end":"flex-start", maxWidth:isMobile?"90%":"85%", padding:"10px 14px", borderRadius:12, background:m.role==="user"?"var(--acc-d)":"var(--bg-r)", border:`1px solid ${m.role==="user"?"var(--acc-b)":"var(--border)"}`, fontSize:13, color:"var(--t1)", lineHeight:1.65, whiteSpace:"pre-wrap" }}>
             {m.content}
           </div>
         ))}
@@ -864,9 +866,10 @@ Seja direto, prático e orientado a ação. Responda em português.`;
         )}
         <div ref={bottomRef}/>
       </div>
-      <div style={{ padding:"12px 16px", borderTop:"1px solid var(--border)", display:"flex", gap:8 }}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send(input)} placeholder="Pergunte sobre a empresa, prepare respostas..." style={{ ...T.input, flex:1, fontSize:13 }}/>
-        <button onClick={()=>send(input)} disabled={loading||!input.trim()} style={{ padding:"10px 16px", borderRadius:10, border:"none", background:loading?"var(--bg-s)":"var(--acc)", color:"#fff", cursor:loading?"not-allowed":"pointer", fontSize:13, fontWeight:600 }}>→</button>
+      {/* Input — safe area no mobile para evitar sobreposição com bottom nav / home indicator */}
+      <div style={{ padding:isMobile?"10px 14px":"12px 16px", paddingBottom:isMobile?"env(safe-area-inset-bottom, 10px)":"12px", borderTop:"1px solid var(--border)", display:"flex", gap:8, flexShrink:0, background:"var(--bg-r)" }}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send(input)} placeholder={isMobile?"Pergunte sobre a empresa...":"Pergunte sobre a empresa, prepare respostas..."} style={{ ...T.input, flex:1, fontSize:13 }}/>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()} style={{ padding:"10px 14px", borderRadius:10, border:"none", background:loading||!input.trim()?"var(--bg-s)":"var(--acc)", color:loading||!input.trim()?"var(--t3)":"#fff", cursor:loading||!input.trim()?"not-allowed":"pointer", fontSize:16, fontWeight:700, transition:"all 0.15s", flexShrink:0 }}>→</button>
       </div>
     </div>
   );
@@ -882,7 +885,8 @@ function ProcessDetail({ process, onUpdate, onDelete, isMobile }) {
     { id:"messages", label:"Respostas" },
     { id:"ai",       label:"AI" },
   ];
-  const tabH = isMobile ? "calc(100dvh - 290px)" : "calc(100vh - 260px)";
+  // No mobile: 100dvh menos header (56px) + tabs header (112px) + bottom nav (52px) + tab pills (48px) + safe area
+  const tabH = isMobile ? "calc(100dvh - 268px)" : "calc(100vh - 260px)";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
@@ -908,7 +912,7 @@ function ProcessDetail({ process, onUpdate, onDelete, isMobile }) {
         {tab==="overview" && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
         {tab==="timeline" && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
         {tab==="messages" && <div style={{ height:tabH }}><MessagesTab process={process} isMobile={isMobile}/></div>}
-        {tab==="ai"       && <div style={{ height:tabH }}><AITab process={process}/></div>}
+        {tab==="ai"       && <div style={{ height:tabH }}><AITab process={process} isMobile={isMobile}/></div>}
       </div>
     </div>
   );

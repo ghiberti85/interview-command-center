@@ -779,3 +779,26 @@ supabase/functions/anthropic-proxy/
 ├── index.ts
 └── utils.ts    ← extrair checkRateLimit e corsHeaders
 ```
+
+---
+
+## Adições v1.3 — PWA e Mobile AI Tab
+
+### Novos cenários E2E a cobrir
+
+#### E2E-PWA-1: Service Worker registrado
+- Acessar app em HTTPS
+- `navigator.serviceWorker.controller` deve ser não-nulo após reload
+- Assets estáticos (JS/CSS) devem ser servidos do cache na 2ª visita (network offline)
+
+#### E2E-PWA-2: Manifest detectado
+- Verificar que `<link rel="manifest">` está presente e acessível
+- Verificar que `theme-color` meta tag está no `<head>`
+
+#### Mobile AI Tab — unit/component
+
+- `AITab` com `isMobile=true` deve renderizar quick actions com `overflowX:auto` (scroll horizontal)
+- `AITab` com `isMobile=false` deve renderizar quick actions com `flexWrap:wrap`
+- Input de envio deve exibir `paddingBottom` com `env(safe-area-inset-bottom)` no mobile
+- Placeholder deve ser encurtado no mobile
+- Bolhas de mensagem devem ter `maxWidth:90%` no mobile vs `85%` no desktop

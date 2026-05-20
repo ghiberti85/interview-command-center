@@ -18,6 +18,8 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Gerador de mensagens IA (LinkedIn / E-mail / WhatsApp) | ✅ |
 | AI Coach para preparação de entrevistas | ✅ |
 | Layout responsivo (desktop sidebar + mobile bottom nav) | ✅ |
+| **PWA** — manifest, service worker, ícones, meta tags Apple/Android | ✅ |
+| **Mobile AI Tab** — scroll horizontal nos quick actions, safe area, isMobile prop | ✅ |
 | Persistência em Supabase (PostgreSQL) | ✅ |
 | Proxy Anthropic via Supabase Edge Function (chave segura) | ✅ |
 | Deploy automático na Vercel via GitHub Actions | ✅ |
@@ -79,7 +81,7 @@ Ver plano completo em `TESTING.md`. Lacunas priorizadas:
 
 - **Monitoramento de erros:** integrar Sentry (ou similar) para capturar exceptions em produção com stack trace real — hoje os erros de produção são invisíveis
 - **Analytics leve:** Vercel Analytics já disponível — ativar para entender padrões de uso (sessões, páginas, dispositivos) sem comprometer privacidade
-- **PWA básica:** `manifest.json` + service worker mínimo para "Add to Home Screen" no mobile — a experiência mobile já é boa, falta o wrapper nativo
+- ~~**PWA básica:** `manifest.json` + service worker mínimo para "Add to Home Screen" no mobile~~ ✅ implementado
 - **Variáveis de ambiente documentadas:** criar `.env.example` com todas as vars necessárias (hoje ausente, dificulta onboarding futuro)
 
 ### UX rápida

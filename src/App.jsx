@@ -25,7 +25,25 @@ function useTheme() {
   return { dark, toggle };
 }
 
-// ─── Signal DS tokens ────────────────────────────────────────────────────────
+// ─── User profile hook ───────────────────────────────────────────────────────
+const PROFILE_KEY = "icc-user-profile";
+const DEFAULT_PROFILE = { stack: [], summary: "", cvText: "" };
+
+function useUserProfile() {
+  const [profile, setProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PROFILE_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
+    } catch { return DEFAULT_PROFILE; }
+  });
+  const saveProfile = (p) => {
+    setProfile(p);
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch {}
+  };
+  return { profile, saveProfile };
+}
+
+
 const DARK_VARS = {
   "--bg":         "#111113",
   "--bg-r":       "#17171A",
@@ -875,15 +893,316 @@ Seja direto, prático e orientado a ação. Responda em português.`;
   );
 }
 
-function ProcessDetail({ process, onUpdate, onDelete, isMobile }) {
+// ─── Profile Setup Modal ─────────────────────────────────────────────────────
+function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
+  const [stack, setStack] = useState((initial?.stack||[]).join(", "));
+  const [summary, setSummary] = useState(initial?.summary||"");
+  const [cvText, setCvText] = useState(initial?.cvText||"");
+  const [tab, setTab] = useState("stack");
+
+  const save = () => {
+    const stackArr = stack.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+    onSave({ stack: stackArr, summary, cvText });
+    onClose();
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:isMobile?"flex-end":"center", justifyContent:"center", zIndex:300, backdropFilter:"blur(6px)" }}>
+      <div style={{ background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:isMobile?"20px 20px 0 0":16, padding:isMobile?"20px 16px 28px":"28px", width:isMobile?"100%":560, maxHeight:isMobile?"90dvh":"85vh", overflowY:"auto", display:"flex", flexDirection:"column", gap:16 }}>
+        {isMobile && <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto -4px" }}/>}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <h3 style={{ margin:0, fontSize:17, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>Seu perfil profissional</h3>
+            <div style={{ fontSize:12, color:"var(--t3)", marginTop:3 }}>Usado para adaptar o currículo com precisão — só será incluído o que estiver aqui</div>
+          </div>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:4, color:"var(--t3)" }}><Ic n="close" s={16} c="var(--t3)"/></button>
+        </div>
+
+        <div style={{ display:"flex", gap:4, background:"var(--bg-o)", borderRadius:10, padding:4 }}>
+          {[["stack","Stack"],["summary","Resumo"],["cvText","CV Completo"]].map(([id,label])=>(
+            <button key={id} onClick={()=>setTab(id)} style={{ flex:1, padding:"7px 10px", borderRadius:7, border:"none", background:tab===id?"var(--bg-r)":"transparent", color:tab===id?"var(--t1)":"var(--t3)", fontSize:12, fontWeight:tab===id?600:400, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.2)":"none" }}>{label}</button>
+          ))}
+        </div>
+
+        {tab==="stack" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            <label style={{ ...T.label }}>Tecnologias e ferramentas (separadas por vírgula ou enter)</label>
+            <textarea value={stack} onChange={e=>setStack(e.target.value)} rows={6} placeholder={"React, Next.js, TypeScript, Node.js, Supabase, PostgreSQL,\nREST API, GraphQL, Jest, Cypress, Docker,\nFigma, Storybook, Tailwind CSS, CSS Modules..."} style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
+            <div style={{ fontSize:11, color:"var(--t3)" }}>A IA só mencionará tecnologias desta lista ao adaptar o currículo. Itens fora da lista serão sinalizados como "não confirmados" e precisarão da sua autorização.</div>
+          </div>
+        )}
+        {tab==="summary" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            <label style={{ ...T.label }}>Resumo profissional (texto base para reescritas)</label>
+            <textarea value={summary} onChange={e=>setSummary(e.target.value)} rows={6} placeholder="Senior Full-Stack Engineer com 10+ anos de experiência em desenvolvimento React/Next.js e Node.js. Front-End Tech Lead com histórico de liderança de times, design systems e performance em escala..." style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
+          </div>
+        )}
+        {tab==="cvText" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            <label style={{ ...T.label }}>CV completo (opcional — cola aqui para contexto adicional)</label>
+            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={12} placeholder="Cole aqui o texto do seu currículo atual. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
+          </div>
+        )}
+
+        <div style={{ display:"flex", gap:8, paddingTop:4 }}>
+          <Btn onClick={save} full>Salvar perfil</Btn>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CV Tab ──────────────────────────────────────────────────────────────────
+function CVTab({ process, profile, isMobile }) {
+  const [jd, setJd] = useState("");
+  const [step, setStep] = useState("input"); // input | analyzing | review | result
+  const [analysis, setAnalysis] = useState(null); // { matched, unauthorized, adapted }
+  const [approved, setApproved] = useState({});
+  const [authorized, setAuthorized] = useState({});
+  const [result, setResult] = useState("");
+  const [copied, setCopied] = useState(false);
+  const hasProfile = profile.stack.length > 0 || profile.summary;
+
+  const analyze = async () => {
+    if (!jd.trim()) return;
+    setStep("analyzing");
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const sys = `Você é um especialista em otimização de currículos para candidaturas em tecnologia.
+Regra absoluta: NUNCA invente ou sugira tecnologias que não estejam explicitamente na lista de stack do candidato, a não ser que o candidato autorize explicitamente.`;
+
+      const stackList = profile.stack.length > 0 ? profile.stack.join(", ") : "(não informada)";
+      const prompt = `Analise este job description e o perfil do candidato. Retorne APENAS JSON válido, sem markdown.
+
+JOB DESCRIPTION:
+${jd}
+
+STACK DO CANDIDATO (fonte da verdade — só use estas tecnologias):
+${stackList}
+
+RESUMO DO CANDIDATO:
+${profile.summary || "(não informado)"}
+
+VAGA: ${process.role} na ${process.company} | Stage: ${STAGE[process.stage]?.label}
+
+Retorne este JSON:
+{
+  "jd_keywords": ["lista de tecnologias/skills mencionadas no JD"],
+  "matched": ["itens do JD que estão na stack do candidato"],
+  "unauthorized": ["itens do JD que NÃO estão na stack do candidato"],
+  "highlights": ["3-5 pontos do perfil do candidato mais relevantes para esta vaga"],
+  "adapted_summary": "Resumo profissional reescrito para esta vaga, usando APENAS tecnologias da stack do candidato",
+  "adapted_highlights": "Tópicos de bullet points para a seção de experiência, usando APENAS tecnologias confirmadas"
+}`;
+
+      const reply = await callAI([{role:"user",content:prompt}], sys, s?.access_token);
+      const clean = reply.replace(/```json\n?|\n?```/g,"").trim();
+      const parsed = JSON.parse(clean);
+      setAnalysis(parsed);
+      const initialApproved = {};
+      (parsed.matched||[]).forEach(k=>{ initialApproved[k]=true; });
+      setApproved(initialApproved);
+      setAuthorized({});
+      setStep("review");
+    } catch(e) {
+      setStep("input");
+      alert("Erro ao analisar. Verifique a conexão e tente novamente.");
+    }
+  };
+
+  const generate = async () => {
+    setStep("analyzing");
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const approvedItems = Object.entries(approved).filter(([,v])=>v).map(([k])=>k);
+      const authorizedItems = Object.entries(authorized).filter(([,v])=>v).map(([k])=>k);
+      const sys = `Você é um especialista em currículos para tecnologia. Escreva de forma direta, sem enrolação.`;
+
+      const prompt = `Gere um currículo adaptado para a vaga abaixo.
+
+VAGA: ${process.role} na ${process.company}
+
+TECNOLOGIAS APROVADAS PELO CANDIDATO:
+${approvedItems.join(", ")||"(nenhuma selecionada)"}
+
+TECNOLOGIAS AUTORIZADAS PELO CANDIDATO (adicionais):
+${authorizedItems.join(", ")||"nenhuma"}
+
+STACK COMPLETA DO CANDIDATO:
+${profile.stack.join(", ")||"(não informada)"}
+
+RESUMO BASE:
+${profile.summary||"(não informado)"}
+
+CV BASE:
+${profile.cvText ? profile.cvText.slice(0,2000) : "(não informado)"}
+
+ANÁLISE DA VAGA:
+${JSON.stringify(analysis, null, 2)}
+
+Gere:
+1. **Resumo profissional** (3-4 linhas, adaptado para esta vaga)
+2. **Destaques técnicos** (bullet points com as tecnologias aprovadas mais relevantes)
+3. **Dicas de personalização** (2-3 sugestões de como posicionar a candidatura)
+
+Use APENAS as tecnologias aprovadas + autorizadas. Seja específico e direto. Responda em português.`;
+
+      const reply = await callAI([{role:"user",content:prompt}], sys, s?.access_token);
+      setResult(reply);
+      setStep("result");
+    } catch {
+      setStep("review");
+      alert("Erro ao gerar. Tente novamente.");
+    }
+  };
+
+  const copyResult = () => {
+    navigator.clipboard.writeText(result).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2000); });
+  };
+
+  if (!hasProfile) return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", padding:32, textAlign:"center", gap:16 }}>
+      <div style={{ opacity:0.15 }}><Ic n="edit" s={36} c="var(--t2)"/></div>
+      <div>
+        <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)", marginBottom:6 }}>Configure seu perfil primeiro</div>
+        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>Para adaptar o currículo com segurança, precisamos saber quais tecnologias você realmente domina.</div>
+      </div>
+    </div>
+  );
+
+  if (step==="input") return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", gap:0 }}>
+      <div style={{ flex:1, overflowY:"auto", padding:isMobile?"14px":"20px", display:"flex", flexDirection:"column", gap:14 }}>
+        <div style={{ padding:"12px 14px", background:"var(--acc-d)", border:"1px solid var(--acc-b)", borderRadius:10, display:"flex", gap:10, alignItems:"flex-start" }}>
+          <Ic n="info" s={14} c="var(--acc)" style={{ flexShrink:0, marginTop:2 }}/>
+          <div style={{ fontSize:12, color:"var(--acc)", lineHeight:1.6 }}>
+            A IA usará <strong>somente tecnologias do seu perfil</strong>. Itens fora da sua stack serão sinalizados e precisarão de autorização explícita sua antes de serem incluídos.
+          </div>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          <label style={{ ...T.label }}>Job description da vaga</label>
+          <textarea value={jd} onChange={e=>setJd(e.target.value)} rows={isMobile?10:14} placeholder={`Cole aqui o texto completo da vaga de ${process.role} na ${process.company}...`} style={{ ...T.input, resize:"vertical", lineHeight:1.65, fontSize:13 }}/>
+        </div>
+        <div style={{ padding:"10px 12px", background:"var(--bg-o)", borderRadius:8, border:"1px solid var(--border)" }}>
+          <div style={{ ...T.label, marginBottom:4 }}>Seu perfil atual</div>
+          <div style={{ fontSize:12, color:"var(--t2)" }}>{profile.stack.slice(0,8).join(" · ")}{profile.stack.length>8?` · +${profile.stack.length-8} mais`:""}</div>
+        </div>
+      </div>
+      <div style={{ padding:isMobile?"12px 14px":"14px 20px", borderTop:"1px solid var(--border)", paddingBottom:isMobile?"env(safe-area-inset-bottom, 14px)":"14px" }}>
+        <Btn onClick={analyze} full disabled={!jd.trim()}>Analisar job description</Btn>
+      </div>
+    </div>
+  );
+
+  if (step==="analyzing") return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:16 }}>
+      <div style={{ display:"flex", gap:6 }}>{[0,1,2].map(i=><span key={i} style={{ width:8, height:8, borderRadius:"50%", background:"var(--acc)", animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite` }}/>)}</div>
+      <div style={{ fontSize:13, color:"var(--t3)" }}>Analisando a vaga e cruzando com seu perfil...</div>
+    </div>
+  );
+
+  if (step==="review" && analysis) {
+    const matchedItems = analysis.matched || [];
+    const unauthorizedItems = analysis.unauthorized || [];
+    const approvedCount = Object.values(approved).filter(Boolean).length;
+    const authorizedCount = Object.values(authorized).filter(Boolean).length;
+
+    return (
+      <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
+        <div style={{ flex:1, overflowY:"auto", padding:isMobile?"14px":"20px", display:"flex", flexDirection:"column", gap:16 }}>
+
+          {/* Matched */}
+          <div>
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--grn)" }}/>
+              <span style={{ ...T.label, color:"var(--grn)" }}>Encontrado no seu perfil ({matchedItems.length})</span>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              {matchedItems.map(item=>(
+                <label key={item} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", background: approved[item]?"var(--grn-d, rgba(34,198,122,0.08))":"var(--bg-o)", border:`1px solid ${approved[item]?"rgba(34,198,122,0.25)":"var(--border)"}`, borderRadius:8, cursor:"pointer", transition:"all 0.15s" }}>
+                  <input type="checkbox" checked={!!approved[item]} onChange={e=>setApproved(a=>({...a,[item]:e.target.checked}))} style={{ width:16, height:16, accentColor:"var(--grn)", cursor:"pointer", flexShrink:0 }}/>
+                  <span style={{ fontSize:13, color: approved[item]?"var(--grn)":"var(--t2)", fontFamily:"'JetBrains Mono',monospace", fontWeight: approved[item]?500:400 }}>{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Unauthorized */}
+          {unauthorizedItems.length > 0 && (
+            <div>
+              <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+                <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--amb)" }}/>
+                <span style={{ ...T.label, color:"var(--amb)" }}>Não confirmado no seu perfil ({unauthorizedItems.length})</span>
+              </div>
+              <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Marque apenas o que você realmente domina e deseja incluir no currículo.</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {unauthorizedItems.map(item=>(
+                  <label key={item} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", background: authorized[item]?"rgba(245,166,35,0.08)":"var(--bg-o)", border:`1px solid ${authorized[item]?"rgba(245,166,35,0.25)":"var(--border)"}`, borderRadius:8, cursor:"pointer", transition:"all 0.15s" }}>
+                    <input type="checkbox" checked={!!authorized[item]} onChange={e=>setAuthorized(a=>({...a,[item]:e.target.checked}))} style={{ width:16, height:16, accentColor:"var(--amb)", cursor:"pointer", flexShrink:0 }}/>
+                    <span style={{ fontSize:13, color: authorized[item]?"var(--amb)":"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Highlights preview */}
+          {(analysis.highlights||[]).length > 0 && (
+            <div style={{ padding:"12px 14px", background:"var(--bg-o)", border:"1px solid var(--border)", borderRadius:10 }}>
+              <div style={{ ...T.label, marginBottom:8 }}>Pontos de destaque detectados</div>
+              {analysis.highlights.map((h,i)=>(
+                <div key={i} style={{ fontSize:12, color:"var(--t2)", lineHeight:1.6, display:"flex", gap:6, marginBottom:4 }}>
+                  <span style={{ color:"var(--acc)", flexShrink:0 }}>→</span>{h}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding:isMobile?"12px 14px":"14px 20px", borderTop:"1px solid var(--border)", paddingBottom:isMobile?"env(safe-area-inset-bottom, 14px)":"14px", display:"flex", flexDirection:"column", gap:8 }}>
+          <div style={{ fontSize:11, color:"var(--t3)", textAlign:"center" }}>
+            {approvedCount} confirmado{approvedCount!==1?"s":""} · {authorizedCount} autorizado{authorizedCount!==1?"s":""}
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <Btn variant="ghost" onClick={()=>setStep("input")} size="sm"><Ic n="back" s={13} c="var(--t2)"/></Btn>
+            <Btn onClick={generate} full disabled={approvedCount+authorizedCount===0}>Gerar currículo adaptado</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step==="result") return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
+      <div style={{ flex:1, overflowY:"auto", padding:isMobile?"14px":"20px" }}>
+        <div style={{ whiteSpace:"pre-wrap", fontSize:13, color:"var(--t1)", lineHeight:1.75, padding:"16px", background:"var(--bg-o)", borderRadius:12, border:"1px solid var(--border)" }}>
+          {result}
+        </div>
+      </div>
+      <div style={{ padding:isMobile?"12px 14px":"14px 20px", borderTop:"1px solid var(--border)", paddingBottom:isMobile?"env(safe-area-inset-bottom, 14px)":"14px", display:"flex", gap:8 }}>
+        <Btn variant="ghost" onClick={()=>setStep("review")} size="sm"><Ic n="back" s={13} c="var(--t2)"/></Btn>
+        <Btn onClick={copyResult} full variant={copied?"secondary":"primary"}>
+          <Ic n={copied?"check":"copy"} s={14} c={copied?"var(--grn)":"#fff"}/>{copied?"Copiado!":"Copiar texto"}
+        </Btn>
+        <Btn variant="ghost" size="sm" onClick={()=>{ setStep("input"); setJd(""); setAnalysis(null); setResult(""); }}>Nova análise</Btn>
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
+function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile }) {
   const [tab, setTab] = useState("overview");
   useEffect(()=>setTab("overview"),[process.id]);
 
   const tabs = [
-    { id:"overview", label:"Overview" },
-    { id:"timeline", label:"Timeline" },
-    { id:"messages", label:"Respostas" },
-    { id:"ai",       label:"AI" },
+    { id:"overview",  label:"Overview" },
+    { id:"timeline",  label:"Timeline" },
+    { id:"messages",  label:"Respostas" },
+    { id:"ai",        label:"AI" },
+    { id:"curriculo", label:"Currículo" },
   ];
   // No mobile: 100dvh menos header (56px) + tabs header (112px) + bottom nav (52px) + tab pills (48px) + safe area
   const tabH = isMobile ? "calc(100dvh - 268px)" : "calc(100vh - 260px)";
@@ -909,10 +1228,26 @@ function ProcessDetail({ process, onUpdate, onDelete, isMobile }) {
         <Tabs tabs={tabs} active={tab} onChange={setTab}/>
       </div>
       <div style={{ flex:1, overflow:"hidden", minHeight:0 }}>
-        {tab==="overview" && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
-        {tab==="timeline" && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
-        {tab==="messages" && <div style={{ height:tabH }}><MessagesTab process={process} isMobile={isMobile}/></div>}
-        {tab==="ai"       && <div style={{ height:tabH }}><AITab process={process} isMobile={isMobile}/></div>}
+        {tab==="overview"  && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
+        {tab==="timeline"  && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
+        {tab==="messages"  && <div style={{ height:tabH }}><MessagesTab process={process} isMobile={isMobile}/></div>}
+        {tab==="ai"        && <div style={{ height:tabH }}><AITab process={process} isMobile={isMobile}/></div>}
+        {tab==="curriculo" && (
+          <div style={{ height:tabH, display:"flex", flexDirection:"column" }}>
+            {/* Botão de editar perfil no topo da aba */}
+            <div style={{ padding:"8px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+              <div style={{ fontSize:11, color:"var(--t3)" }}>
+                {profile.stack.length>0 ? `${profile.stack.length} tecnologias no perfil` : "Perfil não configurado"}
+              </div>
+              <button onClick={onEditProfile} style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--border)", background:"transparent", color:"var(--t2)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif" }}>
+                <Ic n="edit" s={11} c="var(--t2)"/>Editar perfil
+              </button>
+            </div>
+            <div style={{ flex:1, minHeight:0 }}>
+              <CVTab process={process} profile={profile} isMobile={isMobile}/>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1220,6 +1555,8 @@ export default function App() {
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
   const [showSetPassword, setShowSetPassword] = useState(false);
+  const { profile, saveProfile } = useUserProfile();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Apply CSS vars
   useEffect(() => {
@@ -1457,7 +1794,7 @@ export default function App() {
           ) : (
             <div style={{ flex:1, overflowY:"auto" }}>
               {selected
-                ? <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={false}/>
+                ? <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={false} profile={profile} onEditProfile={()=>setShowProfileModal(true)}/>
                 : <EmptyState/>
               }
             </div>
@@ -1466,6 +1803,7 @@ export default function App() {
       </div>
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={false}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
+      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={isMobile} initial={profile}/>}
     </>
   );
 
@@ -1539,7 +1877,7 @@ export default function App() {
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflowY:"auto", paddingBottom:70, animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} profile={profile} onEditProfile={()=>setShowProfileModal(true)}/>
             </div>
           )}
         </div>
@@ -1563,6 +1901,7 @@ export default function App() {
       </div>
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={true}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
+      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={isMobile} initial={profile}/>}
     </>
   );
 }

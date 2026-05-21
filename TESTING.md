@@ -784,51 +784,81 @@ supabase/functions/anthropic-proxy/
 
 ## Adições v1.3.1 — Armazenamento de Currículos e CI
 
-### Novos testes unitários
+### Status de implementação
 
-#### `extractTextFromPdf` (função utilitária)
+**IMPLEMENTADOS e passando (146 testes totais):**
+
+#### `extractTextFromPdf` — `src/__tests__/unit/extractTextFromPdf.test.js` ✅
 ```
-arquivo PDF válido de 1 página   → retorna texto não vazio
-arquivo PDF com 3 páginas        → concatena texto das 3 páginas
-arquivo não-PDF (txt)            → lança erro ou retorna ""
+PDF 1 página   → texto correto extraído
+PDF 3 páginas  → páginas separadas por \n\n
+PDF sem itens  → string vazia por página
+múltiplos itens na página → joined com espaço
+pdfjs rejeitando → propaga erro
 ```
 
-### Novos testes de componente (RTL)
-
-#### `ResumesModal`
-
+#### `ResumesModal` — `src/__tests__/components/ResumesModal.test.jsx` ✅ (19 testes)
 ```
 Lista vazia → mensagem "Nenhum currículo salvo" visível
-Lista com 2 currículos → cards com nome e language (PT/EN/ES) renderizados
-Botão "Novo" → formulário de criação aparece
-Preencher nome + conteúdo + idioma → "Salvar" → onAdd chamado
-Clicar ícone editar → formulário preenchido com dados do CV
-Clicar ícone excluir → onRemove chamado com id
-Arrastar arquivo .pdf → drag & drop handler acionado
-Upload .pdf → `extractTextFromPdf` chamado; textarea preenchida com o texto extraído
-Upload arquivo não-PDF → mensagem de erro exibida
+loading=true → spinner exibido
+Lista com 2 currículos → nome e idioma renderizados (Português/English)
+Botão "Adicionar" → formulário "Novo Currículo" aparece
+Botão Fechar → onClose chamado
+Validação: nome vazio → "Nome e conteúdo são obrigatórios."
+Validação: só nome preenchido → mesmo erro
+Salvar novo → onAdd chamado com dados corretos
+Salvar bem-sucedido → volta para lista
+Erro do servidor → "Erro ao salvar. Tente novamente."
+Cancelar formulário → volta para lista
+Editar → formulário preenchido com nome/idioma/conteúdo corretos
+Editar + salvar → onUpdate chamado com id correto
+Excluir com confirm=true → onDelete chamado
+Excluir com confirm=false → onDelete NÃO chamado
+Upload .txt → file.text() preenche textarea, nome auto-preenchido
+Upload .pdf → extractTextFromPdf chamado, textarea preenchida
+Erro na extração → "Não foi possível extrair o texto..."
 ```
 
-#### `CVTab` com currículos salvos
-
+#### `CVTab` — `src/__tests__/components/CVTab.test.jsx` ✅ (20 testes)
 ```
-Dropdown de seleção de base inclui currículos da tabela `resumes`
-Dropdown inclui "Perfil (CV completo)" como fallback
-Selecionar currículo salvo → textarea de JD desbloqueada
-Clicar "Gerenciar Currículos" → onManageResumes chamado
+stack=[] e summary="" → "Configure seu perfil primeiro"
+stack preenchida sem summary → step-input renderizado
+summary preenchido sem stack → step-input renderizado
+Step input renderizado com perfil válido
+Botão Analisar desabilitado com JD vazia
+Botão Analisar habilitado com JD preenchida
+Dropdown inclui "Perfil (CV completo)"
+Dropdown inclui currículos da lista de resumes
+Stack do perfil exibida
+JD vazia: callAI NÃO chamado
+Gerenciar → onManageResumes chamado
+Analisar JD → step review (via MSW callAI mockado)
+Matched items pré-checados no review
+Unauthorized items desmarcados no review
+Gerar desabilitado quando nenhum aprovado
+Erro na análise → volta para step-input
+Gerar currículo → step-result com texto
+Copiar → clipboard.writeText chamado com o texto
+Nova análise → step-input
+Voltar do result → step-review
 ```
 
-### Novos testes de integração
-
-#### `useResumes` — CRUD completo
-
+#### `useResumes` — `src/__tests__/integration/resumes.test.js` ✅ (9 testes)
 ```
-1. Hook montado com session — MSW retorna lista com 2 resumes
-2. resumes.length === 2
-3. add({ name, content, language }) → MSW POST 201 → refetch → lista com 3
-4. update(id, { name: "Novo Nome" }) → MSW PATCH 200 → item atualizado na lista
-5. remove(id) → MSW DELETE 204 → item removido da lista
+Fetch inicial com session → 2 resumes carregados
+Sem session → loading=false, resumes=[]
+API retorna null → resumes=[]
+add() → prepende à lista local
+add() → retorna { data, error }
+add() com erro → lista não muda
+update() → item correto atualizado na lista
+remove() → item removido da lista
+remove() com erro → lista não muda
 ```
+
+**Abordagem de mock adotada:** `vi.mock("../../supabase.js")` com um stub de cliente Supabase
+totalmente controlável via `_setTerminal()`. Essa abordagem é necessária porque o arquivo `.env`
+usa URLs placeholder e o MSW não consegue interceptar o cliente Supabase JS em jsdom.
 
 #### CI — build validation
 

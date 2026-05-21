@@ -105,10 +105,10 @@ Objetivo: endereçar dívida técnica crítica, completar cobertura de testes e 
 
 ### UX rápida pendente
 
-- **Ordenação da lista** — por urgência (próxima etapa), stage, empresa, data de contato
-- **Tags editáveis inline** — adicionar/remover sem abrir modo de edição completo
-- **Swipe to archive no mobile** — gesto nativo
-- **Indicador "contactado via"** — canal do primeiro contato (LinkedIn, E-mail, WhatsApp, Indicação)
+- **Ordenação da lista** — por urgência (próxima etapa), stage, empresa, data de contato | ✅
+- **Tags editáveis inline** — adicionar/remover sem abrir modo de edição completo | ✅
+- **Swipe to archive no mobile** — gesto nativo para encerrar processo | ✅
+- **Indicador "contactado via"** — canal do primeiro contato (LinkedIn, E-mail, WhatsApp, Indicação) | ✅
 
 ### Refatoração e TypeScript
 
@@ -214,7 +214,7 @@ Objetivo: transformar o app em algo que vale compartilhar e, potencialmente, em 
 |---|---|---|
 | Configurar `ALLOWED_ORIGIN` na Edge Function | 🔴 Alta | v1.4 |
 | Aumentar senha mínima para 12 chars (Supabase dashboard) | 🔴 Alta | v1.4 |
-| Componentizar `App.jsx` (~2300 linhas) | 🔴 Alta | v1.4 |
+| Componentizar `App.jsx` (~2700 linhas) | 🔴 Alta | v1.4 |
 | Migrar para TypeScript (`.tsx`) com `strict: true` | 🟡 Média | v1.4 |
 | Completar suite de testes E2E com Playwright | 🟡 Média | v1.4 |
 | Criar `.env.example` | 🟡 Média | v1.4 |

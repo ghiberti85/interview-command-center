@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase, rowToProcess, processToRow } from "./supabase";
 import JSZip from "jszip";
+// URL do worker resolvida em build-time pelo Vite (necessário para Vercel)
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+
 // pdfjs é carregado sob demanda para não penalizar o bundle inicial
 let _pdfjsLib = null;
 async function getPdfjs() {
   if (!_pdfjsLib) {
     _pdfjsLib = await import("pdfjs-dist");
-    _pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).href;
+    _pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   }
   return _pdfjsLib;
 }

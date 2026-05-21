@@ -34,6 +34,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Hover states — cards, nav, botões, tabs com transições consistentes | ✅ |
 | Suite de testes — 93 testes (unit + component + integration) | ✅ |
 | **Aba Currículo** — adaptação de CV via IA com aprovação explícita por item | ✅ |
+| **Import ChatGPT** — upload de .zip, filtro por período/projeto, extração por IA, revisão antes de salvar | ✅ |
 
 ### Infraestrutura
 
@@ -136,7 +137,7 @@ src/
 
 Objetivo: features que causam impacto imediato na vida do usuário e diferenciam o app de qualquer planilha ou Trello.
 
-### Import de conversas do ChatGPT
+### ~~Import de conversas do ChatGPT~~ ✅ implementado
 
 **O problema:** o usuário tem meses de histórico de conversas com recrutadores no ChatGPT que não estão no app.
 

@@ -782,6 +782,65 @@ supabase/functions/anthropic-proxy/
 
 ---
 
+## Adições v1.3.1 — Armazenamento de Currículos e CI
+
+### Novos testes unitários
+
+#### `extractTextFromPdf` (função utilitária)
+```
+arquivo PDF válido de 1 página   → retorna texto não vazio
+arquivo PDF com 3 páginas        → concatena texto das 3 páginas
+arquivo não-PDF (txt)            → lança erro ou retorna ""
+```
+
+### Novos testes de componente (RTL)
+
+#### `ResumesModal`
+
+```
+Lista vazia → mensagem "Nenhum currículo salvo" visível
+Lista com 2 currículos → cards com nome e language (PT/EN/ES) renderizados
+Botão "Novo" → formulário de criação aparece
+Preencher nome + conteúdo + idioma → "Salvar" → onAdd chamado
+Clicar ícone editar → formulário preenchido com dados do CV
+Clicar ícone excluir → onRemove chamado com id
+Arrastar arquivo .pdf → drag & drop handler acionado
+Upload .pdf → `extractTextFromPdf` chamado; textarea preenchida com o texto extraído
+Upload arquivo não-PDF → mensagem de erro exibida
+```
+
+#### `CVTab` com currículos salvos
+
+```
+Dropdown de seleção de base inclui currículos da tabela `resumes`
+Dropdown inclui "Perfil (CV completo)" como fallback
+Selecionar currículo salvo → textarea de JD desbloqueada
+Clicar "Gerenciar Currículos" → onManageResumes chamado
+```
+
+### Novos testes de integração
+
+#### `useResumes` — CRUD completo
+
+```
+1. Hook montado com session — MSW retorna lista com 2 resumes
+2. resumes.length === 2
+3. add({ name, content, language }) → MSW POST 201 → refetch → lista com 3
+4. update(id, { name: "Novo Nome" }) → MSW PATCH 200 → item atualizado na lista
+5. remove(id) → MSW DELETE 204 → item removido da lista
+```
+
+#### CI — build validation
+
+```
+npm run build sem VITE_ env vars → deve passar (Vite usa "" para vars ausentes em build)
+npm run build com env vars configuradas → bundle gerado sem erros
+chunk principal < 2500 kB (chunkSizeWarningLimit configurado)
+pdfjs-dist chunk separado do bundle principal (lazy import)
+```
+
+---
+
 ## Adições v1.3 — PWA e Mobile AI Tab
 
 ### Novos cenários E2E a cobrir

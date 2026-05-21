@@ -37,12 +37,21 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | **Aba Currículo** — adapta CV ao JD usando só tecnologias confirmadas, com aprovação por checkbox | ✅ |
 | **Import do ChatGPT** — upload de .zip, filtro por período/projeto, extração por IA, revisão antes de salvar | ✅ |
 
+#### Currículos & Perfil
+| Funcionalidade | Status |
+|---|---|
+| Perfil do usuário (stack, resumo, CV base) — localStorage | ✅ |
+| **Armazenamento de múltiplos CVs no Supabase** — tabela `resumes` com RLS | ✅ |
+| **Upload de PDF com extração de texto** — pdfjs-dist lazy-loaded | ✅ |
+| **Gestão de CVs** — modal com listagem, criar, editar, excluir, drag & drop | ✅ |
+
 #### Infraestrutura & Mobile
 | Funcionalidade | Status |
 |---|---|
 | Persistência em Supabase (PostgreSQL) | ✅ |
 | Proxy Anthropic via Supabase Edge Function (chave segura) | ✅ |
-| Deploy automático na Vercel via GitHub Actions | ✅ |
+| Deploy automático na Vercel via integração nativa GitHub | ✅ |
+| CI simplificado — `npm run build` valida o build em cada PR | ✅ |
 | Layout responsivo (desktop sidebar + mobile bottom nav) | ✅ |
 | Mobile UX — touch targets 44px, bottom nav 52px, safe area iPhone | ✅ |
 | **PWA** — manifest, service worker, ícones 192/512px, meta tags Apple/Android | ✅ |

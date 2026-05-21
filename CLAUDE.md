@@ -35,13 +35,18 @@ Aplicação React de gestão de processos seletivos para profissionais de tecnol
 
 ```
 src/
-├── App.jsx        # Todo o código da UI — arquivo único intencional (~1600 linhas)
+├── App.jsx        # Todo o código da UI — arquivo único intencional (~2600 linhas)
 ├── supabase.js    # Client Supabase + mapeadores rowToProcess / processToRow
 ├── main.jsx       # Entry point React
-└── index.css      # Reset CSS mínimo (4 linhas)
+└── index.css      # Reset CSS mínimo + safe area vars
 
 public/
-└── favicon.svg    # Ícone de pipeline roxo (Signal DS accent)
+├── favicon.svg    # Ícone de pipeline roxo (Signal DS accent)
+├── manifest.json  # PWA manifest (name, icons, theme_color)
+├── sw.js          # Service Worker — cache-first assets, network-first navegação
+└── icons/
+    ├── icon-192.png
+    └── icon-512.png
 
 supabase/
 └── functions/
@@ -436,14 +441,33 @@ Adicione em `SCENARIOS`:
 { id: "novo_cenario", label: "Label do cenário" }
 ```
 
-### Aba Currículo — perfil do usuário
+### Aba Currículo — perfil e currículos salvos
 
 O perfil do usuário (`useUserProfile`) é persistido em `localStorage` com a chave `icc-user-profile`:
 ```js
 { stack: string[], summary: string, cvText: string }
 ```
 
-O `CVTab` recebe `process`, `profile` e `isMobile`. O fluxo tem 4 etapas: `input` → `analyzing` → `review` → `result`. A regra de segurança está no system prompt do Claude: tecnologias fora da `stack` do usuário são sinalizadas como "não confirmadas" e só entram no resultado com autorização explícita via checkbox.
+Currículos adicionais são persistidos no Supabase via `useResumes(session)`:
+```js
+// Hook retorna:
+{ resumes, loading, add, update, remove, refetch }
+
+// Tabela: resumes (id, user_id, name, content, language, created_at, updated_at)
+// RLS: 4 políticas auth.uid() = user_id (igual à tabela processes)
+```
+
+`ResumesModal` permite listar, criar, editar e excluir CVs. Suporta upload de PDF com drag & drop — o texto é extraído via `pdfjs-dist` (carregado lazy para não inflar o bundle inicial).
+
+**Worker do pdfjs:** o worker é importado com import estático `?url` no topo do `App.jsx`:
+```js
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+// Usar esta var na inicialização lazy:
+_pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+```
+Nunca use `new URL("...", import.meta.url)` dentro de função assíncrona — o Vite não consegue resolver o padrão em build-time.
+
+O `CVTab` recebe `process`, `profile`, `isMobile`, `resumes` e `onManageResumes`. O fluxo tem 4 etapas: `input` (seleciona CV base + cola JD) → `analyzing` → `review` (checkboxes verde/âmbar) → `result`. A regra de segurança está no system prompt do Claude: tecnologias fora da `stack` do usuário são sinalizadas como "não confirmadas" e só entram no resultado com autorização explícita via checkbox.
 
 ### Adicionar quick action no AI tab
 Adicione no array `quickActions` dentro de `AITab`:
@@ -479,6 +503,9 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | Supabase sa-east-1 | Latência reduzida para usuário brasileiro |
 | Auth email+senha + magic link | Magic link como alternativa; senha evita dependência de email para login recorrente |
 | `clearRecovery()` após salvar senha | Evita race condition onde estado some antes do modal montar |
+| pdfjs worker via `import ?url` no topo | Vite só resolve `new URL()` em contexto estático; padrão dinâmico falha no build Vercel |
+| CI simplificado para `npm run build` | Vercel tem integração nativa com GitHub — o workflow de deploy via Vercel CLI era redundante e quebrava por falta de secrets |
+| CVs salvos no Supabase (tabela `resumes`) | Permite múltiplos CVs por idioma, reutilizáveis entre processos diferentes |
 
 ---
 

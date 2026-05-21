@@ -398,11 +398,16 @@ Na Vercel, estas variáveis estão configuradas nas Environment Variables do pro
 
 ## Testes
 
-O projeto tem estratégia de testes documentada em `TESTING.md`. Ao implementar qualquer funcionalidade nova:
+O projeto tem estratégia de testes documentada em `TESTING.md`.
 
-- Se a lógica é uma função pura, adicione um unit test em `src/__tests__/unit/`
-- Se envolve um componente React, adicione um component test em `src/__tests__/components/`
-- Se cruza auth, Supabase ou proxy de IA, adicione um integration test com MSW
+### ⚠️ Regra obrigatória — Testes junto com a funcionalidade
+
+**Toda nova funcionalidade DEVE vir acompanhada de testes na mesma sessão/PR.** Nunca deixe código sem cobertura para "depois". Se o tempo não permitir implementar os testes completos, ao menos documente os cenários no TESTING.md e crie um item no ROADMAP.md com prioridade alta.
+
+**Ao implementar qualquer funcionalidade nova:**
+- Se a lógica é uma função pura → unit test em `src/__tests__/unit/`
+- Se envolve um componente React → component test em `src/__tests__/components/`
+- Se cruza auth, Supabase ou proxy de IA → integration test em `src/__tests__/integration/` com MSW
 
 **Stack:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E).
 

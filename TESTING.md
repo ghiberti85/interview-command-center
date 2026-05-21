@@ -782,6 +782,49 @@ supabase/functions/anthropic-proxy/
 
 ---
 
+## Adições v1.4 — UX rápida (sort, tags inline, swipe, canal)
+
+### Novos testes unitários
+
+#### `sortProcesses` — `src/__tests__/unit/sort.test.js` ✅
+```
+sortProcesses(list, "urgencia") — nextStepDate nula vai para o final
+sortProcesses(list, "urgencia") — mais próxima primeiro
+sortProcesses(list, "empresa") — ordem alfabética case-insensitive
+sortProcesses(list, "stage") — ordem do pipeline (STAGE_ORDER)
+sortProcesses(list, "recente") — contactedDate mais recente primeiro
+```
+
+#### `channel` nos mappers — `src/__tests__/unit/channel.test.js` ✅
+```
+rowToProcess({ channel: "linkedin" }) → process.channel === "linkedin"
+rowToProcess({ channel: null }) → process.channel === ""
+processToRow({ channel: "email" }) → row.channel === "email"
+processToRow({ channel: "" }) → row.channel === null
+```
+
+### Novos testes de componente
+
+#### `InlineTags` — `src/__tests__/components/InlineTags.test.jsx` ✅
+```
+Renderiza tags existentes
+Clicar × remove a tag (onUpdate chamado com lista sem aquela tag)
+Digitar nova tag + Enter → onUpdate com tag adicionada
+Blur com texto → adiciona tag
+Tag duplicada não adiciona
+Input em branco não adiciona
+```
+
+#### `ProcessCard` — `src/__tests__/components/ProcessCard.test.jsx` ✅
+```
+channel="linkedin" → ícone linkedin visível no card
+channel="" → sem ícone de canal
+swipe left ≥ 80px → onSwipeAction chamado
+swipe left < 80px → onSwipeAction NÃO chamado
+```
+
+---
+
 ## Adições v1.3.1 — Armazenamento de Currículos e CI
 
 ### Status de implementação

@@ -132,6 +132,33 @@ const ACTIVE_STAGES = ["contacted","screening","interview","technical","offer"];
 const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short"}) : "—";
 const daysDiff = d => d ? Math.ceil((new Date(d + "T12:00:00") - new Date()) / 86400000) : null;
 
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+const STAGE_ORDER = { contacted:0, screening:1, interview:2, technical:3, offer:4, rejected:5, archived:6 };
+export function sortProcesses(list, sortBy) {
+  const arr = [...list];
+  if (sortBy === "urgencia") {
+    return arr.sort((a, b) => {
+      const da = a.nextStepDate ? new Date(a.nextStepDate + "T12:00:00").getTime() : Infinity;
+      const db = b.nextStepDate ? new Date(b.nextStepDate + "T12:00:00").getTime() : Infinity;
+      return da - db;
+    });
+  }
+  if (sortBy === "empresa") {
+    return arr.sort((a, b) => a.company.toLowerCase().localeCompare(b.company.toLowerCase(), "pt-BR"));
+  }
+  if (sortBy === "stage") {
+    return arr.sort((a, b) => (STAGE_ORDER[a.stage] ?? 99) - (STAGE_ORDER[b.stage] ?? 99));
+  }
+  if (sortBy === "recente") {
+    return arr.sort((a, b) => {
+      const da = a.contactedDate ? new Date(a.contactedDate + "T12:00:00").getTime() : 0;
+      const db = b.contactedDate ? new Date(b.contactedDate + "T12:00:00").getTime() : 0;
+      return db - da;
+    });
+  }
+  return arr;
+}
+
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Ic = ({ n, s=16, c="currentColor" }) => {
   const P = {
@@ -234,12 +261,12 @@ function useAuth() {
 
 // ─── Demo data ────────────────────────────────────────────────────────────────
 const DEMO_PROCESSES = [
-  { id:"demo1", company:"Nubank", role:"Senior Front-End Engineer", stage:"interview", location:"Remoto", salary:"R$ 22.000 – 28.000", recruiter:"Ana Paula Costa", recruiterEmail:"ana.costa@nubank.com.br", origin:"inbound", contactedDate:"2026-05-01", nextStepDate:"2026-05-22", nextStepNote:"Entrevista técnica com o time de plataforma", jobUrl:"", tags:["fintech","react","typescript"], notes:"Vaga para o time de design system. Stack: React, TypeScript, Storybook.", steps:[{date:"2026-05-01",type:"contacted",note:"Contato via LinkedIn"},{date:"2026-05-08",type:"screening",note:"Conversa com recruiter — 30min"},{date:"2026-05-15",type:"interview",note:"Entrevista com o gestor de engenharia"}], aiContext:"", starred:true },
-  { id:"demo2", company:"Mercado Livre", role:"Front-End Tech Lead", stage:"screening", location:"São Paulo (híbrido)", salary:"R$ 30.000 – 38.000", recruiter:"Carlos Mendes", recruiterEmail:"carlos@meli.com", origin:"inbound", contactedDate:"2026-05-05", nextStepDate:"2026-05-23", nextStepNote:"Ligação de alinhamento com Head de Eng", jobUrl:"", tags:["lead","react","scale"], notes:"Liderança de time de 8 pessoas. Foco em performance e micro-frontends.", steps:[{date:"2026-05-05",type:"contacted",note:"Mensagem pelo LinkedIn"},{date:"2026-05-12",type:"screening",note:"Entrevista de fit cultural"}], aiContext:"", starred:false },
-  { id:"demo3", company:"Itaú Unibanco", role:"Especialista UI/UX Engineering", stage:"technical", location:"São Paulo (presencial)", salary:"R$ 18.000 – 22.000", recruiter:"Fernanda Lima", recruiterEmail:"fernanda.lima@itau.com.br", origin:"inbound", contactedDate:"2026-04-20", nextStepDate:"2026-05-21", nextStepNote:"Apresentação do case técnico", jobUrl:"", tags:["banco","next.js","design-system"], notes:"Case: construir componente de input com validação e acessibilidade.", steps:[{date:"2026-04-20",type:"contacted",note:"Indicação interna"},{date:"2026-04-28",type:"screening",note:"Triagem com RH"},{date:"2026-05-10",type:"interview",note:"Entrevista comportamental"},{date:"2026-05-18",type:"technical",note:"Recebeu o case técnico"}], aiContext:"", starred:true },
-  { id:"demo4", company:"Spotify", role:"Senior Software Engineer — Web", stage:"offer", location:"Remoto (global)", salary:"USD 140k – 160k", recruiter:"James Harrington", recruiterEmail:"j.harrington@spotify.com", origin:"outbound", contactedDate:"2026-04-10", nextStepDate:"2026-05-25", nextStepNote:"Prazo para aceitar ou recusar a proposta", jobUrl:"", tags:["global","typescript","streaming"], notes:"Proposta formal recebida. Equity + RSU incluídos. Analisar junto ao advogado.", steps:[{date:"2026-04-10",type:"contacted",note:"Aplicação direta no site"},{date:"2026-04-18",type:"screening",note:"Recruiter screen"},{date:"2026-04-28",type:"interview",note:"System design interview"},{date:"2026-05-08",type:"technical",note:"Coding challenge — 4h"},{date:"2026-05-15",type:"offer",note:"Proposta recebida por e-mail"}], aiContext:"", starred:true },
-  { id:"demo5", company:"Stone", role:"Front-End Engineer", stage:"rejected", location:"Rio de Janeiro (híbrido)", salary:"R$ 15.000 – 18.000", recruiter:"Mariana Souza", recruiterEmail:"mariana@stone.com.br", origin:"inbound", contactedDate:"2026-04-05", nextStepDate:null, nextStepNote:"", jobUrl:"", tags:["fintech","vue"], notes:"Feedack: buscavam experiência com Vue. Recontato possível no futuro.", steps:[{date:"2026-04-05",type:"contacted",note:"Contato via LinkedIn"},{date:"2026-04-12",type:"screening",note:"Triagem técnica"},{date:"2026-04-22",type:"rejected",note:"Feedack recebido por e-mail"}], aiContext:"", starred:false },
-  { id:"demo6", company:"Creditas", role:"Senior React Developer", stage:"contacted", location:"Remoto", salary:"R$ 16.000 – 20.000", recruiter:"Roberto Alves", recruiterEmail:"roberto.alves@creditas.com", origin:"inbound", contactedDate:"2026-05-18", nextStepDate:"2026-05-27", nextStepNote:"Aguardando retorno para agendar conversa inicial", jobUrl:"", tags:["fintech","react","node"], notes:"Primeiro contato recebido hoje. Vaga para o time de crédito.", steps:[{date:"2026-05-18",type:"contacted",note:"Mensagem no LinkedIn"}], aiContext:"", starred:false },
+  { id:"demo1", company:"Nubank", role:"Senior Front-End Engineer", stage:"interview", location:"Remoto", salary:"R$ 22.000 – 28.000", recruiter:"Ana Paula Costa", recruiterEmail:"ana.costa@nubank.com.br", origin:"inbound", contactedDate:"2026-05-01", nextStepDate:"2026-05-22", nextStepNote:"Entrevista técnica com o time de plataforma", jobUrl:"", tags:["fintech","react","typescript"], notes:"Vaga para o time de design system. Stack: React, TypeScript, Storybook.", steps:[{date:"2026-05-01",type:"contacted",note:"Contato via LinkedIn"},{date:"2026-05-08",type:"screening",note:"Conversa com recruiter — 30min"},{date:"2026-05-15",type:"interview",note:"Entrevista com o gestor de engenharia"}], aiContext:"", starred:true, channel:"linkedin" },
+  { id:"demo2", company:"Mercado Livre", role:"Front-End Tech Lead", stage:"screening", location:"São Paulo (híbrido)", salary:"R$ 30.000 – 38.000", recruiter:"Carlos Mendes", recruiterEmail:"carlos@meli.com", origin:"inbound", contactedDate:"2026-05-05", nextStepDate:"2026-05-23", nextStepNote:"Ligação de alinhamento com Head de Eng", jobUrl:"", tags:["lead","react","scale"], notes:"Liderança de time de 8 pessoas. Foco em performance e micro-frontends.", steps:[{date:"2026-05-05",type:"contacted",note:"Mensagem pelo LinkedIn"},{date:"2026-05-12",type:"screening",note:"Entrevista de fit cultural"}], aiContext:"", starred:false, channel:"linkedin" },
+  { id:"demo3", company:"Itaú Unibanco", role:"Especialista UI/UX Engineering", stage:"technical", location:"São Paulo (presencial)", salary:"R$ 18.000 – 22.000", recruiter:"Fernanda Lima", recruiterEmail:"fernanda.lima@itau.com.br", origin:"inbound", contactedDate:"2026-04-20", nextStepDate:"2026-05-21", nextStepNote:"Apresentação do case técnico", jobUrl:"", tags:["banco","next.js","design-system"], notes:"Case: construir componente de input com validação e acessibilidade.", steps:[{date:"2026-04-20",type:"contacted",note:"Indicação interna"},{date:"2026-04-28",type:"screening",note:"Triagem com RH"},{date:"2026-05-10",type:"interview",note:"Entrevista comportamental"},{date:"2026-05-18",type:"technical",note:"Recebeu o case técnico"}], aiContext:"", starred:true, channel:"indicacao" },
+  { id:"demo4", company:"Spotify", role:"Senior Software Engineer — Web", stage:"offer", location:"Remoto (global)", salary:"USD 140k – 160k", recruiter:"James Harrington", recruiterEmail:"j.harrington@spotify.com", origin:"outbound", contactedDate:"2026-04-10", nextStepDate:"2026-05-25", nextStepNote:"Prazo para aceitar ou recusar a proposta", jobUrl:"", tags:["global","typescript","streaming"], notes:"Proposta formal recebida. Equity + RSU incluídos. Analisar junto ao advogado.", steps:[{date:"2026-04-10",type:"contacted",note:"Aplicação direta no site"},{date:"2026-04-18",type:"screening",note:"Recruiter screen"},{date:"2026-04-28",type:"interview",note:"System design interview"},{date:"2026-05-08",type:"technical",note:"Coding challenge — 4h"},{date:"2026-05-15",type:"offer",note:"Proposta recebida por e-mail"}], aiContext:"", starred:true, channel:"" },
+  { id:"demo5", company:"Stone", role:"Front-End Engineer", stage:"rejected", location:"Rio de Janeiro (híbrido)", salary:"R$ 15.000 – 18.000", recruiter:"Mariana Souza", recruiterEmail:"mariana@stone.com.br", origin:"inbound", contactedDate:"2026-04-05", nextStepDate:null, nextStepNote:"", jobUrl:"", tags:["fintech","vue"], notes:"Feedack: buscavam experiência com Vue. Recontato possível no futuro.", steps:[{date:"2026-04-05",type:"contacted",note:"Contato via LinkedIn"},{date:"2026-04-12",type:"screening",note:"Triagem técnica"},{date:"2026-04-22",type:"rejected",note:"Feedack recebido por e-mail"}], aiContext:"", starred:false, channel:"email" },
+  { id:"demo6", company:"Creditas", role:"Senior React Developer", stage:"contacted", location:"Remoto", salary:"R$ 16.000 – 20.000", recruiter:"Roberto Alves", recruiterEmail:"roberto.alves@creditas.com", origin:"inbound", contactedDate:"2026-05-18", nextStepDate:"2026-05-27", nextStepNote:"Aguardando retorno para agendar conversa inicial", jobUrl:"", tags:["fintech","react","node"], notes:"Primeiro contato recebido hoje. Vaga para o time de crédito.", steps:[{date:"2026-05-18",type:"contacted",note:"Mensagem no LinkedIn"}], aiContext:"", starred:false, channel:"whatsapp" },
 ];
 
 // ─── Login screen ─────────────────────────────────────────────────────────────
@@ -445,17 +472,52 @@ const SCENARIOS = [
 //  COMPONENTS
 // ══════════════════════════════════════════════════════════════
 
-function ProcessCard({ process, onClick, selected }) {
+const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
+
+function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
+  const touchStartX = useRef(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchMove = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = touchStartX.current - e.touches[0].clientX;
+    if (dx > 0) setSwipeOffset(Math.min(dx, 110));
+  };
+  const handleTouchEnd = () => {
+    if (swipeOffset >= 80 && onSwipeAction) onSwipeAction();
+    setSwipeOffset(0);
+    touchStartX.current = null;
+  };
+
   return (
-    <div className="process-card" onClick={onClick} style={{ background:"var(--bg-r)", border:`1.5px solid ${selected?"var(--acc-b)":"var(--border)"}`, borderLeft:`3px solid ${s.bar}`, borderRadius:12, padding:"12px 14px", cursor:"pointer", marginBottom:6 }}>
+    <div style={{ position:"relative", marginBottom:6, borderRadius:12, overflow:"hidden" }}>
+      {isMobile && onSwipeAction && (
+        <div style={{ position:"absolute", inset:0, background:"var(--red)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:20 }}>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+            <Ic n="close" s={18} c="#fff"/>
+            <span style={{ fontSize:10, color:"#fff", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>Encerrar</span>
+          </div>
+        </div>
+      )}
+    <div
+      className="process-card"
+      onClick={onClick}
+      onTouchStart={isMobile&&onSwipeAction?handleTouchStart:undefined}
+      onTouchMove={isMobile&&onSwipeAction?handleTouchMove:undefined}
+      onTouchEnd={isMobile&&onSwipeAction?handleTouchEnd:undefined}
+      style={{ background:"var(--bg-r)", border:`1.5px solid ${selected?"var(--acc-b)":"var(--border)"}`, borderLeft:`3px solid ${s.bar}`, borderRadius:12, padding:"12px 14px", cursor:"pointer", transform:`translateX(-${swipeOffset}px)`, transition:swipeOffset===0?"transform 0.2s":"none", position:"relative" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
         <div style={{ minWidth:0, flex:1 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             <span style={{ fontWeight:700, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.company}</span>
             {process.starred && <Ic n="starF" s={12} c="#F5A623"/>}
+            {process.channel && CHANNEL_ICONS[process.channel] && (
+              <Ic n={CHANNEL_ICONS[process.channel]} s={11} c="var(--t3)"/>
+            )}
           </div>
           <div style={{ fontSize:12, color:"var(--t2)", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.role}</div>
         </div>
@@ -479,6 +541,7 @@ function ProcessCard({ process, onClick, selected }) {
       {process.nextStepNote && (
         <div style={{ marginTop:8, fontSize:11, color:"var(--t3)", borderTop:"1px solid var(--border)", paddingTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.nextStepNote}</div>
       )}
+    </div>
     </div>
   );
 }
@@ -513,6 +576,44 @@ function Tabs({ tabs, active, onChange }) {
           {t.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+const CONTACT_CHANNELS = [
+  { value:"linkedin",  label:"LinkedIn",  icon:"linkedin" },
+  { value:"email",     label:"E-mail",    icon:"email"    },
+  { value:"whatsapp",  label:"WhatsApp",  icon:"whatsapp" },
+  { value:"indicacao", label:"Indicação", icon:"star"     },
+];
+
+function InlineTags({ process, onUpdate }) {
+  const [newTag, setNewTag] = useState("");
+  const addTag = () => {
+    const t = newTag.trim();
+    if (!t || (process.tags||[]).includes(t)) { setNewTag(""); return; }
+    onUpdate({ ...process, tags: [...(process.tags||[]), t] });
+    setNewTag("");
+  };
+  const removeTag = (tag) => onUpdate({ ...process, tags: (process.tags||[]).filter(t => t !== tag) });
+  return (
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+      {(process.tags||[]).map(t => (
+        <span key={t} style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px 3px 10px", borderRadius:6, background:"var(--bg-s)", border:"1px solid var(--border)", color:"var(--t3)", fontSize:12, fontFamily:"'JetBrains Mono',monospace" }}>
+          {t}
+          <button onClick={()=>removeTag(t)} style={{ background:"none", border:"none", cursor:"pointer", padding:0, display:"flex", lineHeight:1 }}>
+            <Ic n="close" s={10} c="var(--t4)"/>
+          </button>
+        </span>
+      ))}
+      <input
+        value={newTag}
+        onChange={e=>setNewTag(e.target.value)}
+        onKeyDown={e=>{ if(e.key==="Enter"){e.preventDefault();addTag();} }}
+        onBlur={addTag}
+        placeholder="+ tag"
+        style={{ padding:"3px 8px", borderRadius:6, border:"1px dashed var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:12, fontFamily:"'JetBrains Mono',monospace", outline:"none", width:60, minWidth:0 }}
+      />
     </div>
   );
 }
@@ -587,6 +688,20 @@ function OverviewTab({ process, onUpdate, onDelete }) {
           <Ic n="edit" s={12} c="var(--t2)"/>Editar
         </button>
       </div>
+      {(process.origin||"inbound")==="inbound" && (
+        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+          <span style={{ ...T.label, marginRight:2 }}>Canal:</span>
+          {CONTACT_CHANNELS.map(ch=>{
+            const on = (process.channel||"")===ch.value;
+            return (
+              <button key={ch.value} onClick={()=>onUpdate({...process,channel:on?"":ch.value})} style={{ display:"flex", alignItems:"center", gap:4, padding:"4px 10px", borderRadius:999, cursor:"pointer", border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc)":"var(--t3)", fontSize:11, fontWeight:on?600:400, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}>
+                <Ic n={ch.icon} s={11} c={on?"var(--acc)":"var(--t3)"}/>
+                {ch.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <InfoGrid/>
       {process.nextStepNote && (
         <div style={{ padding:"12px 14px", background:"var(--amb-d)", border:"1px solid var(--amb-b)", borderRadius:10 }}>
@@ -609,13 +724,10 @@ function OverviewTab({ process, onUpdate, onDelete }) {
           <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.65 }}>{process.notes}</div>
         </div>
       )}
-      {process.tags?.length > 0 && (
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-          {process.tags.map(t=>(
-            <span key={t} style={{ padding:"3px 10px", borderRadius:6, background:"var(--bg-s)", border:"1px solid var(--border)", color:"var(--t3)", fontSize:12, ...T.mono }}>{t}</span>
-          ))}
-        </div>
-      )}
+      <div>
+        <div style={{ ...T.label, marginBottom:6 }}>Tags</div>
+        <InlineTags process={process} onUpdate={onUpdate}/>
+      </div>
     </div>
   );
 }
@@ -2146,7 +2258,7 @@ function SetPasswordModal({ onClose, onSuccess }) {
 }
 
 function NewProcessModal({ onClose, onSave, isMobile }) {
-  const [form, setForm] = useState({ company:"", role:"", stage:"contacted", location:"", salary:"", recruiter:"", recruiterEmail:"", jobUrl:"", nextStepNote:"", nextStepDate:"", tags:"", notes:"", origin:"inbound" });
+  const [form, setForm] = useState({ company:"", role:"", stage:"contacted", location:"", salary:"", recruiter:"", recruiterEmail:"", jobUrl:"", nextStepNote:"", nextStepDate:"", tags:"", notes:"", origin:"inbound", channel:"" });
   const [saving, setSaving] = useState(false);
   const F = (k,v) => setForm(f=>({...f,[k]:v}));
 
@@ -2190,6 +2302,22 @@ function NewProcessModal({ onClose, onSave, isMobile }) {
             ))}
           </div>
         </div>
+        {form.origin==="inbound" && (
+          <div style={{ marginBottom:20 }}>
+            <div style={{ ...T.label, marginBottom:8 }}>Canal de contato</div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {CONTACT_CHANNELS.map(ch=>{
+                const on = form.channel===ch.value;
+                return (
+                  <button key={ch.value} onClick={()=>F("channel",on?"":ch.value)} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:999, cursor:"pointer", border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc)":"var(--t3)", fontSize:12, fontWeight:on?600:400, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}>
+                    <Ic n={ch.icon} s={12} c={on?"var(--acc)":"var(--t3)"}/>
+                    {ch.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
           {fields.map(([label,field])=>(
             <div key={field} style={{ gridColumn:["company","role","nextStepNote","jobUrl"].includes(field)?"span 2":"span 1" }}>
@@ -2241,6 +2369,7 @@ export default function App() {
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("urgencia");
   const [mobileScreen, setMobileScreen] = useState("list");
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
@@ -2332,7 +2461,7 @@ export default function App() {
   const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   const archived = processes.filter(p=>["rejected","archived"].includes(p.stage));
   const listSrc = view==="archived" ? archived : active;
-  const filtered = listSrc.filter(p=>{ const q=search.toLowerCase(); return (stageFilter==="all"||p.stage===stageFilter)&&(!q||p.company.toLowerCase().includes(q)||p.role.toLowerCase().includes(q)||p.tags.some(t=>t.toLowerCase().includes(q))); });
+  const filtered = sortProcesses(listSrc.filter(p=>{ const q=search.toLowerCase(); return (stageFilter==="all"||p.stage===stageFilter)&&(!q||p.company.toLowerCase().includes(q)||p.role.toLowerCase().includes(q)||p.tags.some(t=>t.toLowerCase().includes(q))); }), sortBy);
   const urgent = active.filter(p=>{ const d=daysDiff(p.nextStepDate); return d!==null&&d>=0&&d<=2; }).length;
 
   const GLOBAL_CSS = `
@@ -2468,6 +2597,12 @@ export default function App() {
               <div style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}><Ic n="search" s={13} c="var(--t4)"/></div>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." aria-label="Buscar processos" style={{ ...T.input, paddingLeft:32, fontSize:13, borderRadius:9 }}/>
             </div>
+            <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", marginTop:6 }}>
+              <option value="urgencia">Ordenar: Urgência</option>
+              <option value="empresa">Ordenar: Empresa A–Z</option>
+              <option value="stage">Ordenar: Stage</option>
+              <option value="recente">Ordenar: Mais recente</option>
+            </select>
           </div>
           <div style={{ flex:1, overflowY:"auto", padding:"4px 8px" }}>
             {dbLoading ? (
@@ -2578,11 +2713,19 @@ export default function App() {
                   );
                 })}
               </div>
+              <div style={{ padding:"0 16px 8px" }}>
+                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none" }}>
+                  <option value="urgencia">Ordenar: Urgência</option>
+                  <option value="empresa">Ordenar: Empresa A–Z</option>
+                  <option value="stage">Ordenar: Stage</option>
+                  <option value="recente">Ordenar: Mais recente</option>
+                </select>
+              </div>
               <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:8 }}>
                 {filtered.length===0 ? (
                   processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>Nenhum resultado</div>
                 ) : filtered.map(p=>(
-                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileScreen("detail");}} selected={false}/>
+                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileScreen("detail");}} selected={false} isMobile={true} onSwipeAction={()=>updateProcess({...p,stage:"rejected"})}/>
                 ))}
               </div>
             </div>

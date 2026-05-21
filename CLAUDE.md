@@ -439,6 +439,33 @@ O projeto tem estratégia de testes documentada em `TESTING.md`.
 ### Adicionar um novo stage
 1. Adicione em `STAGE` com `label`, `bar`, `badgeBg`, `badgeColor`, `badgeBorder`
 2. Se for stage ativo, adicione em `ACTIVE_STAGES`
+3. Atualize `STAGE_ORDER` em `sortProcesses` se quiser controlar a ordenação
+
+### Ordenação da lista
+
+`sortProcesses(list, sortBy)` é uma função pura exportada acima do componente raiz. Valores de `sortBy`:
+- `"urgencia"` — `nextStepDate` mais próxima primeiro (nulls por último)
+- `"empresa"` — alfabético por `company` (case-insensitive)
+- `"stage"` — ordem do pipeline definida em `STAGE_ORDER`
+- `"recente"` — `contactedDate` mais recente primeiro
+
+O estado `sortBy` vive no App root junto com `search` e `stageFilter`.
+
+### Canal do primeiro contato
+
+`channel` é um campo do tipo `text` na tabela `processes` (nullable). Valores: `"linkedin"` | `"email"` | `"whatsapp"` | `"indicacao"` | `""`.
+
+Mapeadores já tratam: `rowToProcess` → `channel: row.channel || ""`, `processToRow` → `channel: p.channel || null`.
+
+A constante `CONTACT_CHANNELS` define os valores disponíveis com label e ícone. O seletor aparece no `OverviewTab` (somente quando `origin === "inbound"`) e no `NewProcessModal`.
+
+### Tags editáveis inline
+
+`InlineTags` é um componente standalone (definido antes de `OverviewTab`) que recebe `process` e `onUpdate`. Renderiza tags com botão × para remover e input inline para adicionar. Chama `onUpdate` diretamente sem abrir o modo de edição completo.
+
+### Swipe to archive (mobile)
+
+`ProcessCard` aceita props opcionais `isMobile` e `onSwipeAction`. Quando `isMobile=true`, touch handlers rastreiam o drag horizontal — swipe ≥ 80px para a esquerda aciona `onSwipeAction`. A lista mobile passa `onSwipeAction={()=>updateProcess({...p,stage:"rejected"})}` para cada card.
 
 ### Adicionar cenário no gerador de respostas
 Adicione em `SCENARIOS`:

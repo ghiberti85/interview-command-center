@@ -32,6 +32,7 @@ export function rowToProcess(row) {
     steps: row.steps || [],
     aiContext: row.ai_context || "",
     starred: row.starred || false,
+    channel: row.channel || "",
   };
 }
 
@@ -56,5 +57,6 @@ export function processToRow(p) {
     steps: p.steps || [],
     ai_context: p.aiContext || "",
     starred: p.starred || false,
+    channel: p.channel || null,
   };
 }

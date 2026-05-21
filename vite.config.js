@@ -11,6 +11,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.js"],
     include: ["src/**/*.test.{js,jsx}"],
+    env: {
+      VITE_SUPABASE_URL: "https://sumzkwjthwcdtjqheehn.supabase.co",
+      VITE_SUPABASE_ANON_KEY: "mock-anon-key",
+      VITE_AI_PROXY_URL: "https://sumzkwjthwcdtjqheehn.supabase.co/functions/v1/anthropic-proxy",
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

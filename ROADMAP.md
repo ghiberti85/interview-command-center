@@ -33,6 +33,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Mobile UX — touch targets 44px, bottom nav 52px, indicador de aba ativo | ✅ |
 | Hover states — cards, nav, botões, tabs com transições consistentes | ✅ |
 | Suite de testes — 93 testes (unit + component + integration) | ✅ |
+| **Aba Currículo** — adaptação de CV via IA com aprovação explícita por item | ✅ |
 
 ### Infraestrutura
 

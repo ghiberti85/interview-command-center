@@ -436,6 +436,15 @@ Adicione em `SCENARIOS`:
 { id: "novo_cenario", label: "Label do cenário" }
 ```
 
+### Aba Currículo — perfil do usuário
+
+O perfil do usuário (`useUserProfile`) é persistido em `localStorage` com a chave `icc-user-profile`:
+```js
+{ stack: string[], summary: string, cvText: string }
+```
+
+O `CVTab` recebe `process`, `profile` e `isMobile`. O fluxo tem 4 etapas: `input` → `analyzing` → `review` → `result`. A regra de segurança está no system prompt do Claude: tecnologias fora da `stack` do usuário são sinalizadas como "não confirmadas" e só entram no resultado com autorização explícita via checkbox.
+
 ### Adicionar quick action no AI tab
 Adicione no array `quickActions` dentro de `AITab`:
 ```js

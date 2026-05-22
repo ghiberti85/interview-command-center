@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sortProcesses } from "../../App.jsx";
+import { sortProcesses } from "../../utils/sort.js";
 
 const makeProcess = (overrides = {}) => ({
   id: crypto.randomUUID(),

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useState } from "react";
+import InlineTags from "../../components/process/InlineTags.jsx";
 
 // Mock supabase to avoid import side effects
 vi.mock("../../supabase.js", () => ({
@@ -8,42 +9,6 @@ vi.mock("../../supabase.js", () => ({
   rowToProcess: (r) => r,
   processToRow: (p) => p,
 }));
-
-// Inline replica of InlineTags (mirrors App.jsx implementation)
-const Ic = ({ n, s = 16, c = "currentColor" }) => (
-  <svg data-icon={n} width={s} height={s} />
-);
-
-function InlineTags({ process, onUpdate }) {
-  const [newTag, setNewTag] = useState("");
-  const addTag = () => {
-    const t = newTag.trim();
-    if (!t || (process.tags || []).includes(t)) { setNewTag(""); return; }
-    onUpdate({ ...process, tags: [...(process.tags || []), t] });
-    setNewTag("");
-  };
-  const removeTag = (tag) =>
-    onUpdate({ ...process, tags: (process.tags || []).filter((t) => t !== tag) });
-  return (
-    <div>
-      {(process.tags || []).map((t) => (
-        <span key={t} data-testid={`tag-${t}`}>
-          {t}
-          <button aria-label={`remover ${t}`} onClick={() => removeTag(t)}>
-            <Ic n="close" s={10} c="var(--t4)" />
-          </button>
-        </span>
-      ))}
-      <input
-        placeholder="+ tag"
-        value={newTag}
-        onChange={(e) => setNewTag(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-        onBlur={addTag}
-      />
-    </div>
-  );
-}
 
 function Wrapper({ initialProcess }) {
   const [process, setProcess] = useState(initialProcess);

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { useRef, useState } from "react";
+import ProcessCard from "../../components/process/ProcessCard.jsx";
 
 // Mock supabase to avoid import side effects
 vi.mock("../../supabase.js", () => ({
@@ -9,50 +9,10 @@ vi.mock("../../supabase.js", () => ({
   processToRow: (p) => p,
 }));
 
-// ─── Inline replica of ProcessCard ───────────────────────────────────────────
-const CHANNEL_ICONS = { linkedin: "linkedin", email: "email", whatsapp: "whatsapp", indicacao: "star" };
-
-const Ic = ({ n, s = 16, c = "currentColor" }) => (
-  <svg data-testid={`icon-${n}`} width={s} height={s} />
-);
-
-function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile }) {
-  const touchStartX = useRef(null);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-
-  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const handleTouchMove = (e) => {
-    if (touchStartX.current === null) return;
-    const dx = touchStartX.current - e.touches[0].clientX;
-    if (dx > 0) setSwipeOffset(Math.min(dx, 110));
-  };
-  const handleTouchEnd = () => {
-    if (swipeOffset >= 80 && onSwipeAction) onSwipeAction();
-    setSwipeOffset(0);
-    touchStartX.current = null;
-  };
-
-  return (
-    <div data-testid="card-wrapper" style={{ position: "relative" }}>
-      {isMobile && onSwipeAction && (
-        <div data-testid="swipe-bg" />
-      )}
-      <div
-        data-testid="process-card"
-        onClick={onClick}
-        onTouchStart={isMobile && onSwipeAction ? handleTouchStart : undefined}
-        onTouchMove={isMobile && onSwipeAction ? handleTouchMove : undefined}
-        onTouchEnd={isMobile && onSwipeAction ? handleTouchEnd : undefined}
-        style={{ transform: `translateX(-${swipeOffset}px)` }}
-      >
-        <span data-testid="company">{process.company}</span>
-        {process.channel && CHANNEL_ICONS[process.channel] && (
-          <Ic n={CHANNEL_ICONS[process.channel]} s={11} c="var(--t3)" />
-        )}
-      </div>
-    </div>
-  );
-}
+// Mock Ic to expose data-testid for icon name assertions
+vi.mock("../../components/ui/Ic.jsx", () => ({
+  default: ({ n, s = 16 }) => <svg data-testid={`icon-${n}`} width={s} height={s} />,
+}));
 
 // Helper to simulate touch swipe
 function fireTouchSwipe(element, deltaX) {

@@ -84,19 +84,27 @@ A maioria das ferramentas de job tracking assume que o usuário aplica para vaga
 ```
 interview-command-center/
 ├── src/
-│   ├── App.jsx          # Aplicação completa (componentes + lógica)
-│   └── main.jsx         # Entry point React
-├── public/
-│   └── vite.svg
-├── index.html
-├── vite.config.js
-├── package.json
-├── .env.example         # Template de variáveis de ambiente
-├── .gitignore
-└── README.md
+│   ├── App.jsx                    # Orquestrador — estado global + lógica de negócio
+│   ├── supabase.js                # Client Supabase + mapeadores rowToProcess/processToRow
+│   ├── main.jsx                   # Entry point React
+│   ├── components/
+│   │   ├── ui/                    # Ic, Btn, Badge — primitivos Signal DS
+│   │   ├── process/               # ProcessCard, PipelineBar, InlineTags, Tabs
+│   │   ├── tabs/                  # OverviewTab, TimelineTab, MessagesTab, AITab, CVTab
+│   │   ├── layout/                # Dashboard, ProcessDetail
+│   │   ├── auth/                  # LoginScreen
+│   │   └── modals/                # NewProcessModal, ResumesModal, ImportChatGPTModal, ...
+│   ├── hooks/                     # useAuth, useIsMobile, useTheme, useUserProfile, useResumes
+│   ├── constants/                 # Tokens do Signal DS, DEMO_PROCESSES, T, iconBtn
+│   ├── utils/                     # sort, filterProcesses, dateUtils, buildPrompt, STAGE
+│   └── lib/                       # ai — callAI (proxy Anthropic)
+├── supabase/functions/
+│   └── anthropic-proxy/           # Edge Function — proxy autenticado para Anthropic API
+├── public/                        # favicon, manifest, service worker, ícones PWA
+├── vercel.json                    # Build config + security headers (CSP, X-Frame, etc.)
+├── .env.example                   # Template de variáveis de ambiente
+└── CLAUDE.md                      # Guia de desenvolvimento assistido por IA
 ```
-
-> **Nota:** O projeto usa um único arquivo `App.jsx` por design — facilita iterações rápidas com IA (Claude Code, Cursor, etc.). Para escalar, veja a seção [Roadmap](#roadmap).
 
 ---
 

@@ -4,7 +4,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 
 ---
 
-## Estado atual (v1.3 — em produção)
+## Estado atual (v1.4 — em produção)
 
 ### Implementado e no ar
 
@@ -55,7 +55,9 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Layout responsivo (desktop sidebar + mobile bottom nav) | ✅ |
 | Mobile UX — touch targets 44px, bottom nav 52px, safe area iPhone | ✅ |
 | **PWA** — manifest, service worker, ícones 192/512px, meta tags Apple/Android | ✅ |
-| Suite de testes — 93 testes (unit + component + integration) | ✅ |
+| **Componentização** — App.jsx extraído em hooks, utils, constants, lib e components | ✅ |
+| Suite de testes — 172 testes (unit + component + integration) | ✅ |
+| `.env.example` com todas as variáveis documentadas | ✅ |
 
 ### Infraestrutura
 
@@ -77,7 +79,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 
 ---
 
-## v1.4 — Fundação técnica e qualidade (próximo)
+## v1.4 — Fundação técnica e qualidade ✅ (concluído)
 
 Objetivo: endereçar dívida técnica crítica, completar cobertura de testes e preparar a base para crescer sem atrito.
 
@@ -96,7 +98,7 @@ Objetivo: endereçar dívida técnica crítica, completar cobertura de testes e 
 | E2E com Playwright — fluxos críticos (demo, auth, CRUD, tema, import) | ~8h |
 | Testes de integração — Supabase + MSW para aba Currículo e import ChatGPT | ~4h |
 | CI com relatório de cobertura no GitHub Actions | ~2h |
-| Criar `.env.example` com todas as variáveis documentadas | ~30min |
+| ~~Criar `.env.example` com todas as variáveis documentadas~~ | ✅ |
 
 ### Observabilidade
 
@@ -112,30 +114,20 @@ Objetivo: endereçar dívida técnica crítica, completar cobertura de testes e 
 
 ### Refatoração e TypeScript
 
-`App.jsx` chegou a ~2300 linhas — a componentização é agora necessária, não opcional.
+~~`App.jsx` chegou a ~2300 linhas — a componentização é agora necessária, não opcional.~~ ✅ **Concluído**: `App.jsx` foi extraído em 33 módulos organizados por domínio. O arquivo agora tem ~426 linhas (só orquestração).
 
-**Plano de componentização:**
+**Estrutura atual:**
 ```
 src/
-├── components/
-│   ├── ui/           # Btn, Badge, Ic, iconBtn — primitivos Signal DS
-│   ├── layout/       # Sidebar, Header, BottomNav
-│   ├── process/      # ProcessCard, ProcessDetail, PipelineBar, Timeline
-│   ├── forms/        # AddProcessModal, EditProcessModal, SetPasswordModal,
-│   │                 # ProfileSetupModal, ImportChatGPTModal
-│   └── ai/           # MessagesTab, AITab, CVTab
-├── hooks/            # useAuth, useIsMobile, useProcesses, useTheme, useUserProfile
-├── utils/            # buildPrompt, filterProcesses, fmtDate, daysDiff,
-│                     # chatgpt-parser (loadConversationsFromFile, extractMessages)
-├── types/            # Process, Step, Stage (interfaces TypeScript)
-├── constants/        # STAGE, SCENARIOS, DEMO_PROCESSES, SIGNAL_DS
-└── lib/
-    ├── supabase.ts   # client + mapeadores tipados
-    └── ai.ts         # callAI, prompt builders
+├── components/   # ui/, process/, tabs/, layout/, auth/, modals/
+├── hooks/        # useAuth, useIsMobile, useTheme, useUserProfile, useResumes
+├── constants/    # DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn
+├── utils/        # sort, filterProcesses, dateUtils, constants, buildPrompt
+└── lib/          # ai (callAI helper)
 ```
 
-**Migração TypeScript:**
-- Migrar em ordem: `types/` → `utils/` → `hooks/` → `components/` → `App.tsx`
+**Migração TypeScript (pendente v1.5):**
+- Migrar em ordem: `utils/` → `hooks/` → `components/` → `App.tsx`
 - Ativar `strict: true` no `tsconfig.json`
 - Tipar mapeadores `rowToProcess`/`processToRow` com inferência total
 
@@ -214,30 +206,32 @@ Objetivo: transformar o app em algo que vale compartilhar e, potencialmente, em 
 |---|---|---|
 | Configurar `ALLOWED_ORIGIN` na Edge Function | 🔴 Alta | v1.4 |
 | Aumentar senha mínima para 12 chars (Supabase dashboard) | 🔴 Alta | v1.4 |
-| Componentizar `App.jsx` (~2700 linhas) | 🔴 Alta | v1.4 |
-| Migrar para TypeScript (`.tsx`) com `strict: true` | 🟡 Média | v1.4 |
-| Completar suite de testes E2E com Playwright | 🟡 Média | v1.4 |
-| Criar `.env.example` | 🟡 Média | v1.4 |
-| Integrar Sentry para monitoramento de erros em produção | 🟡 Média | v1.4 |
-| Rate limiting persistente na Edge Function (Supabase KV) | 🟡 Média | v1.4 |
-| Lazy import de JSZip (reduzir bundle inicial) | 🟢 Baixa | v1.4 |
-| Extrair `buildPrompt` → `src/utils/buildPrompt.ts` | 🟢 Baixa | v1.4 |
-| Extrair `filterProcesses` → `src/utils/filterProcesses.ts` | 🟢 Baixa | v1.4 |
-| Extrair `chatgpt-parser` → `src/utils/chatgpt-parser.ts` | 🟢 Baixa | v1.4 |
-| Extrair `checkRateLimit` → `supabase/functions/.../utils.ts` | 🟢 Baixa | v1.4 |
+| ~~Componentizar `App.jsx`~~ | ✅ Concluído | v1.4 |
+| ~~Criar `.env.example`~~ | ✅ Concluído | v1.4 |
+| ~~Extrair `buildPrompt` → `src/utils/buildPrompt.js`~~ | ✅ Concluído | v1.4 |
+| ~~Extrair `filterProcesses` → `src/utils/filterProcesses.js`~~ | ✅ Concluído | v1.4 |
+| Configurar `ALLOWED_ORIGIN` na Edge Function | 🔴 Alta | v1.5 |
+| Aumentar senha mínima para 12 chars (Supabase dashboard) | 🔴 Alta | v1.5 |
+| Migrar para TypeScript (`.tsx`) com `strict: true` | 🟡 Média | v1.5 |
+| Completar suite de testes E2E com Playwright | 🟡 Média | v1.5 |
+| Integrar Sentry para monitoramento de erros em produção | 🟡 Média | v1.5 |
+| Rate limiting persistente na Edge Function (Supabase KV) | 🟡 Média | v1.5 |
+| Lazy import de JSZip (reduzir bundle inicial) | 🟢 Baixa | v1.5 |
+| Extrair `checkRateLimit` → `supabase/functions/.../utils.ts` | 🟢 Baixa | v1.5 |
 
 ---
 
 ## Linha do tempo
 
 ```
-Agora (v1.3)      v1.4                v1.5               v2.0
-      │               │                   │                  │
-Em produção    Fundação técnica     IA Avançada         Plataforma
-               Segurança manual     Prep Kit            Calendar
-               Testes E2E           Career Dashboard    Coach link
-               TypeScript           Alertas urgência    Benchmark
-               Componentizar        Import por URL      Open source?
-               Observabilidade
-               UX rápida
+v1.3 ✅        v1.4 ✅              v1.5                v2.0
+  │               │                   │                  │
+Em produção   Componentizado      IA Avançada         Plataforma
+              UX features         Prep Kit            Calendar
+              172 testes          Career Dashboard    Coach link
+              .env.example        Alertas urgência    Benchmark
+              buildPrompt         Import por URL      Open source?
+              filterProcesses     TypeScript
+                                  Testes E2E
+                                  Observabilidade
 ```

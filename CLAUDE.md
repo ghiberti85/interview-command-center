@@ -31,14 +31,62 @@ Aplicação React de gestão de processos seletivos para profissionais de tecnol
 
 ## Arquitetura atual
 
-### Arquivos principais
+### Estrutura de arquivos
 
 ```
 src/
-├── App.jsx        # Todo o código da UI — arquivo único intencional (~2600 linhas)
-├── supabase.js    # Client Supabase + mapeadores rowToProcess / processToRow
-├── main.jsx       # Entry point React
-└── index.css      # Reset CSS mínimo + safe area vars
+├── App.jsx                    # Orquestrador — estado global + lógica de negócio (~426 linhas)
+├── supabase.js                # Client Supabase + mapeadores rowToProcess / processToRow
+├── main.jsx                   # Entry point React
+├── index.css                  # Reset CSS mínimo + safe area vars
+│
+├── components/
+│   ├── ui/                    # Primitivos do Signal DS
+│   │   ├── Ic.jsx             # Ícone SVG inline
+│   │   ├── Btn.jsx            # Botão com variantes (primary/secondary/ghost/danger)
+│   │   └── Badge.jsx          # Badge de stage colorido
+│   ├── process/               # Elementos de processo seletivo
+│   │   ├── ProcessCard.jsx    # Card na lista (com swipe to archive no mobile)
+│   │   ├── PipelineBar.jsx    # Barra de progresso do pipeline
+│   │   ├── InlineTags.jsx     # Tags editáveis inline
+│   │   └── Tabs.jsx           # Navegação de abas do processo
+│   ├── tabs/                  # Conteúdo das abas do processo
+│   │   ├── OverviewTab.jsx    # Dados da vaga + recrutador + próxima etapa
+│   │   ├── TimelineTab.jsx    # Linha do tempo de etapas
+│   │   ├── MessagesTab.jsx    # Gerador de respostas por canal
+│   │   ├── AITab.jsx          # Chat livre com IA
+│   │   └── CVTab.jsx          # Adaptação de currículo por JD
+│   ├── layout/                # Estrutura de tela
+│   │   ├── Dashboard.jsx      # Dashboard desktop + mobile (painel de métricas)
+│   │   └── ProcessDetail.jsx  # Painel de detalhes (desktop sidebar + mobile screen)
+│   ├── auth/
+│   │   └── LoginScreen.jsx    # Login (senha / magic link / forgot password + demo)
+│   └── modals/
+│       ├── NewProcessModal.jsx
+│       ├── SetPasswordModal.jsx
+│       ├── ProfileSetupModal.jsx
+│       ├── ResumesModal.jsx
+│       └── ImportChatGPTModal.jsx
+│
+├── hooks/
+│   ├── useAuth.js             # Sessão Supabase + detecção PASSWORD_RECOVERY
+│   ├── useIsMobile.js         # Breakpoint 768px via ResizeObserver
+│   ├── useTheme.js            # Dark/light com persistência localStorage
+│   ├── useUserProfile.js      # Perfil (stack, resumo, CV base) em localStorage
+│   └── useResumes.js          # CRUD de currículos na tabela `resumes` do Supabase
+│
+├── constants/
+│   └── index.js               # DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn
+│
+├── utils/
+│   ├── constants.js           # STAGE, ACTIVE_STAGES
+│   ├── sort.js                # sortProcesses (urgencia/empresa/stage/recente)
+│   ├── filterProcesses.js     # filterProcesses (busca + filtro de stage)
+│   ├── dateUtils.js           # fmtDate, daysDiff
+│   └── buildPrompt.js         # buildCVPrompt para o CVTab
+│
+└── lib/
+    └── ai.js                  # callAI — helper de chamada ao proxy Anthropic
 
 public/
 ├── favicon.svg    # Ícone de pipeline roxo (Signal DS accent)
@@ -58,11 +106,11 @@ vercel.json         # Build config + security headers (CSP, X-Frame, etc.)
 
 ### Arquivo principal
 
-Todo o código vive em `src/App.jsx` — escolha intencional para facilitar iterações rápidas com IA. **Não fragmente sem necessidade.** Ver seção de dívida técnica no ROADMAP.md.
+`App.jsx` é o orquestrador: mantém o estado global (`processes`, `selected`, `view`, `session`, etc.), funções de CRUD e a composição do layout. A lógica de UI foi extraída para os módulos acima. **Não fragmente `App.jsx` além do necessário** — ele deve permanecer legível como entry point.
 
 ### Autenticação
 
-O app usa **Supabase Auth** com o hook `useAuth()` definido em `App.jsx`:
+O app usa **Supabase Auth** com o hook `useAuth()` em `src/hooks/useAuth.js`:
 
 ```js
 function useAuth() {

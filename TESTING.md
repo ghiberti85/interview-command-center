@@ -829,7 +829,7 @@ swipe left < 80px → onSwipeAction NÃO chamado
 
 ### Status de implementação
 
-**IMPLEMENTADOS e passando (146 testes totais):**
+**IMPLEMENTADOS e passando (172 testes totais — 14 suítes):**
 
 #### `extractTextFromPdf` — `src/__tests__/unit/extractTextFromPdf.test.js` ✅
 ```
@@ -934,3 +934,27 @@ pdfjs-dist chunk separado do bundle principal (lazy import)
 - Input de envio deve exibir `paddingBottom` com `env(safe-area-inset-bottom)` no mobile
 - Placeholder deve ser encurtado no mobile
 - Bolhas de mensagem devem ter `maxWidth:90%` no mobile vs `85%` no desktop
+
+---
+
+## Adições v1.4 — Componentização
+
+### Status
+
+A componentização de `App.jsx` não criou novos testes unitários (os módulos extraídos já eram cobertos pelos testes existentes), mas os testes existentes foram atualizados para importar dos novos caminhos modulares.
+
+**Testes atualizados para novos caminhos:**
+- `src/__tests__/components/CVTab.test.jsx` — importa de `src/components/tabs/CVTab.jsx`
+- `src/__tests__/components/InlineTags.test.jsx` — importa de `src/components/process/InlineTags.jsx`
+- `src/__tests__/components/ProcessCard.test.jsx` — importa de `src/components/process/ProcessCard.jsx`
+- `src/__tests__/unit/sort.test.js` — importa de `src/utils/sort.js`
+
+**Suite completa:** 172 testes, 14 arquivos, todos passando.
+
+### Cenários a cobrir em v1.5 (pendente)
+
+- `useAuth` — mock de `supabase.auth.getSession` + `onAuthStateChange` para testar fluxo de recovery
+- `useTheme` — persistência no localStorage + toggle
+- `useIsMobile` — breakpoint 768px via ResizeObserver mock
+- `callAI` (src/lib/ai.js) — erro HTTP, token ausente, resposta malformada
+- `buildPrompt` (src/utils/buildPrompt.js) — geração correta do prompt com diferentes inputs

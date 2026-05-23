@@ -353,11 +353,11 @@ export default function App() {
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:70 }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))" }}><MobileDashboard processes={processes}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:70, animation:"slideUp 0.2s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))", animation:"slideUp 0.2s ease" }}>
               <div style={{ padding:"12px 16px 8px" }}>
                 <div style={{ position:"relative" }}>
                   <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={14} c="var(--t4)"/></div>
@@ -391,13 +391,13 @@ export default function App() {
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:70, animation:"slideUp 0.22s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))", animation:"slideUp 0.22s ease" }}>
               <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab}/>
             </div>
           )}
         </div>
 
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"env(safe-area-inset-bottom,0px)", flexShrink:0 }}>
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"min(env(safe-area-inset-bottom,0px),16px)", flexShrink:0 }}>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },
             { id:"dashboard", icon:"chart",   label:"Stats"    },

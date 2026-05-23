@@ -50,7 +50,7 @@ export function LoginScreen({ onDemo }) {
   const Logo = () => (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:32 }}>
       <div style={{ width:52, height:52, borderRadius:15, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:14 }}>
-        <Ic n="target" s={24} c="#fff"/>
+        <Ic n="pipeline" s={24} c="#fff"/>
       </div>
       <div style={{ fontWeight:800, fontSize:22, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
       <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.08em", textTransform:"uppercase", marginTop:4 }}>Command Center</div>

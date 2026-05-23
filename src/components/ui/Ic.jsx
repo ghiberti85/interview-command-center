@@ -27,6 +27,7 @@ const Ic = ({ n, s=16, c="currentColor" }) => {
     whatsapp: <><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" stroke={c} strokeWidth="1.5" fill="none"/><path d="M8.5 8.5s1 2 2 3 3 2 3 2l1.5-1.5s.5-.5 1 0l1.5 1.5s.5.5 0 1L16 16s-1 1-3-1-4-4-5-6l1.5-1.5s.5-.5 0-1L8 7s-.5-.5-.5 0l1 1.5" stroke={c} strokeWidth="1.5" strokeLinecap="round" fill="none"/></>,
     info:     <><circle cx="12" cy="12" r="10" stroke={c} strokeWidth="1.5" fill="none"/><path d="M12 8v.5M12 11v5" stroke={c} strokeWidth="1.5" strokeLinecap="round"/></>,
     logout:   <><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></>,
+    upload:   <><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><polyline points="17 8 12 3 7 8" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke={c} strokeWidth="1.5" strokeLinecap="round"/></>,
   };
   return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>{P[n]||null}</svg>;
 };

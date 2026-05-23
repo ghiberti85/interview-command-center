@@ -257,7 +257,7 @@ export default function App() {
               <div style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}><Ic n="search" s={13} c="var(--t4)"/></div>
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." aria-label="Buscar processos" style={{ ...T.input, paddingLeft:32, fontSize:13, borderRadius:9 }}/>
             </div>
-            <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", marginTop:6 }}>
+            <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", marginTop:6, colorScheme:dark?"dark":"light" }}>
               <option value="urgencia">Ordenar: Urgência</option>
               <option value="empresa">Ordenar: Empresa A–Z</option>
               <option value="stage">Ordenar: Stage</option>
@@ -280,7 +280,7 @@ export default function App() {
               <Ic n="plus" s={14} c="var(--acc)"/>Novo Processo
             </button>
             <button className="nav-btn" onClick={()=>setShowImport(true)} style={{ width:"100%", padding:"8px 10px", borderRadius:10, border:"1px solid var(--border)", background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:500, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:4 }}>
-              <Ic n="refresh" s={13} c="var(--t3)"/>
+              <Ic n="upload" s={13} c="var(--t3)"/>
               Importar processos
             </button>
           </div>
@@ -350,7 +350,7 @@ export default function App() {
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
                 { label:"Novo processo", icon:"plus", action:()=>{ setShowNew(true); setHamburgerOpen(false); }, accent:true },
-                { label:"Importar processos", icon:"refresh", action:()=>{ setShowImport(true); setHamburgerOpen(false); }, hidden: isDemo },
+                { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setHamburgerOpen(false); }, hidden: isDemo },
                 { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
                 { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
                 { label:"Definir senha", icon:"edit", action:()=>{ setShowSetPassword(true); setHamburgerOpen(false); }, hidden: isDemo },
@@ -394,7 +394,7 @@ export default function App() {
                 })}
               </div>
               <div style={{ padding:"0 16px 8px" }}>
-                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none" }}>
+                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", colorScheme:dark?"dark":"light" }}>
                   <option value="urgencia">Ordenar: Urgência</option>
                   <option value="empresa">Ordenar: Empresa A–Z</option>
                   <option value="stage">Ordenar: Stage</option>

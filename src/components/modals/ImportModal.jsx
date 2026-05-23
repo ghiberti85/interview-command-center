@@ -277,7 +277,7 @@ CONVERSA:\n${text.slice(0, 4000)}`;
         <div style={{ padding:"20px 20px 16px", borderBottom:"1px solid var(--border)", flexShrink:0, display:"flex", alignItems:"center", gap:12 }}>
           {isMobile && <div style={{ position:"absolute", top:12, left:"50%", transform:"translateX(-50%)", width:36, height:4, background:"var(--border-md)", borderRadius:2 }}/>}
           <div style={{ width:36, height:36, borderRadius:10, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            <Ic n="refresh" s={16} c="var(--acc)"/>
+            <Ic n="upload" s={16} c="var(--acc)"/>
           </div>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>Importar processos</div>

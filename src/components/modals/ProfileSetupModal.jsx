@@ -1,13 +1,49 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
+
+async function extractPdfText(file) {
+  let lib;
+  try {
+    lib = await import("pdfjs-dist");
+    lib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  } catch { throw new Error("Falha ao carregar leitor de PDF."); }
+  const buffer = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: buffer }).promise;
+  let text = "";
+  for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(" ") + "\n";
+  }
+  return text.trim();
+}
 
 export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
   const [stack, setStack] = useState((initial?.stack||[]).join(", "));
   const [summary, setSummary] = useState(initial?.summary||"");
   const [cvText, setCvText] = useState(initial?.cvText||"");
   const [tab, setTab] = useState("stack");
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState("");
+  const pdfRef = useRef();
+
+  const handlePdf = async (file) => {
+    if (!file) return;
+    setPdfLoading(true);
+    setPdfError("");
+    try {
+      const text = await extractPdfText(file);
+      if (!text) throw new Error("Nenhum texto encontrado no PDF.");
+      setCvText(text);
+    } catch (e) {
+      setPdfError(e.message);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const save = () => {
     const stackArr = stack.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
@@ -40,16 +76,46 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
             <div style={{ fontSize:11, color:"var(--t3)" }}>A IA só mencionará tecnologias desta lista ao adaptar o currículo. Itens fora da lista serão sinalizados como "não confirmados" e precisarão da sua autorização.</div>
           </div>
         )}
+
         {tab==="summary" && (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             <label style={{ ...T.label }}>Resumo profissional (texto base para reescritas)</label>
             <textarea value={summary} onChange={e=>setSummary(e.target.value)} rows={6} placeholder="Senior Full-Stack Engineer com 10+ anos de experiência em desenvolvimento React/Next.js e Node.js. Front-End Tech Lead com histórico de liderança de times, design systems e performance em escala..." style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
           </div>
         )}
+
         {tab==="cvText" && (
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            <label style={{ ...T.label }}>CV completo (opcional — cola aqui para contexto adicional)</label>
-            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={12} placeholder="Cole aqui o texto do seu currículo atual. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {/* PDF upload area */}
+            <div
+              onClick={()=>pdfRef.current?.click()}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={e=>{ e.preventDefault(); handlePdf(e.dataTransfer.files[0]); }}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 16px", borderRadius:10, border:"1.5px dashed var(--border-md)", background:"var(--bg-o)", cursor:"pointer", transition:"all 0.15s", flexShrink:0 }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--acc-b)";e.currentTarget.style.background="var(--acc-d)"}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border-md)";e.currentTarget.style.background="var(--bg-o)"}}
+            >
+              <div style={{ width:36, height:36, borderRadius:9, background:"var(--bg-s)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                {pdfLoading
+                  ? <div style={{ width:16, height:16, borderRadius:"50%", border:"2px solid var(--border)", borderTopColor:"var(--acc)", animation:"spin 0.7s linear infinite" }}/>
+                  : <Ic n="upload" s={16} c="var(--t2)"/>
+                }
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>
+                  {pdfLoading ? "Extraindo texto do PDF..." : "Importar CV em PDF"}
+                </div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>Arraste ou clique · O texto será extraído e preenchido abaixo</div>
+              </div>
+              <input ref={pdfRef} type="file" accept=".pdf" style={{ display:"none" }} onChange={e=>handlePdf(e.target.files[0])}/>
+            </div>
+
+            {pdfError && (
+              <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", fontSize:12, color:"var(--red)" }}>{pdfError}</div>
+            )}
+
+            <label style={{ ...T.label }}>CV completo (ou cole manualmente)</label>
+            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={12} placeholder="Cole aqui o texto do seu currículo atual, ou importe um PDF acima. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
           </div>
         )}
 

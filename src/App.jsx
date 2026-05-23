@@ -215,10 +215,10 @@ export default function App() {
           )}
           <div style={{ padding:"16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:10, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              <Ic n="target" s={16} c="#fff"/>
+              <Ic n="pipeline" s={16} c="#fff"/>
             </div>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:800, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
+              <div style={{ fontWeight:800, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", fontFamily:"'Outfit',sans-serif" }}>Interview</div>
               <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)", marginTop:1 }}>Command Center</div>
             </div>
             <div style={{ display:"flex", gap:2 }}>
@@ -321,8 +321,8 @@ export default function App() {
             </button>
           ) : (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ width:26, height:26, borderRadius:7, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic n="target" s={13} c="#fff"/></div>
-              <div style={{ fontWeight:800, fontSize:15, color:"var(--t1)", fontFamily:"'Outfit',sans-serif", letterSpacing:"-0.02em" }}>Interview OS</div>
+              <div style={{ width:26, height:26, borderRadius:7, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic n="pipeline" s={13} c="#fff"/></div>
+              <div style={{ fontWeight:800, fontSize:15, color:"var(--t1)", fontFamily:"'Outfit',sans-serif", letterSpacing:"-0.02em" }}>Interview CC</div>
             </div>
           )}
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>

@@ -7,7 +7,7 @@ import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 import { buildPrompt } from "../../utils/buildPrompt.js";
 
-export function MessagesTab({ process, isMobile }) {
+export function MessagesTab({ process, isMobile, autoFocus }) {
   const [channel, setChannel] = useState("linkedin");
   const [scenario, setScenario] = useState("reply_recruiter");
   const [recruiterMsg, setRecruiterMsg] = useState("");
@@ -48,7 +48,7 @@ export function MessagesTab({ process, isMobile }) {
             <span style={{ ...T.label, color:"var(--t2)" }}>Mensagem do recrutador</span>
             <span style={{ fontSize:10, color:"var(--t4)", ...T.mono, marginLeft:2 }}>(opcional)</span>
           </div>
-          <textarea value={recruiterMsg} onChange={e=>setRecruiterMsg(e.target.value)} placeholder="Cole aqui a mensagem exata recebida — a IA vai analisar e gerar a melhor resposta..." rows={4} style={{ ...T.input, resize:"vertical", lineHeight:1.6, borderColor:recruiterMsg?"var(--acc-b)":"var(--border)", background:recruiterMsg?"rgba(124,106,255,0.04)":"var(--bg-o)" }}/>
+          <textarea autoFocus={autoFocus} value={recruiterMsg} onChange={e=>setRecruiterMsg(e.target.value)} placeholder="Cole aqui a mensagem exata recebida — a IA vai analisar e gerar a melhor resposta..." rows={4} style={{ ...T.input, resize:"vertical", lineHeight:1.6, borderColor:recruiterMsg?"var(--acc-b)":"var(--border)", background:recruiterMsg?"rgba(124,106,255,0.04)":"var(--bg-o)" }}/>
           {recruiterMsg && (
             <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:5 }}>
               <Ic n="check" s={11} c="var(--grn)"/>

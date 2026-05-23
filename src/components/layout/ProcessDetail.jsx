@@ -10,9 +10,9 @@ import MessagesTab from "../tabs/MessagesTab.jsx";
 import AITab from "../tabs/AITab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
-export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile, resumes, onManageResumes }) {
-  const [tab, setTab] = useState("overview");
-  useEffect(()=>setTab("overview"),[process.id]);
+export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile, resumes, onManageResumes, initialTab }) {
+  const [tab, setTab] = useState(initialTab || "overview");
+  useEffect(()=>setTab(initialTab || "overview"),[process.id, initialTab]);
 
   const tabs = [
     { id:"overview",  label:"Overview" },
@@ -46,7 +46,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
       <div style={{ flex:1, overflow:"hidden", minHeight:0 }}>
         {tab==="overview"  && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
         {tab==="timeline"  && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
-        {tab==="messages"  && <div style={{ height:tabH }}><MessagesTab process={process} isMobile={isMobile}/></div>}
+        {tab==="messages"  && <div style={{ height:tabH }}><MessagesTab process={process} isMobile={isMobile} autoFocus={initialTab==="messages"}/></div>}
         {tab==="ai"        && <div style={{ height:tabH }}><AITab process={process} isMobile={isMobile}/></div>}
         {tab==="curriculo" && (
           <div style={{ height:tabH, display:"flex", flexDirection:"column" }}>

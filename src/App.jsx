@@ -34,7 +34,7 @@ import NewProcessModal from "./components/modals/NewProcessModal.jsx";
 import SetPasswordModal from "./components/modals/SetPasswordModal.jsx";
 import ProfileSetupModal from "./components/modals/ProfileSetupModal.jsx";
 import ResumesModal from "./components/modals/ResumesModal.jsx";
-import ImportChatGPTModal from "./components/modals/ImportChatGPTModal.jsx";
+import ImportModal from "./components/modals/ImportModal.jsx";
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -67,6 +67,7 @@ export default function App() {
   const { profile, saveProfile } = useUserProfile();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
   const { resumes, loading: resumesLoading, add: addResume, update: updateResume, remove: removeResume } = useResumes(session);
 
@@ -226,7 +227,7 @@ export default function App() {
                 <Ic n={dark?"sun":"moon"} s={15} c="var(--t3)"/>
               </button>
               {!isDemo && <button className="icon-btn" onClick={()=>setShowSetPassword(true)} style={iconBtn()} title="Definir senha" aria-label="Definir senha"><Ic n="edit" s={15} c="var(--t3)"/></button>}
-              {!isDemo && <button className="icon-btn" onClick={()=>supabase.auth.signOut()} style={iconBtn()} title="Sair" aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>}
+              <button className="icon-btn" onClick={()=>isDemo?setIsDemo(false):supabase.auth.signOut()} style={iconBtn()} title={isDemo?"Sair do demo":"Sair"} aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>
             </div>
           </div>
           <div style={{ padding:"8px" }}>
@@ -235,10 +236,10 @@ export default function App() {
               { id:"dashboard", icon:"chart",    label:"Dashboard"   },
               { id:"archived",  icon:"archive",  label:"Arquivados", count:archived.length },
             ].map(n=>(
-              <button key={n.id} onClick={()=>setView(n.id)} className={`nav-btn${view===n.id?" active":""}`} style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:9, border:"none", marginBottom:2, background:view===n.id?"var(--acc-d)":"transparent", color:view===n.id?"var(--acc)":"var(--t2)", cursor:"pointer", fontSize:13, fontWeight:view===n.id?600:500, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}>
-                <Ic n={n.icon} s={15} c={view===n.id?"var(--acc)":"var(--t3)"}/>
+              <button key={n.id} onClick={()=>setView(n.id)} className={`nav-btn${view===n.id?" active":""}`} style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:9, border:"none", marginBottom:2, background:view===n.id?"var(--acc)":"transparent", color:view===n.id?"#EFEFEF":"var(--t2)", cursor:"pointer", fontSize:13, fontWeight:view===n.id?600:500, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}>
+                <Ic n={n.icon} s={15} c={view===n.id?"#EFEFEF":"var(--t3)"}/>
                 <span style={{ flex:1 }}>{n.label}</span>
-                {n.count!=null && <span style={{ padding:"2px 7px", borderRadius:999, background:view===n.id?"var(--acc-d)":"var(--bg-s)", color:view===n.id?"var(--acc)":"var(--t3)", fontSize:11, fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${view===n.id?"var(--acc-b)":"var(--border)"}` }}>{n.count}</span>}
+                {n.count!=null && <span style={{ padding:"2px 7px", borderRadius:999, background:view===n.id?"rgba(255,255,255,0.15)":"var(--bg-s)", color:view===n.id?"#EFEFEF":"var(--t3)", fontSize:11, fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${view===n.id?"rgba(255,255,255,0.2)":"var(--border)"}` }}>{n.count}</span>}
               </button>
             ))}
           </div>
@@ -278,12 +279,10 @@ export default function App() {
             <button className="nav-btn" onClick={()=>setShowNew(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--border)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <Ic n="plus" s={14} c="var(--acc)"/>Novo Processo
             </button>
-            {!isDemo && (
-              <button className="nav-btn" onClick={()=>setShowImport(true)} style={{ width:"100%", padding:"8px 10px", borderRadius:10, border:"1px solid var(--border)", background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:500, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:4 }}>
-                <svg width="13" height="13" viewBox="0 0 41 41" fill="none"><path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-7.504-3.357 10.079 10.079 0 0 0-9.614 6.977 9.967 9.967 0 0 0-6.664 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.504 3.356 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.663-4.834 10.079 10.079 0 0 0-1.243-11.813zM22.498 37.886a7.474 7.474 0 0 1-4.799-1.735c.061-.033.168-.091.237-.134l7.964-4.6a1.294 1.294 0 0 0 .655-1.134V19.054l3.366 1.944a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.49 7.496zM6.392 31.006a7.471 7.471 0 0 1-.894-5.023c.06.036.162.099.237.141l7.964 4.6a1.297 1.297 0 0 0 1.308 0l9.724-5.614v3.888a.12.12 0 0 1-.048.103l-8.051 4.649a7.504 7.504 0 0 1-10.24-2.744zM4.297 13.62A7.469 7.469 0 0 1 8.2 10.333c0 .068-.004.19-.004.274v9.201a1.294 1.294 0 0 0 .654 1.132l9.723 5.614-3.366 1.944a.12.12 0 0 1-.114.012L7.044 23.86a7.504 7.504 0 0 1-2.747-10.24zm27.658 6.437l-9.724-5.615 3.367-1.943a.121.121 0 0 1 .114-.012l8.048 4.648a7.498 7.498 0 0 1-1.158 13.528v-9.476a1.293 1.293 0 0 0-.647-1.13zm3.35-5.043c-.059-.037-.162-.099-.236-.141l-7.965-4.6a1.298 1.298 0 0 0-1.308 0l-9.723 5.614v-3.888a.12.12 0 0 1 .048-.103l8.05-4.645a7.497 7.497 0 0 1 11.135 7.763zm-21.063 6.929l-3.367-1.944a.12.12 0 0 1-.065-.092v-9.299a7.497 7.497 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.965 4.6a1.294 1.294 0 0 0-.654 1.132l-.006 11.225zm1.829-3.943l4.33-2.501 4.332 2.5v4.999l-4.331 2.5-4.331-2.5V18z" fill="var(--t3)"/></svg>
-                Importar do ChatGPT
-              </button>
-            )}
+            <button className="nav-btn" onClick={()=>setShowImport(true)} style={{ width:"100%", padding:"8px 10px", borderRadius:10, border:"1px solid var(--border)", background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:500, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:4 }}>
+              <Ic n="refresh" s={13} c="var(--t3)"/>
+              Importar processos
+            </button>
           </div>
         </div>
 
@@ -304,7 +303,7 @@ export default function App() {
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={false}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile}/>}
-      {showImport && <ImportChatGPTModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={false} isDemo={isDemo}/>}
+      {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={false} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );
@@ -314,6 +313,7 @@ export default function App() {
     <>
       <style>{GLOBAL_CSS}</style>
       <div style={{ display:"flex", flexDirection:"column", height:"100dvh", background:"var(--bg)", overflow:"hidden" }}>
+        {/* Mobile header */}
         <div style={{ paddingTop:"max(12px, env(safe-area-inset-top, 12px))", paddingBottom:"10px", paddingLeft:"16px", paddingRight:"16px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           {mobileScreen==="detail" && view!=="dashboard" ? (
             <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
@@ -332,22 +332,43 @@ export default function App() {
                 <span style={{ fontSize:11, color:"var(--red)", fontWeight:600 }}>{urgent}</span>
               </div>
             )}
-            <button className="icon-btn" onClick={toggleTheme} style={iconBtn({ width:44, height:44, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-r)" })} aria-label="Alternar tema">
-              <Ic n={dark?"sun":"moon"} s={16} c="var(--t3)"/>
-            </button>
-            <button className="icon-btn" onClick={()=>supabase.auth.signOut()} style={iconBtn({ width:44, height:44, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-r)" })} title="Sair" aria-label="Sair">
-              <Ic n="logout" s={16} c="var(--t3)"/>
-            </button>
-            {!isDemo && (
-              <button className="icon-btn" onClick={()=>setShowImport(true)} style={iconBtn({ width:44, height:44, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-r)" })} aria-label="Importar do ChatGPT" title="Importar do ChatGPT">
-                <svg width="16" height="16" viewBox="0 0 41 41" fill="none"><path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-7.504-3.357 10.079 10.079 0 0 0-9.614 6.977 9.967 9.967 0 0 0-6.664 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.504 3.356 10.079 10.079 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.663-4.834 10.079 10.079 0 0 0-1.243-11.813zM22.498 37.886a7.474 7.474 0 0 1-4.799-1.735c.061-.033.168-.091.237-.134l7.964-4.6a1.294 1.294 0 0 0 .655-1.134V19.054l3.366 1.944a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.49 7.496zM6.392 31.006a7.471 7.471 0 0 1-.894-5.023c.06.036.162.099.237.141l7.964 4.6a1.297 1.297 0 0 0 1.308 0l9.724-5.614v3.888a.12.12 0 0 1-.048.103l-8.051 4.649a7.504 7.504 0 0 1-10.24-2.744zM4.297 13.62A7.469 7.469 0 0 1 8.2 10.333c0 .068-.004.19-.004.274v9.201a1.294 1.294 0 0 0 .654 1.132l9.723 5.614-3.366 1.944a.12.12 0 0 1-.114.012L7.044 23.86a7.504 7.504 0 0 1-2.747-10.24zm27.658 6.437l-9.724-5.615 3.367-1.943a.121.121 0 0 1 .114-.012l8.048 4.648a7.498 7.498 0 0 1-1.158 13.528v-9.476a1.293 1.293 0 0 0-.647-1.13zm3.35-5.043c-.059-.037-.162-.099-.236-.141l-7.965-4.6a1.298 1.298 0 0 0-1.308 0l-9.723 5.614v-3.888a.12.12 0 0 1 .048-.103l8.05-4.645a7.497 7.497 0 0 1 11.135 7.763zm-21.063 6.929l-3.367-1.944a.12.12 0 0 1-.065-.092v-9.299a7.497 7.497 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.965 4.6a1.294 1.294 0 0 0-.654 1.132l-.006 11.225zm1.829-3.943l4.33-2.501 4.332 2.5v4.999l-4.331 2.5-4.331-2.5V18z" fill="var(--t3)"/></svg>
-              </button>
-            )}
-            <button className="icon-btn" onClick={()=>setShowNew(true)} style={iconBtn({ width:44, height:44, borderRadius:10, border:"none", background:"var(--acc-d)" })} aria-label="Novo processo">
-              <Ic n="plus" s={17} c="var(--acc)"/>
+            <button className="icon-btn" onClick={()=>setHamburgerOpen(true)} style={iconBtn({ width:44, height:44, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-r)" })} aria-label="Menu">
+              <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+                <rect y="0" width="18" height="2" rx="1" fill="var(--t2)"/>
+                <rect y="6" width="14" height="2" rx="1" fill="var(--t2)"/>
+                <rect y="12" width="10" height="2" rx="1" fill="var(--t2)"/>
+              </svg>
             </button>
           </div>
         </div>
+
+        {/* Hamburger bottom sheet */}
+        {hamburgerOpen && (
+          <>
+            <div onClick={()=>setHamburgerOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:199, backdropFilter:"blur(2px)" }}/>
+            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", zIndex:200, animation:"slideUp 0.25s ease" }}>
+              <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
+              {[
+                { label:"Novo processo", icon:"plus", action:()=>{ setShowNew(true); setHamburgerOpen(false); }, accent:true },
+                { label:"Importar processos", icon:"refresh", action:()=>{ setShowImport(true); setHamburgerOpen(false); }, hidden: isDemo },
+                { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
+                { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
+                { label:"Definir senha", icon:"edit", action:()=>{ setShowSetPassword(true); setHamburgerOpen(false); }, hidden: isDemo },
+                { label: isDemo?"Sair do modo demo":"Sair da conta", icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
+              ].filter(item=>!item.hidden).map((item,i)=>(
+                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc)":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                >
+                  <div style={{ width:38, height:38, borderRadius:10, background: item.danger?"var(--red-d)":item.accent?"var(--acc-d)":"var(--bg-o)", border:`1px solid ${item.danger?"var(--red-b)":item.accent?"var(--acc-b)":"var(--border)"}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <Ic n={item.icon} s={17} c={item.danger?"var(--red)":item.accent?"var(--acc)":"var(--t2)"}/>
+                  </div>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
           {dbLoading && <Spinner/>}
@@ -368,7 +389,7 @@ export default function App() {
                 {[{id:"all",label:"Todos"},...ACTIVE_STAGES.map(s=>({id:s,label:STAGE[s].label}))].map(p=>{
                   const isActive = stageFilter===p.id;
                   return (
-                    <div key={p.id} onClick={()=>setStageFilter(p.id)} style={{ flexShrink:0, padding:"7px 14px", borderRadius:20, border:`1px solid ${isActive?"var(--acc-b)":"var(--border)"}`, background:isActive?"var(--acc-d)":"var(--bg-r)", color:isActive?"var(--acc)":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap", fontWeight:isActive?600:400, transition:"all 0.15s" }}>{p.label}</div>
+                    <div key={p.id} onClick={()=>setStageFilter(p.id)} style={{ flexShrink:0, padding:"7px 14px", borderRadius:20, border:`1px solid ${isActive?"var(--acc)":"var(--border)"}`, background:isActive?"var(--acc)":"var(--bg-r)", color:isActive?"#EFEFEF":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap", fontWeight:isActive?600:400, transition:"all 0.15s" }}>{p.label}</div>
                   );
                 })}
               </div>
@@ -405,9 +426,9 @@ export default function App() {
           ].map(n=>{
             const on = view===n.id;
             return (
-              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:4, background:"none", border:"none", cursor:"pointer", color:on?"var(--acc)":"var(--t4)", minHeight:52, position:"relative" }}>
+              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:4, background:"none", border:"none", cursor:"pointer", color:on?"var(--t1)":"var(--t4)", minHeight:52, position:"relative" }}>
                 {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:24, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
-                <Ic n={n.icon} s={22} c={on?"var(--acc)":"var(--t4)"}/>
+                <Ic n={n.icon} s={22} c={on?"var(--t1)":"var(--t4)"}/>
                 <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.05em" }}>{n.label}</span>
               </button>
             );
@@ -417,7 +438,7 @@ export default function App() {
       {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={true}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile}/>}
-      {showImport && <ImportChatGPTModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={true} isDemo={isDemo}/>}
+      {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={true} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );

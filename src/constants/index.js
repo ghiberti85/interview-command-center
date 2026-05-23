@@ -123,4 +123,7 @@ export const GLOBAL_CSS = `
   .mobile-tab:hover { opacity: 0.8; }
   .bottom-nav-btn { transition: color 0.15s; min-height: 52px; }
   .bottom-nav-btn:active { opacity: 0.7; }
+  @media (max-width: 768px) {
+    input, textarea, select { font-size: 16px !important; }
+  }
 `;

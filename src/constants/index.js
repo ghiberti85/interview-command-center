@@ -97,7 +97,8 @@ export const iconBtn = (extra={}) => ({ display:"flex", alignItems:"center", jus
 export const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { font-family: 'Outfit', sans-serif; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  html, body { font-family: 'Outfit', sans-serif; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  input, select, button, textarea, a { touch-action: manipulation; }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }

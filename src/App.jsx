@@ -314,7 +314,7 @@ export default function App() {
     <>
       <style>{GLOBAL_CSS}</style>
       <div style={{ display:"flex", flexDirection:"column", height:"100dvh", background:"var(--bg)", overflow:"hidden" }}>
-        <div style={{ padding:"12px 16px 10px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+        <div style={{ paddingTop:"max(12px, env(safe-area-inset-top, 12px))", paddingBottom:"10px", paddingLeft:"16px", paddingRight:"16px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           {mobileScreen==="detail" && view!=="dashboard" ? (
             <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
               <Ic n="back" s={16} c="var(--acc)"/>Voltar

@@ -262,6 +262,9 @@ Alterar salary + "Salvar" → onUpdate chamado com dados atualizados
 "Cancelar" → volta ao modo leitura sem chamar onUpdate
 jobUrl "https://..." → renderiza link "↗ Vaga"
 jobUrl "" ou "javascript:..." → link não renderizado
+role + company presentes → botão "Praticar para esta vaga" visível com URL correta
+role ou company ausente → botão não renderizado
+tags viram stack= na URL do DevInterviewLab
 ```
 
 #### `TimelineTab`

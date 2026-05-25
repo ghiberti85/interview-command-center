@@ -608,6 +608,8 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | Duas chamadas IA no CVTab (perguntas → CV) | Separa responsabilidades — usuário revisa antes da geração final; evita CV com techs não confirmadas |
 | `cv_adaptations.content` como text, não arquivo | Conteúdo gerado por IA não precisa de Storage — o usuário pode copiar e exportar manualmente |
 | `process_id` em `cv_adaptations` como `text` | Coluna `id` da tabela `processes` é `text`, não `uuid` — FK deve ter tipo compatível |
+| Integração ICC→DIL via query params, sem banco | Unidirecional e zero acoplamento — ICC abre DIL com `?role=&company=&stack=` e DIL lê sem depender de API compartilhada |
+| `buildDILUrl` em `OverviewTab` usa tags como stack | Tags já representam as tecnologias do processo; reutilizá-las evita campo extra e mantém o modelo de dados simples |
 
 ---
 

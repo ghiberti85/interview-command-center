@@ -146,6 +146,7 @@ Objetivo: features que diferenciam o app de qualquer planilha ou Notion e tornam
 | **cv_adaptations** — tabela Supabase com RLS + trigger updated_at para salvar adaptação por processo | ✅ |
 | **Storage bucket cv-files** — bucket privado com políticas por user_id para CVs em PDF | ✅ |
 | **useCVAdaptations hook** — CRUD de adaptações com fetch por process_id, upsert e clear | ✅ |
+| **Integração ICC → DIL** — botão "Praticar para esta vaga" no OverviewTab abre DevInterviewLab com role/company/stack como query params | ✅ |
 
 ### Prep Kit sob demanda ⭐
 

@@ -1,15 +1,15 @@
 import { useState, useRef } from "react";
 import JSZip from "jszip";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
-import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
+import { isChatGPTFormat, isICCFormat, looksLikeRecruitment, parseCSV, normalizeProcess } from "../../utils/importHelpers.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 import Badge from "../ui/Badge.jsx";
 
-// ── ChatGPT helpers ────────────────────────────────────────────────────────────
+// ── ChatGPT conversation text extractor ───────────────────────────────────────
 function extractConvText(conv) {
   const msgs = [];
   Object.values(conv.mapping || {}).forEach(node => {
@@ -23,33 +23,6 @@ function extractConvText(conv) {
   return msgs.sort((a, b) => a.time - b.time)
     .map(m => `[${m.role === "user" ? "Eu" : "IA"}]: ${m.content}`)
     .join("\n\n");
-}
-
-function isChatGPTFormat(data) {
-  return Array.isArray(data) && data.length > 0 && "mapping" in (data[0] || {});
-}
-
-function isICCFormat(data) {
-  return Array.isArray(data) && data.length > 0 && "company" in (data[0] || {});
-}
-
-function looksLikeRecruitment(conv) {
-  const kw = ["recrutador","recruiter","vaga","job","oportunidade","entrevista","interview","empresa","company","tech lead","engineer","developer","desenvolvedor","linkedin","headhunter","processo seletivo"];
-  return kw.some(k => (conv.title || "").toLowerCase().includes(k));
-}
-
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/"/g, ""));
-  return lines.slice(1)
-    .map(line => {
-      const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = cols[i] || ""; });
-      return obj;
-    })
-    .filter(r => r.company || r.empresa);
 }
 
 async function extractPdfText(file) {
@@ -116,22 +89,6 @@ export function ImportModal({ onClose, onImport, isMobile, isDemo }) {
     setApproved(ap);
     setStep("review");
   };
-
-  const normalizeProcess = (r) => ({
-    id: r.id || crypto.randomUUID(),
-    company: r.company || r.empresa || "Empresa?",
-    role: r.role || r.cargo || "Cargo?",
-    stage: Object.keys(STAGE).includes(r.stage) ? r.stage : "contacted",
-    origin: r.origin === "outbound" ? "outbound" : "inbound",
-    location: r.location || r.localização || "",
-    salary: r.salary || r.salário || "",
-    recruiter: r.recruiter || r.recrutador || "",
-    recruiterEmail: r.recruiterEmail || r.recruiteremail || r.email || "",
-    contactedDate: r.contactedDate || r.data || now,
-    notes: r.notes || r.notas || "",
-    tags: Array.isArray(r.tags) ? r.tags : (r.tags ? String(r.tags).split(";").map(t => t.trim()) : []),
-    convTitle: r.convTitle || null,
-  });
 
   const handleFile = async (file) => {
     setError("");

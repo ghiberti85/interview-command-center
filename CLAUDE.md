@@ -64,9 +64,9 @@ src/
 │   └── modals/
 │       ├── NewProcessModal.jsx
 │       ├── SetPasswordModal.jsx
-│       ├── ProfileSetupModal.jsx
+│       ├── ProfileSetupModal.jsx  # upload de PDF na aba "CV Completo" (pdfjs lazy)
 │       ├── ResumesModal.jsx
-│       └── ImportChatGPTModal.jsx
+│       └── ImportModal.jsx        # importação genérica: JSON/CSV/PDF/ZIP/texto colado
 │
 ├── hooks/
 │   ├── useAuth.js             # Sessão Supabase + detecção PASSWORD_RECOVERY
@@ -83,7 +83,8 @@ src/
 │   ├── sort.js                # sortProcesses (urgencia/empresa/stage/recente)
 │   ├── filterProcesses.js     # filterProcesses (busca + filtro de stage)
 │   ├── dateUtils.js           # fmtDate, daysDiff
-│   └── buildPrompt.js         # buildCVPrompt para o CVTab
+│   ├── buildPrompt.js         # buildCVPrompt para o CVTab
+│   └── importHelpers.js       # isChatGPTFormat, isICCFormat, looksLikeRecruitment, parseCSV, normalizeProcess
 │
 └── lib/
     └── ai.js                  # callAI — helper de chamada ao proxy Anthropic
@@ -289,7 +290,7 @@ const T = {
 // n = nome, s = size, c = color
 ```
 
-Ícones disponíveis: `target`, `pipeline`, `chart`, `archive`, `plus`, `search`, `back`, `star`, `starF`, `edit`, `close`, `trash`, `cal`, `alert`, `copy`, `check`, `refresh`, `send`, `msg`, `ai`, `sun`, `moon`, `linkedin`, `email`, `whatsapp`, `info`, `logout`.
+Ícones disponíveis: `target`, `pipeline`, `chart`, `archive`, `plus`, `search`, `back`, `star`, `starF`, `edit`, `close`, `trash`, `cal`, `alert`, `copy`, `check`, `refresh`, `send`, `msg`, `ai`, `sun`, `moon`, `linkedin`, `email`, `whatsapp`, `info`, `logout`, `upload`.
 
 Para adicionar um novo ícone, adicione no objeto `P` dentro de `Ic`.
 
@@ -521,12 +522,36 @@ Adicione em `SCENARIOS`:
 { id: "novo_cenario", label: "Label do cenário" }
 ```
 
+### Importar processos
+
+`ImportModal` (em `src/components/modals/ImportModal.jsx`) é o ponto único de entrada para importação de dados externos. Detecta o formato automaticamente:
+
+| Formato | Detecção | Processamento |
+|---|---|---|
+| `.zip` | `JSZip` + `conversations.json` | ChatGPT — filtro por período → IA por conversa |
+| `.json` com `mapping` | `isChatGPTFormat()` | ChatGPT — mesmo fluxo do ZIP |
+| `.json` com `company` | `isICCFormat()` | ICC JSON — parse direto, sem IA |
+| `.csv` | extensão | `parseCSV()` — parse direto, sem IA |
+| `.pdf` | extensão | extração via pdfjs → única chamada IA |
+| Texto colado | input manual | única chamada IA |
+
+As funções de detecção e parsing estão em `src/utils/importHelpers.js` (testadas).
+
+**ICC JSON format** — importe processos sem IA:
+```json
+[{ "company": "Empresa", "role": "Cargo", "stage": "contacted", "origin": "inbound", "tags": [] }]
+```
+
+**CSV format** — colunas aceitas: `company`, `role`, `stage`, `location`, `salary`, `recruiter`, `recruiteremail`, `notes`, `tags` (separadas por `;`).
+
 ### Aba Currículo — perfil e currículos salvos
 
 O perfil do usuário (`useUserProfile`) é persistido em `localStorage` com a chave `icc-user-profile`:
 ```js
 { stack: string[], summary: string, cvText: string }
 ```
+
+`ProfileSetupModal` tem aba "CV Completo" com upload de PDF via drag & drop — o texto é extraído por `pdfjs-dist` (lazy) e preenche o textarea. O usuário pode editar livremente depois.
 
 Currículos adicionais são persistidos no Supabase via `useResumes(session)`:
 ```js
@@ -537,9 +562,9 @@ Currículos adicionais são persistidos no Supabase via `useResumes(session)`:
 // RLS: 4 políticas auth.uid() = user_id (igual à tabela processes)
 ```
 
-`ResumesModal` permite listar, criar, editar e excluir CVs. Suporta upload de PDF com drag & drop — o texto é extraído via `pdfjs-dist` (carregado lazy para não inflar o bundle inicial).
+`ResumesModal` permite listar, criar, editar e excluir CVs. Também suporta upload de PDF com drag & drop.
 
-**Worker do pdfjs:** o worker é importado com import estático `?url` no topo do `App.jsx`:
+**Worker do pdfjs:** o worker é importado com import estático `?url` no topo de cada arquivo que o usa:
 ```js
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 // Usar esta var na inicialização lazy:
@@ -548,6 +573,35 @@ _pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 Nunca use `new URL("...", import.meta.url)` dentro de função assíncrona — o Vite não consegue resolver o padrão em build-time.
 
 O `CVTab` recebe `process`, `profile`, `isMobile`, `resumes` e `onManageResumes`. O fluxo tem 4 etapas: `input` (seleciona CV base + cola JD) → `analyzing` → `review` (checkboxes verde/âmbar) → `result`. A regra de segurança está no system prompt do Claude: tecnologias fora da `stack` do usuário são sinalizadas como "não confirmadas" e só entram no resultado com autorização explícita via checkbox.
+
+### Menu hamburger (mobile)
+
+No layout mobile, o header exibe apenas:
+- Logo/título "Interview OS"
+- Badge de urgência (processos com `nextStepDate` em ≤ 2 dias)
+- Botão hamburger (três traços de largura decrescente)
+
+O hamburger abre um **bottom sheet** com overlay escuro e itens:
+1. Novo processo → `setShowNew(true)`
+2. Importar processos → `setShowImport(true)` (oculto no modo demo)
+3. Tema claro/escuro → `toggleTheme()`
+4. Perfil & preferências → `setShowProfileModal(true)`
+5. Definir senha → `setShowSetPassword(true)` (oculto no modo demo)
+6. Sair / Sair do demo → `supabase.auth.signOut()` ou `setIsDemo(false)`
+
+O estado `hamburgerOpen` vive em `App.jsx`. Fechar: clique no overlay ou ação concluída.
+
+### Active state de navegação
+
+**Desktop sidebar:** aba ativa usa `background: "var(--acc)"` (roxo sólido) + `color: "#EFEFEF"` + ícone branco. Badge de contagem com `rgba(255,255,255,0.15)` de fundo.
+
+**Mobile stage filter chips:** mesma regra — chip ativo com `background: "var(--acc)"` + `color: "#EFEFEF"`.
+
+**Mobile bottom nav:** aba ativa com barra roxa no topo (`var(--acc)`) + ícone/texto brancos (`"var(--t1)"`).
+
+### Select dark mode
+
+Todo `<select>` precisa de `colorScheme: dark ? "dark" : "light"` no style para que o browser renderize a seta nativa com a cor correta em dark mode. `dark` vem de `useTheme()`.
 
 ### Adicionar quick action no AI tab
 Adicione no array `quickActions` dentro de `AITab`:
@@ -586,6 +640,11 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | pdfjs worker via `import ?url` no topo | Vite só resolve `new URL()` em contexto estático; padrão dinâmico falha no build Vercel |
 | CI simplificado para `npm run build` | Vercel tem integração nativa com GitHub — o workflow de deploy via Vercel CLI era redundante e quebrava por falta de secrets |
 | CVs salvos no Supabase (tabela `resumes`) | Permite múltiplos CVs por idioma, reutilizáveis entre processos diferentes |
+| `ImportModal` genérico substituindo `ImportChatGPTModal` | Suporta múltiplos formatos (JSON/CSV/PDF/ZIP/texto) sem prender o usuário ao ChatGPT |
+| `importHelpers.js` separado do modal | Funções puras (`parseCSV`, `normalizeProcess`, etc.) ficam testáveis sem montar o componente |
+| Hamburger mobile em vez de ícones individuais | Header menos poluído — urgência e hamburger são os dois únicos elementos à direita |
+| `colorScheme` nos `<select>` | Seta nativa do browser fica branca em dark mode sem precisar de select customizado |
+| pdfjs importado em cada arquivo que usa (`?url`) | Worker URL resolvido em build-time pelo Vite; múltiplos arquivos (Modal, Profile) podem usar sem passar prop |
 
 ---
 

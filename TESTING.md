@@ -949,7 +949,7 @@ A componentização de `App.jsx` não criou novos testes unitários (os módulos
 - `src/__tests__/components/ProcessCard.test.jsx` — importa de `src/components/process/ProcessCard.jsx`
 - `src/__tests__/unit/sort.test.js` — importa de `src/utils/sort.js`
 
-**Suite completa:** 172 testes, 14 arquivos, todos passando.
+**Suite completa:** 230 testes, 16 arquivos, todos passando.
 
 ### Cenários a cobrir em v1.5 (pendente)
 
@@ -958,3 +958,107 @@ A componentização de `App.jsx` não criou novos testes unitários (os módulos
 - `useIsMobile` — breakpoint 768px via ResizeObserver mock
 - `callAI` (src/lib/ai.js) — erro HTTP, token ausente, resposta malformada
 - `buildPrompt` (src/utils/buildPrompt.js) — geração correta do prompt com diferentes inputs
+
+---
+
+## Adições v1.4.1 — ImportModal genérico, hamburger, PDF no perfil
+
+### Status
+
+**IMPLEMENTADOS e passando (230 testes totais — 16 suítes):**
+
+#### `importHelpers` — `src/__tests__/unit/importHelpers.test.js` ✅ (38 testes)
+
+Cobre todas as funções puras extraídas de `ImportModal.jsx` para `src/utils/importHelpers.js`:
+
+```
+isChatGPTFormat:
+  array com campo mapping → true
+  array vazio → false
+  array sem mapping → false
+  não-array (null, string, objeto) → false
+
+isICCFormat:
+  array com campo company → true
+  array vazio → false
+  array sem company → false
+  não-array → false
+
+looksLikeRecruitment:
+  "recrutador", "job", "vaga", "interview", "desenvolvedor" → true
+  conversa genérica → false
+  case-insensitive
+  título vazio ou undefined → false
+
+parseCSV:
+  CSV simples com cabeçalho → array de objetos com chaves em minúsculas
+  múltiplas linhas → array correto
+  filtra linhas sem company
+  aceita alias "empresa" (português)
+  retorna [] para CSV sem dados, texto vazio, uma única linha
+  remove aspas duplas dos valores
+  converte cabeçalhos para minúsculas
+  suporta \r\n (Windows)
+  campos ausentes ficam como string vazia
+
+normalizeProcess:
+  preserva campos válidos do ICC
+  stage inválido → "contacted"
+  origin "outbound" preservado; desconhecido → "inbound"
+  fallback "Empresa?" e "Cargo?" para campos ausentes
+  aliases "empresa" e "cargo" (português)
+  tags como string ";"-separada vira array
+  tags array mantido como array; sem tags → []
+  gera id quando ausente
+  recruiterEmail aceita alias "email"
+  convTitle null quando ausente, preservado quando presente
+```
+
+#### `ProfileSetupModal` — `src/__tests__/components/ProfileSetupModal.test.jsx` ✅ (14 testes)
+
+Mock de `pdfjs-dist` e `pdfjs-dist/build/pdf.worker.mjs?url` via `vi.mock`.
+
+```
+Abas:
+  Stack ativa por padrão com pré-preenchimento do initial
+  Navega para Resumo → pré-preenche summary
+  Navega para CV Completo → exibe "Importar CV em PDF"
+
+Salvar:
+  stack com vírgulas e espaços → split correto em array
+  chama onSave com objeto correto
+  chama onClose após salvar
+  chama onClose ao cancelar
+
+Upload de PDF (aba CV Completo):
+  exibe área de upload ("Importar CV em PDF", "Arraste ou clique")
+  upload de PDF → chama pdfjs, preenche textarea com texto extraído
+  erro pdfjs → exibe e.message como mensagem de erro
+  textarea permanece editável após upload
+  salva cvText extraído no onSave
+```
+
+**Abordagem de mock:** `vi.mock("pdfjs-dist")` com `getDocument` como `vi.fn()` controlável por teste.
+`mockImplementation` (não `mockReturnValue`) para promises rejeitadas — evita unhandled rejection
+antes da promise ser consumida.
+
+### Novos arquivos de teste
+
+```
+src/__tests__/
+├── unit/
+│   └── importHelpers.test.js   ← NEW — isChatGPTFormat, isICCFormat, looksLikeRecruitment, parseCSV, normalizeProcess
+└── components/
+    └── ProfileSetupModal.test.jsx  ← NEW — abas, salvar, upload de PDF
+```
+
+### Refatoração de produção junto com os testes
+
+- `src/utils/importHelpers.js` — funções puras extraídas de `ImportModal.jsx` (extração necessária para testabilidade)
+- `src/components/modals/ImportModal.jsx` — importa de `importHelpers.js` em vez de definir inline
+
+### Cenários a cobrir em v1.5 (pendente)
+
+- `ImportModal` — testes de componente para o fluxo completo (upload de arquivo, seleção de conversas ChatGPT, step review/import). Complexidade: depende de JSZip, pdfjs e callAI; requer mocks pesados.
+- Hamburger mobile — coberto pelo E2E-5 (viewport iPhone); não há teste de componente para App.jsx.
+- `Ic` — smoke test para o ícone `upload` e verificação que todos os 28 ícones renderizam SVG.

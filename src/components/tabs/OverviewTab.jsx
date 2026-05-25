@@ -115,8 +115,32 @@ export function OverviewTab({ process, onUpdate, onDelete }) {
         <div style={{ ...T.label, marginBottom:6 }}>Tags</div>
         <InlineTags process={process} onUpdate={onUpdate}/>
       </div>
+      {buildDILUrl(process) && (
+        <a
+          href={buildDILUrl(process)}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"10px 16px", borderRadius:10, border:"1px solid var(--acc-b)", background:"var(--acc-d)", color:"var(--acc)", textDecoration:"none", fontSize:13, fontWeight:500, fontFamily:"'Outfit',sans-serif", transition:"opacity 0.15s" }}
+          onMouseEnter={e=>e.currentTarget.style.opacity="0.8"}
+          onMouseLeave={e=>e.currentTarget.style.opacity="1"}
+        >
+          <Ic n="ai" s={14} c="var(--acc)"/>
+          Praticar para esta vaga
+        </a>
+      )}
     </div>
   );
+}
+
+function buildDILUrl(process) {
+  const base = "https://devinterviewlab.vercel.app/interview";
+  const params = new URLSearchParams();
+  if (process.role) params.set("role", process.role);
+  if (process.company) params.set("company", process.company);
+  const stack = (process.tags || []).filter(Boolean);
+  if (stack.length) params.set("stack", stack.join(","));
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : null;
 }
 
 export default OverviewTab;

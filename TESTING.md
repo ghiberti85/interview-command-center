@@ -958,3 +958,56 @@ A componentização de `App.jsx` não criou novos testes unitários (os módulos
 - `useIsMobile` — breakpoint 768px via ResizeObserver mock
 - `callAI` (src/lib/ai.js) — erro HTTP, token ausente, resposta malformada
 - `buildPrompt` (src/utils/buildPrompt.js) — geração correta do prompt com diferentes inputs
+
+---
+
+## Adições v1.5 — Mensagem de recrutador + CV adaptado por processo
+
+### Novos arquivos de teste criados
+
+#### `RecruiterMessageModal` — `src/__tests__/components/RecruiterMessageModal.test.jsx` ✅ (14 testes)
+```
+Step paste: textarea renderizado, botão Extrair desabilitado sem texto, habilitado com texto
+Cancelar → onClose chamado
+Extração bem-sucedida → step review com campos preenchidos (empresa, recrutador, cargo)
+Extração com erro → mensagem de erro exibida
+Campos do review são editáveis
+Criar processo → onProcessCreated chamado com stage="contacted", origin="inbound", channel="linkedin"
+Rascunho de resposta exibido no step draft
+Botão Copiar → clipboard.writeText com draft
+Tags criadas a partir da stack extraída
+Notas incluem mensagem original colada
+Botão Abrir processo → onClose chamado
+Botão Voltar no review → retorna ao step paste
+```
+
+#### `CVTab` — `src/__tests__/components/CVTab.test.jsx` ✅ (23 testes — reescrito para Q&A)
+```
+Fluxo Q&A:
+- Analisar JD → step-qa com perguntas geradas pela IA
+- Perguntas exibem texto correto
+- Botão Gerar desabilitado quando perguntas sem resposta
+- Botão Gerar habilitado após responder todas
+- Clicar Sim destaca a pergunta
+- Botão Voltar no Q&A retorna para step-input
+- Erro na análise → step-input
+Fluxo result:
+- step-result com texto gerado pela IA
+- Copiar → clipboard.writeText
+- Botão Salvar adaptação → onSaveAdaptation com (content, jdText, qaAnswers[])
+- Nova análise → step-input
+- Voltar do result → step-qa
+Banner de adaptação salva quando adaptation prop presente
+```
+
+### Novos hooks e mappers (sem testes unitários isolados — cobertos via componentes)
+
+- `useCVAdaptations` — CRUD hook (fetch, save via upsert, clear) para tabela `cv_adaptations`
+- `rowToCVAdaptation` / `cvAdaptationToRow` — mappers em `supabase.js`
+
+### Banco de dados
+
+Tabela `cv_adaptations` criada via migração com 4 políticas RLS.
+Bucket `cv-files` criado no Storage com políticas por `user_id`.
+
+**Suite completa:** 247 testes, 17 arquivos, todos passando.

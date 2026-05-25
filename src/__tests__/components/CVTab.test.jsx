@@ -20,8 +20,6 @@ const mockCallAI = vi.fn();
 vi.mock("../../lib/ai.js", () => ({
   callAI: (...args) => mockCallAI(...args),
   AI_PROXY_URL: "https://mock.proxy/",
-  getPdfjs: vi.fn(),
-  extractTextFromPdf: vi.fn(),
 }));
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -38,33 +36,26 @@ const mockProfile = {
   cvText: "Meu currículo completo aqui.",
 };
 
-const emptyProfile = {
-  stack: [],
-  summary: "",
-  cvText: "",
-};
+const emptyProfile = { stack: [], summary: "", cvText: "" };
 
 const mockResumes = [
   { id: "r1", name: "CV Tech Lead PT", language: "pt", content: "Conteúdo PT", created_at: "2026-05-01T00:00:00Z" },
   { id: "r2", name: "CV Senior FE EN", language: "en", content: "Content EN", created_at: "2026-04-20T00:00:00Z" },
 ];
 
-const mockAnalysis = {
-  jd_keywords: ["React", "GraphQL"],
-  matched: ["React", "TypeScript"],
-  unauthorized: ["GraphQL"],
-  highlights: ["10 anos de experiência", "Liderança de times"],
-  adapted_summary: "Resumo adaptado para Nubank",
-  adapted_highlights: "Bullet points adaptados",
+// AI returns questions on first call
+const mockQuestions = {
+  questions: [
+    { id: "q1", tech: "React", question: "Você tem experiência com React em produção?" },
+    { id: "q2", tech: "GraphQL", question: "Você trabalhou com GraphQL?" },
+  ],
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default clipboard mock
   Object.assign(navigator, {
     clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
   });
-  // Suppress alert calls
   vi.stubGlobal("alert", vi.fn());
 });
 
@@ -77,14 +68,12 @@ describe("CVTab — sem perfil configurado", () => {
   });
 
   it("exibe step-input quando tem stack mesmo sem summary", () => {
-    const profileWithStack = { stack: ["React"], summary: "", cvText: "" };
-    render(<CVTab process={mockProcess} profile={profileWithStack} resumes={[]} />);
+    render(<CVTab process={mockProcess} profile={{ stack: ["React"], summary: "", cvText: "" }} resumes={[]} />);
     expect(screen.getByTestId("step-input")).toBeDefined();
   });
 
   it("exibe step-input quando tem summary mesmo sem stack", () => {
-    const profileWithSummary = { stack: [], summary: "Engenheiro senior", cvText: "" };
-    render(<CVTab process={mockProcess} profile={profileWithSummary} resumes={[]} />);
+    render(<CVTab process={mockProcess} profile={{ stack: [], summary: "Engenheiro", cvText: "" }} resumes={[]} />);
     expect(screen.getByTestId("step-input")).toBeDefined();
   });
 });
@@ -97,13 +86,12 @@ describe("CVTab — step input", () => {
 
   it("botão Analisar está desabilitado com JD vazia", () => {
     render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    const btn = screen.getByTestId("btn-analyze");
-    expect(btn.disabled).toBe(true);
+    expect(screen.getByTestId("btn-analyze").disabled).toBe(true);
   });
 
   it("botão Analisar fica habilitado quando JD tem conteúdo", () => {
     render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "Vaga de React Developer" } });
+    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "Vaga React" } });
     expect(screen.getByTestId("btn-analyze").disabled).toBe(false);
   });
 
@@ -124,137 +112,134 @@ describe("CVTab — step input", () => {
     expect(screen.getByTestId("stack-preview").textContent).toContain("TypeScript");
   });
 
-  it("não chama callAI com JD vazia ao clicar Analisar", async () => {
-    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    // Button is disabled so click won't fire analyze
-    const btn = screen.getByTestId("btn-analyze");
-    expect(btn.disabled).toBe(true);
-    expect(mockCallAI).not.toHaveBeenCalled();
-  });
-
   it("botão Gerenciar chama onManageResumes", () => {
     const onManageResumes = vi.fn();
     render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} onManageResumes={onManageResumes} />);
     fireEvent.click(screen.getByTestId("btn-manage-resumes"));
     expect(onManageResumes).toHaveBeenCalledOnce();
   });
+
+  it("exibe banner de adaptação salva quando adaptation presente", () => {
+    const adaptation = { content: "CV adaptado", updatedAt: "2026-05-25T10:00:00Z" };
+    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} adaptation={adaptation} />);
+    expect(screen.getByText(/Adaptação salva em/)).toBeDefined();
+  });
 });
 
-describe("CVTab — análise via IA e step review", () => {
-  it("clicando Analisar exibe step analyzing e depois review", async () => {
-    mockCallAI.mockResolvedValue(JSON.stringify(mockAnalysis));
-
+describe("CVTab — fluxo Q&A", () => {
+  const setupToQA = async () => {
+    mockCallAI.mockResolvedValue(JSON.stringify(mockQuestions));
     render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "Vaga de React Developer com TypeScript" } });
+    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "Vaga React com GraphQL" } });
     fireEvent.click(screen.getByTestId("btn-analyze"));
+    await waitFor(() => screen.getByTestId("step-qa"));
+  };
 
-    await waitFor(() => {
-      expect(screen.getByTestId("step-review")).toBeDefined();
-    });
+  it("após analisar exibe step-qa com perguntas", async () => {
+    await setupToQA();
+    expect(screen.getByTestId("qa-item-q1")).toBeDefined();
+    expect(screen.getByTestId("qa-item-q2")).toBeDefined();
   });
 
-  it("items matched aparecem pré-checados no review", async () => {
-    mockCallAI.mockResolvedValue(JSON.stringify(mockAnalysis));
-
-    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD texto" } });
-    fireEvent.click(screen.getByTestId("btn-analyze"));
-
-    await waitFor(() => screen.getByTestId("step-review"));
-
-    expect(screen.getByTestId("check-matched-React").checked).toBe(true);
-    expect(screen.getByTestId("check-matched-TypeScript").checked).toBe(true);
+  it("perguntas exibem o texto correto", async () => {
+    await setupToQA();
+    expect(screen.getByText("Você tem experiência com React em produção?")).toBeDefined();
+    expect(screen.getByText("Você trabalhou com GraphQL?")).toBeDefined();
   });
 
-  it("items unauthorized aparecem desmarcados no review", async () => {
-    mockCallAI.mockResolvedValue(JSON.stringify(mockAnalysis));
-
-    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD texto" } });
-    fireEvent.click(screen.getByTestId("btn-analyze"));
-
-    await waitFor(() => screen.getByTestId("step-review"));
-
-    expect(screen.getByTestId("check-unauthorized-GraphQL").checked).toBe(false);
-  });
-
-  it("botão Gerar desabilitado quando nenhum item aprovado", async () => {
-    const emptyAnalysis = { matched: [], unauthorized: ["GraphQL"], highlights: [] };
-    mockCallAI.mockResolvedValue(JSON.stringify(emptyAnalysis));
-
-    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD texto" } });
-    fireEvent.click(screen.getByTestId("btn-analyze"));
-
-    await waitFor(() => screen.getByTestId("step-review"));
-
+  it("botão Gerar desabilitado quando nem todas as perguntas respondidas", async () => {
+    await setupToQA();
     expect(screen.getByTestId("btn-generate").disabled).toBe(true);
   });
 
-  it("erro na análise volta para step input", async () => {
+  it("botão Gerar habilitado após responder todas as perguntas", async () => {
+    await setupToQA();
+    fireEvent.click(screen.getByTestId("qa-yes-q1"));
+    fireEvent.click(screen.getByTestId("qa-no-q2"));
+    expect(screen.getByTestId("btn-generate").disabled).toBe(false);
+  });
+
+  it("clicar Sim destaca a pergunta com cor verde", async () => {
+    await setupToQA();
+    fireEvent.click(screen.getByTestId("qa-yes-q1"));
+    const btn = screen.getByTestId("qa-yes-q1");
+    expect(btn.style.color).toContain("grn");
+  });
+
+  it("botão Voltar no Q&A retorna para step-input", async () => {
+    await setupToQA();
+    fireEvent.click(screen.getByTestId("btn-back-to-input"));
+    expect(screen.getByTestId("step-input")).toBeDefined();
+  });
+
+  it("erro na análise retorna ao step-input", async () => {
     mockCallAI.mockRejectedValue(new Error("API error"));
-
     render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD texto" } });
+    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD" } });
     fireEvent.click(screen.getByTestId("btn-analyze"));
-
     await waitFor(() => screen.getByTestId("step-input"));
   });
 });
 
-describe("CVTab — step result e copiar", () => {
-  const setupToReview = async () => {
-    mockCallAI.mockResolvedValue(JSON.stringify(mockAnalysis));
-    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} />);
-    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD texto" } });
+describe("CVTab — step result", () => {
+  const setupToResult = async () => {
+    mockCallAI
+      .mockResolvedValueOnce(JSON.stringify(mockQuestions))
+      .mockResolvedValueOnce("Currículo adaptado gerado!");
+
+    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} onSaveAdaptation={vi.fn()} />);
+    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "Vaga React com GraphQL" } });
     fireEvent.click(screen.getByTestId("btn-analyze"));
-    await waitFor(() => screen.getByTestId("step-review"));
+    await waitFor(() => screen.getByTestId("step-qa"));
+
+    fireEvent.click(screen.getByTestId("qa-yes-q1"));
+    fireEvent.click(screen.getByTestId("qa-no-q2"));
+    fireEvent.click(screen.getByTestId("btn-generate"));
+    await waitFor(() => screen.getByTestId("step-result"));
   };
 
-  it("clicar Gerar currículo leva ao step result com texto", async () => {
-    await setupToReview();
-
-    const generatedText = "Currículo adaptado gerado com sucesso!";
-    mockCallAI.mockResolvedValue(generatedText);
-
-    fireEvent.click(screen.getByTestId("btn-generate"));
-
-    await waitFor(() => screen.getByTestId("step-result"));
-    expect(screen.getByTestId("result-text").textContent).toBe(generatedText);
+  it("exibe o texto do currículo gerado", async () => {
+    await setupToResult();
+    expect(screen.getByTestId("result-text").textContent).toBe("Currículo adaptado gerado!");
   });
 
-  it("clicar Copiar chama clipboard.writeText com o texto do resultado", async () => {
-    await setupToReview();
-
-    const generatedText = "Texto do currículo gerado";
-    mockCallAI.mockResolvedValue(generatedText);
-
-    fireEvent.click(screen.getByTestId("btn-generate"));
-    await waitFor(() => screen.getByTestId("step-result"));
-
+  it("clicar Copiar chama clipboard.writeText", async () => {
+    await setupToResult();
     fireEvent.click(screen.getByTestId("btn-copy"));
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(generatedText);
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Currículo adaptado gerado!");
     });
   });
 
-  it("botão Nova análise reseta para step input", async () => {
-    await setupToReview();
-    mockCallAI.mockResolvedValue("Resultado gerado");
+  it("botão Salvar adaptação chama onSaveAdaptation", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    mockCallAI
+      .mockResolvedValueOnce(JSON.stringify(mockQuestions))
+      .mockResolvedValueOnce("CV gerado");
+
+    render(<CVTab process={mockProcess} profile={mockProfile} resumes={[]} onSaveAdaptation={onSave} />);
+    fireEvent.change(screen.getByTestId("textarea-jd"), { target: { value: "JD" } });
+    fireEvent.click(screen.getByTestId("btn-analyze"));
+    await waitFor(() => screen.getByTestId("step-qa"));
+    fireEvent.click(screen.getByTestId("qa-yes-q1"));
+    fireEvent.click(screen.getByTestId("qa-no-q2"));
     fireEvent.click(screen.getByTestId("btn-generate"));
     await waitFor(() => screen.getByTestId("step-result"));
 
+    fireEvent.click(screen.getByTestId("btn-save"));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave).toHaveBeenCalledWith("CV gerado", "JD", expect.any(Array));
+  });
+
+  it("botão Nova análise reseta para step-input", async () => {
+    await setupToResult();
     fireEvent.click(screen.getByTestId("btn-new-analysis"));
     expect(screen.getByTestId("step-input")).toBeDefined();
   });
 
-  it("botão Voltar no result vai para step review", async () => {
-    await setupToReview();
-    mockCallAI.mockResolvedValue("Resultado gerado");
-    fireEvent.click(screen.getByTestId("btn-generate"));
-    await waitFor(() => screen.getByTestId("step-result"));
-
-    fireEvent.click(screen.getByTestId("btn-back-to-review"));
-    expect(screen.getByTestId("step-review")).toBeDefined();
+  it("botão Voltar no result vai para step-qa", async () => {
+    await setupToResult();
+    fireEvent.click(screen.getByTestId("btn-back-to-qa"));
+    expect(screen.getByTestId("step-qa")).toBeDefined();
   });
 });

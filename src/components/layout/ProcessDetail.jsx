@@ -10,7 +10,7 @@ import MessagesTab from "../tabs/MessagesTab.jsx";
 import AITab from "../tabs/AITab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
-export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile, resumes, onManageResumes, initialTab }) {
+export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
   const [tab, setTab] = useState(initialTab || "overview");
   useEffect(()=>setTab(initialTab || "overview"),[process.id, initialTab]);
 
@@ -59,7 +59,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
               </button>
             </div>
             <div style={{ flex:1, minHeight:0 }}>
-              <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes}/>
+              <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes} adaptation={adaptation} onSaveAdaptation={onSaveAdaptation}/>
             </div>
           </div>
         )}

@@ -64,16 +64,18 @@ src/
 │   └── modals/
 │       ├── NewProcessModal.jsx
 │       ├── SetPasswordModal.jsx
-│       ├── ProfileSetupModal.jsx
+│       ├── ProfileSetupModal.jsx  # upload de PDF na aba "CV Completo" (pdfjs lazy)
 │       ├── ResumesModal.jsx
-│       └── ImportChatGPTModal.jsx
+│       ├── ImportModal.jsx        # importação genérica: JSON/CSV/PDF/ZIP/texto colado
+│       └── RecruiterMessageModal.jsx  # colar msg LinkedIn → IA extrai campos → cria processo + draft
 │
 ├── hooks/
 │   ├── useAuth.js             # Sessão Supabase + detecção PASSWORD_RECOVERY
 │   ├── useIsMobile.js         # Breakpoint 768px via ResizeObserver
 │   ├── useTheme.js            # Dark/light com persistência localStorage
 │   ├── useUserProfile.js      # Perfil (stack, resumo, CV base) em localStorage
-│   └── useResumes.js          # CRUD de currículos na tabela `resumes` do Supabase
+│   ├── useResumes.js          # CRUD de currículos na tabela `resumes` do Supabase
+│   └── useCVAdaptations.js    # CRUD de adaptações de CV na tabela `cv_adaptations`
 │
 ├── constants/
 │   └── index.js               # DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn
@@ -402,6 +404,19 @@ type Step = {
 
 Colunas em `snake_case`: `id`, `company`, `role`, `stage`, `location`, `salary`, `recruiter`, `recruiter_email`, `origin`, `contacted_date`, `next_step_date`, `next_step_note`, `job_url`, `tags` (TEXT[]), `notes`, `steps` (JSONB), `ai_context`, `starred`, `created_at`, `updated_at`, **`user_id` (UUID, FK → auth.users.id)**.
 
+### Tabela Supabase (`cv_adaptations`)
+
+Colunas: `id` (uuid PK), `user_id` (uuid FK → auth.users), `process_id` (text FK → processes.id ON DELETE CASCADE), `content` (text — CV adaptado gerado), `jd_snapshot` (text nullable — JD usada), `qa_answers` (jsonb nullable — respostas do Q&A), `created_at`, `updated_at` (trigger automático).
+
+4 políticas RLS: SELECT/INSERT/UPDATE/DELETE com `auth.uid() = user_id`.
+
+Mappers: `rowToCVAdaptation(row)` e `cvAdaptationToRow(a)` em `supabase.js`.
+
+### Storage (`cv-files`)
+
+Bucket privado para uploads de PDF de currículo base. Path: `{user_id}/base/{resume_id}.pdf`.
+Políticas de leitura/escrita: `auth.uid()::text = (storage.foldername(name))[1]`.
+
 ---
 
 ## Responsividade
@@ -586,6 +601,13 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | pdfjs worker via `import ?url` no topo | Vite só resolve `new URL()` em contexto estático; padrão dinâmico falha no build Vercel |
 | CI simplificado para `npm run build` | Vercel tem integração nativa com GitHub — o workflow de deploy via Vercel CLI era redundante e quebrava por falta de secrets |
 | CVs salvos no Supabase (tabela `resumes`) | Permite múltiplos CVs por idioma, reutilizáveis entre processos diferentes |
+| `ImportModal` genérico substituindo `ImportChatGPTModal` | Suporta múltiplos formatos (JSON/CSV/PDF/ZIP/texto) sem prender o usuário ao ChatGPT |
+| `importHelpers.js` separado do modal | Funções puras (`parseCSV`, `normalizeProcess`, etc.) ficam testáveis sem montar o componente |
+| `RecruiterMessageModal` independente do `NewProcessModal` | Fluxo completamente diferente — Cole→Extrair→Revisar→Criar não cabe como tab do modal existente |
+| CVTab com Q&A em vez de checkboxes de tech | Mais intuitivo e gera contexto rico: a pergunta é direta ("Você usou X?") e a resposta vai no payload da 2ª chamada IA |
+| Duas chamadas IA no CVTab (perguntas → CV) | Separa responsabilidades — usuário revisa antes da geração final; evita CV com techs não confirmadas |
+| `cv_adaptations.content` como text, não arquivo | Conteúdo gerado por IA não precisa de Storage — o usuário pode copiar e exportar manualmente |
+| `process_id` em `cv_adaptations` como `text` | Coluna `id` da tabela `processes` é `text`, não `uuid` — FK deve ter tipo compatível |
 
 ---
 

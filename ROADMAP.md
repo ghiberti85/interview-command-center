@@ -137,6 +137,16 @@ src/
 
 Objetivo: features que diferenciam o app de qualquer planilha ou Notion e tornam a IA indispensável no dia a dia.
 
+### Implementado (v1.5-parcial)
+
+| Funcionalidade | Status |
+|---|---|
+| **RecruiterMessageModal** — colar mensagem LinkedIn → IA extrai empresa/cargo/stack/salário → revisão → cria processo + rascunho de resposta | ✅ |
+| **CVTab Q&A flow** — IA gera perguntas binárias sobre a JD → usuário responde sim/não → IA adapta CV com apenas o confirmado | ✅ |
+| **cv_adaptations** — tabela Supabase com RLS + trigger updated_at para salvar adaptação por processo | ✅ |
+| **Storage bucket cv-files** — bucket privado com políticas por user_id para CVs em PDF | ✅ |
+| **useCVAdaptations hook** — CRUD de adaptações com fetch por process_id, upsert e clear | ✅ |
+
 ### Prep Kit sob demanda ⭐
 
 Antes de uma entrevista, com 1 clique no processo:

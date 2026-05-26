@@ -57,21 +57,16 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
         </div>
         <Badge stage={process.stage}/>
       </div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8, gap:8 }}>
-        <div style={{ display:"flex", gap:4, flexWrap:"wrap", minWidth:0 }}>
-          {process.tags.slice(0,2).map(t=>(
-            <span key={t} style={{ padding:"2px 7px", borderRadius:6, background:"var(--bg-s)", color:"var(--t3)", fontSize:10, ...T.mono, whiteSpace:"nowrap" }}>{t}</span>
-          ))}
-        </div>
-        {process.nextStepDate && (
-          <div style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:7, background:urgent?"var(--red-d)":"var(--bg-s)", border:`1px solid ${urgent?"var(--red-b)":"var(--border)"}`, flexShrink:0 }}>
+      {process.nextStepDate && (
+        <div style={{ display:"flex", marginTop:8 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:7, background:urgent?"var(--red-d)":"var(--bg-s)", border:`1px solid ${urgent?"var(--red-b)":"var(--border)"}` }}>
             <Ic n={urgent?"alert":"cal"} s={10} c={urgent?"var(--red)":"var(--t3)"}/>
             <span style={{ fontSize:10, color:urgent?"var(--red)":"var(--t3)", ...T.mono }}>
               {fmtDate(process.nextStepDate)}{diff!==null&&` · ${diff===0?"hoje":diff<0?`${Math.abs(diff)}d atrás`:`em ${diff}d`}`}
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
       {process.nextStepNote && (
         <div style={{ marginTop:8, fontSize:11, color:"var(--t3)", borderTop:"1px solid var(--border)", paddingTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.nextStepNote}</div>
       )}

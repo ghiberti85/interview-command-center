@@ -272,21 +272,11 @@ export function RecruiterMessageModal({ onClose, onProcessCreated }) {
               </div>
               {draft ? (
                 <div style={fieldStyle}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={labelStyle}>Rascunho de resposta (LinkedIn)</span>
-                    <button
-                      onClick={copy}
-                      style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: copied ? "var(--grn)" : "var(--acc)", fontSize: 12, fontFamily: "'Outfit',sans-serif", padding: "2px 0" }}
-                    >
-                      <Ic n={copied ? "check" : "copy"} s={12} c={copied ? "var(--grn)" : "var(--acc)"} />
-                      {copied ? "Copiado!" : "Copiar"}
-                    </button>
-                  </div>
+                  <span style={labelStyle}>Rascunho de resposta (LinkedIn)</span>
                   <textarea
                     readOnly
                     value={draft}
-                    rows={10}
-                    style={{ ...T.input, resize: "vertical", lineHeight: 1.6, background: "var(--bg-o)", color: "var(--t1)", cursor: "text" }}
+                    style={{ ...T.input, height: 220, resize: "none", lineHeight: 1.6, background: "var(--bg-o)", color: "var(--t1)", cursor: "text", overflowY: "auto" }}
                   />
                 </div>
               ) : (
@@ -295,7 +285,16 @@ export function RecruiterMessageModal({ onClose, onProcessCreated }) {
                 </p>
               )}
             </div>
-            <div style={footer}>
+            <div style={{ ...footer, justifyContent: "space-between" }}>
+              {draft ? (
+                <button
+                  onClick={copy}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: copied ? "rgba(34,198,122,0.1)" : "var(--bg-o)", border: `1px solid ${copied ? "rgba(34,198,122,0.3)" : "var(--border)"}`, borderRadius: 8, cursor: "pointer", color: copied ? "var(--grn)" : "var(--t2)", fontSize: 13, fontFamily: "'Outfit',sans-serif", padding: "8px 14px", transition: "all 0.15s" }}
+                >
+                  <Ic n={copied ? "check" : "copy"} s={13} c={copied ? "var(--grn)" : "var(--t2)"} />
+                  {copied ? "Copiado!" : "Copiar mensagem"}
+                </button>
+              ) : <span />}
               <Btn variant="primary" onClick={onClose}>
                 <Ic n="check" s={14} c="#fff" /> Abrir processo
               </Btn>

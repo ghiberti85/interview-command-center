@@ -72,6 +72,8 @@ export default function App() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
+  const [showNewMenu, setShowNewMenu] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const { resumes, loading: resumesLoading, add: addResume, update: updateResume, remove: removeResume } = useResumes(session);
   const { adaptation, save: saveAdaptation, refetch: refetchAdaptation } = useCVAdaptations(session, selected?.id);
 
@@ -226,36 +228,51 @@ export default function App() {
               <div style={{ fontWeight:800, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
               <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)", marginTop:1 }}>Command Center</div>
             </div>
-            <div style={{ display:"flex", gap:2 }}>
+            <div style={{ display:"flex", gap:2, position:"relative" }}>
               <button className="icon-btn" onClick={toggleTheme} style={iconBtn()} title="Alternar tema" aria-label="Alternar tema">
                 <Ic n={dark?"sun":"moon"} s={15} c="var(--t3)"/>
               </button>
-              {!isDemo && <button className="icon-btn" onClick={()=>setShowSetPassword(true)} style={iconBtn()} title="Definir senha" aria-label="Definir senha"><Ic n="edit" s={15} c="var(--t3)"/></button>}
+              <button className="icon-btn" onClick={()=>setShowHeaderMenu(v=>!v)} style={iconBtn()} title="Mais opções" aria-label="Mais opções">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="2.5" r="1.5" fill="var(--t3)"/><circle cx="7" cy="7" r="1.5" fill="var(--t3)"/><circle cx="7" cy="11.5" r="1.5" fill="var(--t3)"/></svg>
+              </button>
+              {showHeaderMenu && (
+                <>
+                  <div onClick={()=>setShowHeaderMenu(false)} style={{ position:"fixed", inset:0, zIndex:50 }}/>
+                  <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:12, overflow:"hidden", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.25)", minWidth:190 }}>
+                    {[
+                      { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setShowHeaderMenu(false); }, hidden: isDemo },
+                      { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setShowHeaderMenu(false); } },
+                      { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setShowHeaderMenu(false); } },
+                      { label:"Definir senha", icon:"edit", action:()=>{ setShowSetPassword(true); setShowHeaderMenu(false); }, hidden: isDemo },
+                    ].filter(x=>!x.hidden).map((item,i)=>(
+                      <button key={i} onClick={item.action}
+                        style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"none", border:"none", cursor:"pointer", color:"var(--t1)", fontSize:12, fontFamily:"'Outfit',sans-serif", textAlign:"left", borderBottom:i<2?"1px solid var(--border)":"none" }}
+                        onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="none"}
+                      >
+                        <Ic n={item.icon} s={13} c="var(--t3)"/>{item.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
               <button className="icon-btn" onClick={()=>isDemo?setIsDemo(false):supabase.auth.signOut()} style={iconBtn()} title={isDemo?"Sair do demo":"Sair"} aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>
             </div>
           </div>
           <div style={{ padding:"8px" }}>
             {[
-              { id:"pipeline",  icon:"pipeline", label:"Pipeline",   count:active.length },
+              { id:"pipeline",  icon:"pipeline", label:"Pipeline",   count:active.length, urgentCount:urgent },
               { id:"dashboard", icon:"chart",    label:"Dashboard"   },
               { id:"archived",  icon:"archive",  label:"Arquivados", count:archived.length },
             ].map(n=>(
               <button key={n.id} onClick={()=>setView(n.id)} className={`nav-btn${view===n.id?" active":""}`} style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:9, border:"none", marginBottom:2, background:view===n.id?"var(--acc)":"transparent", color:view===n.id?"#EFEFEF":"var(--t2)", cursor:"pointer", fontSize:13, fontWeight:view===n.id?600:500, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}>
                 <Ic n={n.icon} s={15} c={view===n.id?"#EFEFEF":"var(--t3)"}/>
                 <span style={{ flex:1 }}>{n.label}</span>
+                {n.urgentCount>0 && <span style={{ padding:"2px 6px", borderRadius:999, background:"var(--red)", color:"#fff", fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700 }}>{n.urgentCount}</span>}
                 {n.count!=null && <span style={{ padding:"2px 7px", borderRadius:999, background:view===n.id?"rgba(255,255,255,0.15)":"var(--bg-s)", color:view===n.id?"#EFEFEF":"var(--t3)", fontSize:11, fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${view===n.id?"rgba(255,255,255,0.2)":"var(--border)"}` }}>{n.count}</span>}
               </button>
             ))}
           </div>
-          {urgent>0 && (
-            <div style={{ margin:"0 8px 4px", padding:"10px 12px", borderRadius:10, background:"var(--red-d)", border:"1px solid var(--red-b)", display:"flex", alignItems:"center", gap:8 }}>
-              <Ic n="alert" s={13} c="var(--red)"/>
-              <div>
-                <div style={{ fontSize:12, color:"var(--red)", fontWeight:600 }}>{urgent} etapa{urgent>1?"s urgentes":" urgente"}</div>
-                <div style={{ fontSize:11, color:"var(--red)", opacity:0.7, marginTop:1 }}>Ação necessária em 48h</div>
-              </div>
-            </div>
-          )}
           <div style={{ padding:"4px 8px 6px" }}>
             <div style={{ position:"relative" }}>
               <div style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}><Ic n="search" s={13} c="var(--t4)"/></div>
@@ -279,17 +296,42 @@ export default function App() {
               <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}/>
             ))}
           </div>
-          <div style={{ padding:"8px" }}>
-            <button className="nav-btn" onClick={()=>setShowNew(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--border)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
-              <Ic n="plus" s={14} c="var(--acc)"/>Novo Processo
-            </button>
-            <button className="nav-btn" onClick={()=>setShowRecruiterModal(true)} style={{ width:"100%", padding:"8px 10px", borderRadius:10, border:"1px solid var(--border)", background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:500, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:4 }}>
-              <Ic n="linkedin" s={13} c="var(--t3)"/>
-              De mensagem de recrutador
-            </button>
-            <button className="nav-btn" onClick={()=>setShowImport(true)} style={{ width:"100%", padding:"8px 10px", borderRadius:10, border:"1px solid var(--border)", background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:500, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:4 }}>
-              <Ic n="upload" s={13} c="var(--t3)"/>
-              Importar processos
+          <div style={{ padding:"8px", position:"relative" }}>
+            {showNewMenu && <div onClick={()=>setShowNewMenu(false)} style={{ position:"fixed", inset:0, zIndex:50 }}/>}
+            {showNewMenu && (
+              <div style={{ position:"absolute", bottom:"calc(100% - 4px)", left:8, right:8, background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:12, overflow:"hidden", zIndex:60, boxShadow:"0 -4px 20px rgba(0,0,0,0.2)" }}>
+                <button onClick={()=>{ setShowNew(true); setShowNewMenu(false); }}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"none", border:"none", borderBottom:"1px solid var(--border)", cursor:"pointer", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"left" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="none"}
+                >
+                  <div style={{ width:28, height:28, borderRadius:8, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Ic n="edit" s={13} c="var(--acc)"/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:13 }}>Manualmente</div>
+                    <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>Preencher campos</div>
+                  </div>
+                </button>
+                <button onClick={()=>{ setShowRecruiterModal(true); setShowNewMenu(false); }}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"none", border:"none", cursor:"pointer", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"left" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="none"}
+                >
+                  <div style={{ width:28, height:28, borderRadius:8, background:"rgba(10,102,194,0.1)", border:"1px solid rgba(10,102,194,0.25)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Ic n="linkedin" s={13} c="#0A66C2"/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:13 }}>De mensagem LinkedIn</div>
+                    <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>IA extrai as informações</div>
+                  </div>
+                </button>
+              </div>
+            )}
+            <button className="nav-btn" onClick={()=>setShowNewMenu(v=>!v)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--acc-b)", background:showNewMenu?"var(--acc-d)":"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
+              <Ic n="plus" s={14} c="var(--acc)"/>
+              Novo Processo
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ marginLeft:2, transform:showNewMenu?"rotate(180deg)":"none", transition:"transform 0.15s" }}><path d="M2 4l3 3 3-3" stroke="var(--acc)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -358,20 +400,21 @@ export default function App() {
             <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", zIndex:200, animation:"slideUp 0.25s ease" }}>
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
-                { label:"Novo processo", icon:"plus", action:()=>{ setShowNew(true); setHamburgerOpen(false); }, accent:true },
-                { label:"De mensagem de recrutador", icon:"linkedin", action:()=>{ setShowRecruiterModal(true); setHamburgerOpen(false); } },
+                { label:"Novo processo (manual)", icon:"plus", action:()=>{ setShowNew(true); setHamburgerOpen(false); }, accent:true },
+                { label:"De mensagem LinkedIn", icon:"linkedin", action:()=>{ setShowRecruiterModal(true); setHamburgerOpen(false); }, linkedinBlue:true },
                 { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setHamburgerOpen(false); }, hidden: isDemo },
                 { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
                 { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
-                { label:"Definir senha", icon:"edit", action:()=>{ setShowSetPassword(true); setHamburgerOpen(false); }, hidden: isDemo },
+                { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setHamburgerOpen(false); } },
                 { label: isDemo?"Sair do modo demo":"Sair da conta", icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
               ].filter(item=>!item.hidden).map((item,i)=>(
-                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc)":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
+
+                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                 >
-                  <div style={{ width:38, height:38, borderRadius:10, background: item.danger?"var(--red-d)":item.accent?"var(--acc-d)":"var(--bg-o)", border:`1px solid ${item.danger?"var(--red-b)":item.accent?"var(--acc-b)":"var(--border)"}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    <Ic n={item.icon} s={17} c={item.danger?"var(--red)":item.accent?"var(--acc)":"var(--t2)"}/>
+                  <div style={{ width:38, height:38, borderRadius:10, background: item.danger?"var(--red-d)":item.accent?"var(--acc-d)":item.linkedinBlue?"rgba(10,102,194,0.1)":"var(--bg-o)", border:`1px solid ${item.danger?"var(--red-b)":item.accent?"var(--acc-b)":item.linkedinBlue?"rgba(10,102,194,0.25)":"var(--border)"}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <Ic n={item.icon} s={17} c={item.danger?"var(--red)":item.accent?"var(--acc)":item.linkedinBlue?"#0A66C2":"var(--t2)"}/>
                   </div>
                   {item.label}
                 </button>

@@ -968,7 +968,7 @@ A componentização de `App.jsx` não criou novos testes unitários (os módulos
 
 ### Novos arquivos de teste criados
 
-#### `RecruiterMessageModal` — `src/__tests__/components/RecruiterMessageModal.test.jsx` ✅ (14 testes)
+#### `RecruiterMessageModal` — `src/__tests__/components/RecruiterMessageModal.test.jsx` ✅ (18 testes — reescrito para fluxo 3 etapas)
 ```
 Step paste: textarea renderizado, botão Extrair desabilitado sem texto, habilitado com texto
 Cancelar → onClose chamado

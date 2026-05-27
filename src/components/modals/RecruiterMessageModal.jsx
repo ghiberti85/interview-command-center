@@ -17,43 +17,49 @@ Extraia as informações estruturadas da mensagem e retorne EXATAMENTE este JSON
   "salary": "faixa salarial mencionada ou vazio",
   "nextStep": "próximo passo sugerido pelo recrutador ou vazio",
   "location": "cidade/estado ou vazio"
-}
-Se a mensagem estiver em inglês, preencha os campos em inglês. Se estiver em português, preencha em português.`;
+}`;
 
-function buildDraftPrompt(extracted, msg) {
-  return `Você é um assistente de comunicação profissional para processos seletivos de tecnologia.
-Candidato: Fernando, Senior Full-Stack Engineer / Front-End Tech Lead (React, Next.js, Node.js, TypeScript, Supabase, liderança técnica). Perfil predominantemente inbound — é contactado por recrutadores.
-Recrutador: ${extracted.recruiter || "recrutador"}${extracted.recruiterRole ? ` (${extracted.recruiterRole})` : ""}
-Empresa: ${extracted.company || "empresa"} | Cargo: ${extracted.role || "cargo"} | Regime: ${extracted.regime || "—"} | Salário: ${extracted.salary || "—"}
-Mensagem original do recrutador:
-"""${msg}"""
-Objetivo: Resposta inicial ao recrutador demonstrando interesse, pedindo mais detalhes e propondo próximo passo.
-Canal: LinkedIn | Tom: profissional, direto, humano — sem exageros. Em português.
-Responda EXATAMENTE neste JSON (sem markdown): {"body":"mensagem completa"}`;
-}
+const DRAFT_SYSTEM = `Você é um assistente de comunicação profissional para processos seletivos de tecnologia.
+Candidato: Fernando, Senior Full-Stack Engineer / Front-End Tech Lead (React, Next.js, Node.js, TypeScript, Supabase, liderança técnica).
+Gere UMA resposta inicial ao recrutador demonstrando interesse e propondo próximo passo.
+Tom: profissional, direto, humano — sem exageros. Em português.
+Responda SOMENTE com o texto da mensagem, sem introdução, sem aspas, sem explicações.`;
 
-export function RecruiterMessageModal({ onClose, onProcessCreated }) {
-  const [step, setStep] = useState("paste"); // paste | extracting | review | draft
-  const [msg, setMsg] = useState("");
+export function RecruiterMessageModal({ onClose, onProcessCreated, initialMsg = "" }) {
+  const [step, setStep] = useState("paste"); // paste | working | result
+  const [msg, setMsg] = useState(initialMsg);
   const [extracted, setExtracted] = useState(null);
   const [draft, setDraft] = useState("");
+  const [draftLoading, setDraftLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
-  const [createdProcess, setCreatedProcess] = useState(null);
+  const [saved, setSaved] = useState(false);
 
-  const extract = async () => {
+  const run = async () => {
     if (!msg.trim()) return;
-    setStep("extracting");
+    setStep("working");
     setError("");
+
+    let token;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
+      token = data?.session?.access_token;
+    } catch {
+      setError("Erro de autenticação. Recarregue a página.");
+      setStep("paste");
+      return;
+    }
+
+    // Extract structured info from the message
+    let ext;
+    try {
       const raw = await callAI(
         [{ role: "user", content: msg }],
         EXTRACTION_SYSTEM,
-        session?.access_token
+        token
       );
       const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-      setExtracted({
+      ext = {
         recruiter: parsed.recruiter || "",
         recruiterRole: parsed.recruiterRole || "",
         company: parsed.company || "",
@@ -63,34 +69,59 @@ export function RecruiterMessageModal({ onClose, onProcessCreated }) {
         salary: parsed.salary || "",
         nextStep: parsed.nextStep || "",
         location: parsed.location || "",
-      });
-      setStep("review");
-    } catch (e) {
+      };
+      setExtracted(ext);
+    } catch {
       setError("Não foi possível extrair as informações. Verifique a mensagem e tente novamente.");
       setStep("paste");
+      return;
+    }
+
+    // Show result immediately, generate draft in parallel
+    setStep("result");
+    setDraftLoading(true);
+    try {
+      const userMsg = `Recrutador: ${ext.recruiter || "recrutador"}${ext.recruiterRole ? ` (${ext.recruiterRole})` : ""}
+Empresa: ${ext.company || "empresa"} | Cargo: ${ext.role || "cargo"} | Regime: ${ext.regime || "—"} | Salário: ${ext.salary || "—"}
+Mensagem do recrutador:
+"${msg}"`;
+      const draftText = await callAI(
+        [{ role: "user", content: userMsg }],
+        DRAFT_SYSTEM,
+        token
+      );
+      setDraft(draftText.trim());
+    } catch {
+      setDraft("");
+    } finally {
+      setDraftLoading(false);
     }
   };
 
-  const createProcess = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && msg.trim()) run();
+  };
+
+  const save = () => {
+    if (saved) { onClose(); return; }
     const today = new Date().toISOString().slice(0, 10);
-    const tags = extracted.stack
+    const tags = extracted?.stack
       ? extracted.stack.split(",").map(s => s.trim()).filter(Boolean)
       : [];
     const process = {
       id: crypto.randomUUID(),
-      company: extracted.company || "Empresa?",
-      role: extracted.role || "Cargo?",
+      company: extracted?.company || "Empresa?",
+      role: extracted?.role || "Cargo?",
       stage: "contacted",
       origin: "inbound",
       channel: "linkedin",
-      location: extracted.location || "",
-      salary: extracted.salary || "",
-      recruiter: extracted.recruiter || "",
+      location: extracted?.location || "",
+      salary: extracted?.salary || "",
+      recruiter: extracted?.recruiter || "",
       recruiterEmail: "",
       contactedDate: today,
       nextStepDate: null,
-      nextStepNote: extracted.nextStep || "",
+      nextStepNote: extracted?.nextStep || "",
       jobUrl: "",
       tags,
       notes: `Mensagem original:\n${msg}`,
@@ -98,206 +129,180 @@ export function RecruiterMessageModal({ onClose, onProcessCreated }) {
       aiContext: "",
       starred: false,
     };
-    setCreatedProcess(process);
-
-    // Generate draft response
-    try {
-      const draftRaw = await callAI(
-        [{ role: "user", content: buildDraftPrompt(extracted, msg) }],
-        undefined,
-        session?.access_token
-      );
-      const parsed = JSON.parse(draftRaw.replace(/```json|```/g, "").trim());
-      setDraft(parsed.body || "");
-    } catch {
-      setDraft("");
-    }
-
     onProcessCreated(process);
-    setStep("draft");
+    setSaved(true);
   };
 
   const copy = async () => {
+    if (!draft) return;
     await navigator.clipboard.writeText(draft);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   const overlay = {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
     display: "flex", alignItems: "center", justifyContent: "center",
     zIndex: 1000, padding: 16,
   };
   const modal = {
     background: "var(--bg-r)", borderRadius: 16,
-    border: "1px solid var(--border-md)", width: "100%", maxWidth: 560,
-    maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column",
+    border: "1px solid var(--border-md)", width: "100%", maxWidth: 520,
+    maxHeight: "92vh", overflow: "hidden", display: "flex", flexDirection: "column",
+    boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
   };
-  const header = {
+  const hdr = {
     display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "20px 24px 16px", borderBottom: "1px solid var(--border)",
+    padding: "16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
   };
-  const body = { flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 };
-  const footer = { padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" };
-
-  const fieldStyle = {
-    display: "flex", flexDirection: "column", gap: 6,
+  const body = {
+    flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 14,
   };
-  const labelStyle = { ...T.label, color: "var(--t2)" };
+  const ftr = {
+    padding: "14px 20px", borderTop: "1px solid var(--border)",
+    display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", flexShrink: 0,
+  };
 
   return (
     <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={modal}>
-        <div style={header}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Ic n="linkedin" s={18} c="var(--acc)" />
-            <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 600, fontSize: 16, color: "var(--t1)" }}>
-              {step === "paste" && "Nova mensagem de recrutador"}
-              {step === "extracting" && "Analisando mensagem…"}
-              {step === "review" && "Revisar informações extraídas"}
-              {step === "draft" && "Processo criado"}
+        {/* Header */}
+        <div style={hdr}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(10,102,194,0.12)", border: "1px solid rgba(10,102,194,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Ic n="linkedin" s={14} c="#0A66C2" />
+            </div>
+            <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>
+              {step === "paste"   && "Mensagem do LinkedIn"}
+              {step === "working" && "Analisando…"}
+              {step === "result"  && "Pronto para responder"}
             </span>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex" }}>
-            <Ic n="close" s={18} c="var(--t3)" />
+          <button onClick={onClose} aria-label="Fechar" data-testid="btn-close" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex" }}>
+            <Ic n="close" s={16} c="var(--t3)" />
           </button>
         </div>
 
-        {/* STEP: paste */}
+        {/* ── STEP: paste ────────────────────────────────────────── */}
         {step === "paste" && (
           <>
             <div style={body}>
-              <p style={{ fontSize: 13, color: "var(--t2)", fontFamily: "'Outfit',sans-serif", margin: 0 }}>
-                Cole a mensagem do recrutador recebida no LinkedIn. A IA vai extrair automaticamente empresa, cargo, stack e outras informações para criar o processo.
+              <p style={{ fontSize: 13, color: "var(--t3)", fontFamily: "'Outfit',sans-serif", margin: 0, lineHeight: 1.6 }}>
+                Cole a mensagem recebida no LinkedIn. A IA extrai empresa, cargo e stack — e gera uma resposta pronta para copiar.
               </p>
-              <div style={fieldStyle}>
-                <span style={labelStyle}>Mensagem do recrutador</span>
-                <textarea
-                  autoFocus
-                  value={msg}
-                  onChange={e => setMsg(e.target.value)}
-                  placeholder="Cole aqui a mensagem completa recebida no LinkedIn…"
-                  rows={10}
-                  style={{ ...T.input, resize: "vertical", lineHeight: 1.6 }}
-                />
-                {msg.trim() && (
-                  <span style={{ fontSize: 11, color: "var(--t3)", ...T.mono }}>
-                    {msg.trim().split(/\s+/).length} palavras
-                  </span>
-                )}
-              </div>
+              <textarea
+                data-testid="msg-input"
+                autoFocus
+                value={msg}
+                onChange={e => setMsg(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Cole a mensagem aqui…"
+                style={{ ...T.input, resize: "none", lineHeight: 1.65, height: 200, fontSize: 13 }}
+              />
               {error && (
                 <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(255,106,106,0.08)", border: "1px solid rgba(255,106,106,0.2)", color: "var(--red)", fontSize: 13, fontFamily: "'Outfit',sans-serif" }}>
                   {error}
                 </div>
               )}
             </div>
-            <div style={footer}>
-              <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
-              <Btn variant="primary" onClick={extract} disabled={!msg.trim()}>
-                <Ic n="ai" s={14} c="#fff" /> Extrair informações
+            <div style={ftr}>
+              <span style={{ fontSize: 11, color: "var(--t4)", fontFamily: "'JetBrains Mono',monospace" }}>
+                {msg.trim() ? `${msg.trim().split(/\s+/).length} palavras` : "Ctrl+Enter para analisar"}
+              </span>
+              <Btn variant="primary" onClick={run} disabled={!msg.trim()} data-testid="btn-analyze">
+                <Ic n="ai" s={14} c="#fff" /> Analisar mensagem
               </Btn>
             </div>
           </>
         )}
 
-        {/* STEP: extracting */}
-        {step === "extracting" && (
-          <div style={{ ...body, alignItems: "center", justifyContent: "center", minHeight: 220 }}>
+        {/* ── STEP: working ──────────────────────────────────────── */}
+        {step === "working" && (
+          <div style={{ ...body, alignItems: "center", justifyContent: "center", minHeight: 200 }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid var(--acc-b)", borderTopColor: "var(--acc)", animation: "spin 0.8s linear infinite" }} />
-              <span style={{ fontSize: 14, color: "var(--t2)", fontFamily: "'Outfit',sans-serif" }}>Analisando mensagem com IA…</span>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid var(--acc-b)", borderTopColor: "var(--acc)", animation: "spin 0.8s linear infinite" }} />
+              <span style={{ fontSize: 13, color: "var(--t3)", fontFamily: "'Outfit',sans-serif" }}>Extraindo informações…</span>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           </div>
         )}
 
-        {/* STEP: review */}
-        {step === "review" && extracted && (
+        {/* ── STEP: result ───────────────────────────────────────── */}
+        {step === "result" && extracted && (
           <>
             <div style={body}>
-              <p style={{ fontSize: 13, color: "var(--t2)", fontFamily: "'Outfit',sans-serif", margin: 0 }}>
-                Revise as informações extraídas e corrija o que for necessário antes de criar o processo.
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {/* 4 key fields — 2×2 grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {[
                   { key: "company", label: "Empresa" },
-                  { key: "role", label: "Cargo" },
-                  { key: "recruiter", label: "Nome do recrutador" },
-                  { key: "recruiterRole", label: "Cargo do recrutador" },
-                  { key: "salary", label: "Salário" },
-                  { key: "regime", label: "Regime" },
-                  { key: "location", label: "Localização" },
-                  { key: "stack", label: "Stack (separada por vírgula)" },
+                  { key: "role",    label: "Cargo" },
+                  { key: "salary",  label: "Salário" },
+                  { key: "regime",  label: "Regime" },
                 ].map(({ key, label }) => (
-                  <div key={key} style={fieldStyle}>
-                    <span style={labelStyle}>{label}</span>
+                  <div key={key} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    <span style={{ ...T.label }}>{label}</span>
                     <input
                       value={extracted[key]}
                       onChange={e => setExtracted(prev => ({ ...prev, [key]: e.target.value }))}
-                      style={{ ...T.input }}
                       placeholder={`${label}…`}
+                      style={{ ...T.input, fontSize: 13 }}
+                      data-testid={`field-${key}`}
                     />
                   </div>
                 ))}
               </div>
-              <div style={fieldStyle}>
-                <span style={labelStyle}>Próximo passo</span>
-                <input
-                  value={extracted.nextStep}
-                  onChange={e => setExtracted(prev => ({ ...prev, nextStep: e.target.value }))}
-                  style={{ ...T.input }}
-                  placeholder="Ex: Agendar call de 30min"
-                />
-              </div>
-            </div>
-            <div style={footer}>
-              <Btn variant="secondary" onClick={() => setStep("paste")}>Voltar</Btn>
-              <Btn variant="primary" onClick={createProcess}>
-                <Ic n="plus" s={14} c="#fff" /> Criar processo
-              </Btn>
-            </div>
-          </>
-        )}
 
-        {/* STEP: draft */}
-        {step === "draft" && (
-          <>
-            <div style={body}>
-              <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(34,198,122,0.08)", border: "1px solid rgba(34,198,122,0.2)", display: "flex", alignItems: "center", gap: 8 }}>
-                <Ic n="check" s={14} c="var(--grn)" />
-                <span style={{ fontSize: 13, color: "var(--grn)", fontFamily: "'Outfit',sans-serif" }}>
-                  Processo <strong>{extracted?.company}</strong> criado com sucesso
-                </span>
-              </div>
-              {draft ? (
-                <div style={fieldStyle}>
-                  <span style={labelStyle}>Rascunho de resposta (LinkedIn)</span>
+              {/* Draft */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ ...T.label }}>Resposta para o LinkedIn</span>
+                  {draftLoading && (
+                    <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid var(--border)", borderTopColor: "var(--acc)", animation: "spin 0.6s linear infinite", flexShrink: 0 }} />
+                  )}
+                </div>
+                {draftLoading ? (
+                  <div style={{ height: 130, borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--bg-o)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--t4)", fontFamily: "'Outfit',sans-serif" }}>Gerando resposta…</span>
+                  </div>
+                ) : draft ? (
                   <textarea
+                    data-testid="draft-output"
                     readOnly
                     value={draft}
-                    style={{ ...T.input, height: 220, resize: "none", lineHeight: 1.6, background: "var(--bg-o)", color: "var(--t1)", cursor: "text", overflowY: "auto" }}
+                    style={{ ...T.input, resize: "none", height: 130, lineHeight: 1.65, background: "var(--bg-o)", cursor: "text", fontSize: 13, overflowY: "auto" }}
                   />
-                </div>
-              ) : (
-                <p style={{ fontSize: 13, color: "var(--t3)", fontFamily: "'Outfit',sans-serif" }}>
-                  Não foi possível gerar o rascunho. Você pode gerar um na aba Mensagens do processo.
-                </p>
-              )}
+                ) : (
+                  <div style={{ padding: "14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-o)" }}>
+                    <span style={{ fontSize: 12, color: "var(--t3)", fontFamily: "'Outfit',sans-serif" }}>Não foi possível gerar a resposta. Use a aba Mensagens no processo.</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div style={{ ...footer, justifyContent: "space-between" }}>
-              {draft ? (
-                <button
-                  onClick={copy}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: copied ? "rgba(34,198,122,0.1)" : "var(--bg-o)", border: `1px solid ${copied ? "rgba(34,198,122,0.3)" : "var(--border)"}`, borderRadius: 8, cursor: "pointer", color: copied ? "var(--grn)" : "var(--t2)", fontSize: 13, fontFamily: "'Outfit',sans-serif", padding: "8px 14px", transition: "all 0.15s" }}
-                >
-                  <Ic n={copied ? "check" : "copy"} s={13} c={copied ? "var(--grn)" : "var(--t2)"} />
-                  {copied ? "Copiado!" : "Copiar mensagem"}
-                </button>
-              ) : <span />}
-              <Btn variant="primary" onClick={onClose}>
-                <Ic n="check" s={14} c="#fff" /> Abrir processo
-              </Btn>
+
+            <div style={ftr}>
+              <button
+                data-testid="btn-back"
+                onClick={() => { setStep("paste"); setDraft(""); setExtracted(null); setSaved(false); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 12, fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 5, padding: "6px 8px", borderRadius: 8 }}
+              >
+                <Ic n="back" s={12} c="var(--t3)" /> Voltar
+              </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {draft && !draftLoading && (
+                  <button
+                    data-testid="btn-copy"
+                    onClick={copy}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: copied ? "rgba(34,198,122,0.1)" : "var(--bg-o)", border: `1px solid ${copied ? "rgba(34,198,122,0.3)" : "var(--border)"}`, borderRadius: 8, cursor: "pointer", color: copied ? "var(--grn)" : "var(--t2)", fontSize: 13, fontFamily: "'Outfit',sans-serif", padding: "8px 14px", transition: "all 0.15s", fontWeight: 500 }}
+                  >
+                    <Ic n={copied ? "check" : "copy"} s={13} c={copied ? "var(--grn)" : "var(--t2)"} />
+                    {copied ? "Copiado!" : "Copiar"}
+                  </button>
+                )}
+                <Btn variant="primary" onClick={save} data-testid="btn-save">
+                  <Ic n={saved ? "check" : "plus"} s={14} c="#fff" />
+                  {saved ? "Abrir processo" : "Salvar no pipeline"}
+                </Btn>
+              </div>
             </div>
           </>
         )}

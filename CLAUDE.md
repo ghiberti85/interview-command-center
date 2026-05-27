@@ -610,6 +610,10 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | `process_id` em `cv_adaptations` como `text` | Coluna `id` da tabela `processes` é `text`, não `uuid` — FK deve ter tipo compatível |
 | Integração ICC→DIL via query params, sem banco | Unidirecional e zero acoplamento — ICC abre DIL com `?role=&company=&stack=` e DIL lê sem depender de API compartilhada |
 | `buildDILUrl` em `OverviewTab` usa tags como stack | Tags já representam as tecnologias do processo; reutilizá-las evita campo extra e mantém o modelo de dados simples |
+| `RecruiterMessageModal` 3 etapas em vez de 4 | `paste→working→result` — review e draft colapsados; draft gerado em paralelo com a exibição dos campos; menos friction |
+| Draft do recruiter em plain text, não JSON | `DRAFT_SYSTEM` explícito retorna só o texto — elimina parse frágil que causava draft vazio em produção |
+| `initialMsg` prop no `RecruiterMessageModal` | Permite pré-preencher a mensagem via `EmptyState` ou qualquer outro ponto de entrada sem estado global extra |
+| `EmptyState` com área de cole inline | Primeira ação do usuário (colar mensagem LinkedIn) está disponível diretamente na tela inicial, sem precisar abrir modal |
 
 ---
 

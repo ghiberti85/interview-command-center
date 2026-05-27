@@ -147,6 +147,7 @@ Objetivo: features que diferenciam o app de qualquer planilha ou Notion e tornam
 | **Storage bucket cv-files** — bucket privado com políticas por user_id para CVs em PDF | ✅ |
 | **useCVAdaptations hook** — CRUD de adaptações com fetch por process_id, upsert e clear | ✅ |
 | **Integração ICC → DIL** — botão "Praticar para esta vaga" no OverviewTab abre DevInterviewLab com role/company/stack como query params | ✅ |
+| **RecruiterMessageModal reescrito** — fluxo 3 etapas (paste→working→result), draft em plain text com DRAFT_SYSTEM dedicado, initialMsg prop, EmptyState com área de cole inline | ✅ |
 
 ### Prep Kit sob demanda ⭐
 

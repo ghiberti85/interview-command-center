@@ -72,6 +72,7 @@ export default function App() {
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
+  const [recruiterInitialMsg, setRecruiterInitialMsg] = useState("");
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const { resumes, loading: resumesLoading, add: addResume, update: updateResume, remove: removeResume } = useResumes(session);
@@ -161,16 +162,42 @@ export default function App() {
   const filtered = sortProcesses(filterProcesses(listSrc, search, stageFilter), sortBy);
   const urgent = active.filter(p=>{ const d=daysDiff(p.nextStepDate); return d!==null&&d>=0&&d<=2; }).length;
 
+  const [emptyPasteMsg, setEmptyPasteMsg] = useState("");
+
+  const openRecruiterWithMsg = (m) => {
+    setRecruiterInitialMsg(m || "");
+    setShowRecruiterModal(true);
+  };
+
   const EmptyState = () => (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:20, padding:40, textAlign:"center" }}>
-      <div style={{ width:56, height:56, borderRadius:16, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <Ic n="pipeline" s={24} c="var(--acc)"/>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:20, padding:"40px 32px", maxWidth:460, margin:"0 auto" }}>
+      <div style={{ width:52, height:52, borderRadius:14, background:"rgba(10,102,194,0.1)", border:"1px solid rgba(10,102,194,0.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <Ic n="linkedin" s={22} c="#0A66C2"/>
       </div>
-      <div>
-        <div style={{ fontSize:18, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Nenhum processo ainda</div>
-        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6, maxWidth:260 }}>Adicione seu primeiro processo seletivo para começar a gerenciar suas oportunidades.</div>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Cole uma mensagem do LinkedIn</div>
+        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>A IA extrai empresa, cargo e stack — e gera uma resposta pronta para copiar.</div>
       </div>
-      <Btn onClick={()=>setShowNew(true)}><Ic n="plus" s={14} c="#fff"/>Novo Processo</Btn>
+      <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
+        <textarea
+          value={emptyPasteMsg}
+          onChange={e=>setEmptyPasteMsg(e.target.value)}
+          onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"&&emptyPasteMsg.trim()) openRecruiterWithMsg(emptyPasteMsg); }}
+          placeholder="Cole a mensagem aqui…"
+          style={{ ...T.input, resize:"none", height:110, lineHeight:1.65, fontSize:13 }}
+        />
+        <Btn variant="primary" full onClick={()=>openRecruiterWithMsg(emptyPasteMsg)} disabled={!emptyPasteMsg.trim()}>
+          <Ic n="ai" s={14} c="#fff"/> Analisar mensagem
+        </Btn>
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:8, width:"100%" }}>
+        <div style={{ flex:1, height:1, background:"var(--border)" }}/>
+        <span style={{ fontSize:11, color:"var(--t4)", fontFamily:"'JetBrains Mono',monospace" }}>ou</span>
+        <div style={{ flex:1, height:1, background:"var(--border)" }}/>
+      </div>
+      <button onClick={()=>setShowNew(true)} style={{ color:"var(--t3)", fontSize:13, fontFamily:"'Outfit',sans-serif", background:"none", border:"1px solid var(--border)", borderRadius:8, cursor:"pointer", padding:"8px 16px" }}>
+        Adicionar manualmente
+      </button>
     </div>
   );
 
@@ -355,7 +382,7 @@ export default function App() {
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile}/>}
       {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={false} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
-      {showRecruiterModal && <RecruiterMessageModal onClose={()=>setShowRecruiterModal(false)} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); }}/>}
+      {showRecruiterModal && <RecruiterMessageModal initialMsg={recruiterInitialMsg} onClose={()=>{ setShowRecruiterModal(false); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }}/>}
     </>
   );
 
@@ -493,7 +520,7 @@ export default function App() {
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile}/>}
       {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={true} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
-      {showRecruiterModal && <RecruiterMessageModal onClose={()=>setShowRecruiterModal(false)} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setMobileScreen("detail"); }}/>}
+      {showRecruiterModal && <RecruiterMessageModal initialMsg={recruiterInitialMsg} onClose={()=>{ setShowRecruiterModal(false); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setMobileScreen("detail"); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }}/>}
     </>
   );
 }

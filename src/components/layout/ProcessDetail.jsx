@@ -21,7 +21,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
     { id:"ai",        label:"AI" },
     { id:"curriculo", label:"Currículo" },
   ];
-  const tabH = isMobile ? "calc(100dvh - 268px)" : "calc(100vh - 260px)";
+  const tabH = isMobile ? "calc(100dvh - 338px)" : "calc(100vh - 260px)";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>

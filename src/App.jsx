@@ -498,6 +498,16 @@ export default function App() {
           )}
         </div>
 
+        {view==="pipeline" && mobileScreen==="list" && (
+          <button
+            onClick={()=>{ setRecruiterInitialMsg(""); setShowRecruiterModal(true); }}
+            style={{ position:"fixed", bottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px) + 12px)", right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
+            aria-label="Colar mensagem LinkedIn"
+          >
+            <Ic n="linkedin" s={22} c="#fff"/>
+          </button>
+        )}
+
         <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"min(env(safe-area-inset-bottom,0px),16px)", flexShrink:0 }}>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },

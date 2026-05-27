@@ -111,6 +111,10 @@ Objetivo: endereçar dívida técnica crítica, completar cobertura de testes e 
 - **Tags editáveis inline** — adicionar/remover sem abrir modo de edição completo | ✅
 - **Swipe to archive no mobile** — gesto nativo para encerrar processo | ✅
 - **Indicador "contactado via"** — canal do primeiro contato (LinkedIn, E-mail, WhatsApp, Indicação) | ✅
+- **FAB LinkedIn no mobile** — botão flutuante na lista para colar mensagem com 1 toque | ✅
+- **MessagesTab mobile** — botão Gerar sticky, resultado no topo; nunca coberto pela bottom nav | ✅
+- **ProcessDetail tabH** — altura da aba mobile corrigida para descontar bottom nav (70px) | ✅
+- **MessagesTab parse** — `parseAIResponse()` robusto com fallback para JSON em markdown | ✅
 
 ### Refatoração e TypeScript
 

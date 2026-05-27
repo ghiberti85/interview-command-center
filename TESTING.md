@@ -1014,3 +1014,28 @@ Tabela `cv_adaptations` criada via migração com 4 políticas RLS.
 Bucket `cv-files` criado no Storage com políticas por `user_id`.
 
 **Suite completa:** 247 testes, 17 arquivos, todos passando.
+
+---
+
+## Adições v1.5 — Mobile UX e correção de geração de mensagens
+
+### Correções implementadas (sem novos arquivos de teste)
+
+- **MessagesTab** — reescrita com `MESSAGES_SYSTEM` prompt explícito e `parseAIResponse()` robusto:
+  - Parse com fallback: tenta `JSON.parse` direto → regex greedy → retorna `{ body: text }` como último recurso
+  - Elimina falha silenciosa quando Claude envolve JSON em markdown code block
+  - Layout mobile: `flex column` com botão Gerar sticky no rodapé, resultado no topo do scroll
+  - Resultado sempre visível imediatamente após geração, nunca coberto pela bottom nav
+
+- **ProcessDetail** — `tabH` mobile corrigido de `268px` para `338px` (+70px da bottom nav fixa)
+
+- **App.jsx (mobile)** — FAB LinkedIn flutuante na lista mobile: botão circular azul (`#0A66C2`) fixo acima da bottom nav, abre `RecruiterMessageModal` com 1 toque. Aparece apenas em `view==="pipeline"` e `mobileScreen==="list"`.
+
+### Cenários a cobrir (pendente para suite E2E)
+
+- `MessagesTab` — geração bem-sucedida com mock de `callAI` retornando JSON e texto plano
+- `MessagesTab` — parseAIResponse com JSON envolto em markdown code block
+- Mobile layout — botão Gerar sticky não coberto por bottom nav
+- FAB LinkedIn abre RecruiterMessageModal
+
+**Suite completa:** 251 testes, 17 arquivos, todos passando.

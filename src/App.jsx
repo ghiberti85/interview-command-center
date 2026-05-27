@@ -492,7 +492,7 @@ export default function App() {
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))", animation:"slideUp 0.22s ease" }}>
+            <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
               <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
             </div>
           )}

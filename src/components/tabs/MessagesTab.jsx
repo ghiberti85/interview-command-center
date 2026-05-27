@@ -17,7 +17,7 @@ function parseAIResponse(raw) {
   return { body: text };
 }
 
-export function MessagesTab({ process, isMobile, autoFocus }) {
+export function MessagesTab({ process, isMobile, autoFocus, navH = "0px" }) {
   const [channel, setChannel] = useState("linkedin");
   const [scenario, setScenario] = useState("reply_recruiter");
   const [recruiterMsg, setRecruiterMsg] = useState("");
@@ -252,7 +252,7 @@ export function MessagesTab({ process, isMobile, autoFocus }) {
           <ChannelScenario />
           <ExtraCtxToggle />
         </div>
-        <div style={{ flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid var(--border)", background: "var(--bg-r)" }}>
+        <div style={{ flexShrink: 0, padding: "12px 16px", paddingBottom: `calc(16px + ${navH})`, borderTop: "1px solid var(--border)", background: "var(--bg-r)" }}>
           <GenerateBtn full />
         </div>
       </div>

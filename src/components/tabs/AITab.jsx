@@ -5,7 +5,7 @@ import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 import Ic from "../ui/Ic.jsx";
 
-export function AITab({ process, isMobile }) {
+export function AITab({ process, isMobile, navH = "0px" }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,7 @@ Seja direto, prático e orientado a ação. Responda em português.`;
         )}
         <div ref={bottomRef}/>
       </div>
-      <div style={{ padding:isMobile?"10px 14px":"12px 16px", paddingBottom:isMobile?"env(safe-area-inset-bottom, 10px)":"12px", borderTop:"1px solid var(--border)", display:"flex", gap:8, flexShrink:0, background:"var(--bg-r)" }}>
+      <div style={{ padding:isMobile?"10px 14px":"12px 16px", paddingBottom:isMobile?`calc(10px + ${navH})`:"12px", borderTop:"1px solid var(--border)", display:"flex", gap:8, flexShrink:0, background:"var(--bg-r)" }}>
         <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send(input)} placeholder={isMobile?"Pergunte sobre a empresa...":"Pergunte sobre a empresa, prepare respostas..."} style={{ ...T.input, flex:1, fontSize:13 }}/>
         <button onClick={()=>send(input)} disabled={loading||!input.trim()} style={{ padding:"10px 14px", borderRadius:10, border:"none", background:loading||!input.trim()?"var(--bg-s)":"var(--acc)", color:loading||!input.trim()?"var(--t3)":"#fff", cursor:loading||!input.trim()?"not-allowed":"pointer", fontSize:16, fontWeight:700, transition:"all 0.15s", flexShrink:0 }}>→</button>
       </div>

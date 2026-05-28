@@ -7,10 +7,10 @@ import Ic from "../ui/Ic.jsx";
 
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
 
-const DRAG_THRESHOLD = 140; // px to snap open
-const ACTION_W = 160;       // width of the revealed action panel
+const DRAG_THRESHOLD = 100;
+const ACTION_W = 140;
 
-export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile }) {
+export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile, isArchived }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
@@ -45,47 +45,51 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
     onSwipeAction();
   };
 
+  const actionColor = isArchived ? "#991B1B" : "#DC2626";
+  const actionLabel = isArchived ? "Deletar" : "Encerrar";
+  const actionIcon = isArchived ? "trash" : "close";
+
   return (
     <div
       data-testid="card-wrapper"
-      style={{ position:"relative", marginBottom:6, borderRadius:12, overflow:"hidden" }}
+      style={{ position:"relative", marginBottom:6, borderRadius:12 }}
     >
-      {/* Action panel — fixed width, always at right edge, revealed as card slides */}
+      {/* Action panel */}
       {isMobile && onSwipeAction && (
         <div
           data-testid="swipe-bg"
           style={{
             position:"absolute", top:0, bottom:0, right:0,
             width: ACTION_W,
-            background:"#DC2626",
+            background: actionColor,
             borderRadius:"0 12px 12px 0",
             display:"flex", flexDirection:"column",
-            alignItems:"center", justifyContent:"center", gap:10,
+            alignItems:"center", justifyContent:"center", gap:8,
+            padding:"0 8px",
           }}
         >
           {open ? (
             <>
-              <span style={{ fontSize:12, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:700, textAlign:"center", lineHeight:1.3 }}>Encerrar{"\n"}processo?</span>
               <button
                 data-testid="btn-confirm-archive"
                 onClick={handleConfirm}
-                style={{ width:120, padding:"11px 0", borderRadius:10, background:"#fff", border:"none", color:"#DC2626", fontSize:14, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
-              >Encerrar</button>
+                style={{ width:"100%", padding:"10px 0", borderRadius:8, background:"#fff", border:"none", color: actionColor, fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+              >{actionLabel}</button>
               <button
                 onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ width:120, padding:"9px 0", borderRadius:10, background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
               >Cancelar</button>
             </>
           ) : (
             <>
-              <Ic n="close" s={22} c="#fff"/>
-              <span style={{ fontSize:10, color:"rgba(255,255,255,0.85)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>Encerrar</span>
+              <Ic n={actionIcon} s={20} c="#fff"/>
+              <span style={{ fontSize:10, color:"rgba(255,255,255,0.85)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>{actionLabel}</span>
             </>
           )}
         </div>
       )}
 
-      {/* Card — slides left to reveal the action panel */}
+      {/* Card */}
       <div
         data-testid="process-card"
         className="process-card"

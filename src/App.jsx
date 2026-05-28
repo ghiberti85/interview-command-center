@@ -486,7 +486,7 @@ export default function App() {
                 {filtered.length===0 ? (
                   processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>Nenhum resultado</div>
                 ) : filtered.map(p=>(
-                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("overview");setMobileScreen("detail");}} selected={false} isMobile={true} onSwipeAction={()=>updateProcess({...p,stage:"rejected"})}/>
+                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("overview");setMobileScreen("detail");}} selected={false} isMobile={true} isArchived={view==="archived"} onSwipeAction={view==="archived" ? ()=>deleteProcess(p.id) : ()=>updateProcess({...p,stage:"rejected"})}/>
                 ))}
               </div>
             </div>

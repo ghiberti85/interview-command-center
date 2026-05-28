@@ -427,8 +427,8 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         </div>
 
 <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0 }}>
-          <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t4)", minHeight:44, position:"relative" }}>
-            <Ic n="plus" s={19} c="var(--t4)"/>
+          <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:44, position:"relative" }}>
+            <Ic n="plus" s={19} c="var(--t1)"/>
             <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>
           </button>
           {[
@@ -438,10 +438,10 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           ].map(n=>{
             const on = view===n.id;
             return (
-              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:on?"var(--t1)":"var(--t4)", minHeight:44, position:"relative" }}>
+              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:44, position:"relative" }}>
                 {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:20, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
-                <Ic n={n.icon} s={19} c={on?"var(--t1)":"var(--t4)"}/>
-                <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.05em" }}>{n.label}</span>
+                <Ic n={n.icon} s={19} c="var(--t1)"/>
+                <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>{n.label}</span>
               </button>
             );
           })}

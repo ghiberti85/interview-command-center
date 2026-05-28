@@ -34,7 +34,6 @@ import LoginScreen from "./components/auth/LoginScreen.jsx";
 import SetPasswordModal from "./components/modals/SetPasswordModal.jsx";
 import ProfileSetupModal from "./components/modals/ProfileSetupModal.jsx";
 import ResumesModal from "./components/modals/ResumesModal.jsx";
-import ImportModal from "./components/modals/ImportModal.jsx";
 import NewEntryModal from "./components/modals/NewEntryModal.jsx";
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
@@ -69,7 +68,6 @@ export default function App() {
   const [showSetPassword, setShowSetPassword] = useState(false);
   const { profile, saveProfile } = useUserProfile();
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showImport, setShowImport] = useState(false);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -147,14 +145,7 @@ export default function App() {
     }
   }, [isMobile, session]);
 
-  const importProcesses = useCallback(async (newProcesses) => {
-    if (isDemo || !newProcesses.length) return;
-    const rows = newProcesses.map(p => ({ ...processToRow(p), user_id: session?.user?.id }));
-    const { error } = await supabase.from("processes").insert(rows);
-    if (!error) setProcesses(prev => [...newProcesses, ...prev]);
-  }, [session, isDemo]);
-
-  const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
+const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   const archived = processes.filter(p=>["rejected","archived"].includes(p.stage));
   const listSrc = view==="archived" ? archived : active;
   const filtered = sortProcesses(filterProcesses(listSrc, search, stageFilter), sortBy);
@@ -322,7 +313,6 @@ export default function App() {
       {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile}/>}
-      {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={false} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );
@@ -368,14 +358,11 @@ export default function App() {
             <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", zIndex:200, animation:"slideUp 0.25s ease" }}>
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
-                { label:"Novo processo (manual)", icon:"plus", action:()=>{ setShowNew(true); setHamburgerOpen(false); }, accent:true },
-                { label:"De mensagem LinkedIn", icon:"linkedin", action:()=>{ setShowRecruiterModal(true); setHamburgerOpen(false); }, linkedinBlue:true },
-                { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setHamburgerOpen(false); }, hidden: isDemo },
                 { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
                 { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
                 { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setHamburgerOpen(false); } },
                 { label: isDemo?"Sair do modo demo":"Sair da conta", icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
-              ].filter(item=>!item.hidden).map((item,i)=>(
+              ].map((item,i)=>(
 
                 <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}

@@ -120,37 +120,38 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
   );
 
   const ChannelScenario = () => (
-    <div style={{ display: "flex", gap: 14, flexWrap: isMobile ? "wrap" : "nowrap" }}>
-      <div style={{ flex: 1, minWidth: isMobile ? "100%" : 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div>
         <div style={{ ...T.label, marginBottom: 8 }}>Canal</div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           {Object.entries(CHANNELS).map(([k, cfg]) => (
             <button
               key={k}
               onClick={() => setChannel(k)}
               style={{
-                flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer",
+                flex: 1, padding: "10px 12px", borderRadius: 10, cursor: "pointer",
                 border: `1px solid ${channel === k ? cfg.border : "var(--border)"}`,
                 background: channel === k ? cfg.bg : "var(--bg-o)",
                 color: channel === k ? cfg.accent : "var(--t3)",
-                transition: "all 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                transition: "all 0.15s", display: "flex", flexDirection: isMobile ? "column" : "row",
+                alignItems: "center", justifyContent: "center", gap: isMobile ? 4 : 8,
               }}
             >
               <Ic n={cfg.icon} s={17} c={channel === k ? cfg.accent : "var(--t3)"} />
-              <span style={{ fontSize: 11, fontWeight: channel === k ? 700 : 400, fontFamily: "'Outfit',sans-serif" }}>{cfg.label}</span>
+              <span style={{ fontSize: 12, fontWeight: channel === k ? 700 : 400, fontFamily: "'Outfit',sans-serif" }}>{cfg.label}</span>
             </button>
           ))}
         </div>
       </div>
-      <div style={{ flex: 2, minWidth: isMobile ? "100%" : 0 }}>
+      <div>
         <div style={{ ...T.label, marginBottom: 8 }}>Objetivo</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {SCENARIOS.map(s => (
             <button
               key={s.id}
               onClick={() => setScenario(s.id)}
               style={{
-                padding: "7px 10px", borderRadius: 8, cursor: "pointer", textAlign: "left",
+                padding: "8px 12px", borderRadius: 8, cursor: "pointer", textAlign: "left",
                 border: `1px solid ${scenario === s.id ? "var(--acc-b)" : "var(--border)"}`,
                 background: scenario === s.id ? "var(--acc-d)" : "var(--bg-o)",
                 color: scenario === s.id ? "var(--acc-text)" : "var(--t2)",
@@ -360,16 +361,22 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
   // ── Desktop layout ───────────────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, padding: "20px 20px 24px" }}>
-        <SentMessagesSection />
-        <RecruiterInput />
-        <ChannelScenario />
-        <ExtraCtxToggle />
-        <GenerateBtn />
-        {!generated && !loading && sentMessages.length === 0 && <EmptyPlaceholder />}
-        {generated && <ResultCard />}
+      {/* Main column: scrollable form + sticky generate btn */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, padding: "20px 20px 8px" }}>
+          <SentMessagesSection />
+          <RecruiterInput />
+          <ChannelScenario />
+          <ExtraCtxToggle />
+          {!generated && !loading && sentMessages.length === 0 && <EmptyPlaceholder />}
+          {generated && <ResultCard />}
+        </div>
+        <div style={{ flexShrink: 0, padding: "12px 20px 20px", borderTop: "1px solid var(--border)", background: "var(--bg-r)" }}>
+          <GenerateBtn full />
+        </div>
       </div>
-      <div style={{ width: 210, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      {/* History sidebar */}
+      <div style={{ width: 220, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px 12px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 6 }}>
           <Ic n="cal" s={12} c="var(--t4)" />
           <span style={{ ...T.label }}>Histórico da sessão</span>
@@ -388,22 +395,26 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
                 key={i}
                 onClick={() => { setGenerated(h); setSaved(false); }}
                 style={{
-                  padding: 10, borderRadius: 10, marginBottom: 6, cursor: "pointer",
+                  padding: "10px 10px", borderRadius: 10, marginBottom: 6, cursor: "pointer",
                   border: `1px solid ${act ? cfg?.border || "var(--border)" : "var(--border)"}`,
                   background: act ? cfg?.bg || "var(--bg-o)" : "var(--bg-r)",
                   transition: "all 0.15s",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-                  <Ic n={cfg?.icon || "msg"} s={12} c={cfg?.accent || "var(--t2)"} />
-                  <span style={{ fontSize: 11, color: cfg?.accent, ...T.mono, fontWeight: 600 }}>{cfg?.label}</span>
-                </div>
-                <div style={{ fontSize: 11, color: "var(--t2)", lineHeight: 1.4, marginBottom: 3 }}>{h.scenario}</div>
-                {h.recruiterMsg && (
-                  <div style={{ fontSize: 10, color: "var(--t4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    "{h.recruiterMsg.slice(0, 35)}{h.recruiterMsg.length > 35 ? "…" : ""}"
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Ic n={cfg?.icon || "msg"} s={11} c={cfg?.accent || "var(--t2)"} />
+                    <span style={{ fontSize: 10, color: cfg?.accent, ...T.mono, fontWeight: 600 }}>{cfg?.label}</span>
                   </div>
-                )}
+                  <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>
+                    {new Date(h.ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--t3)", ...T.mono, marginBottom: 5 }}>{h.scenario}</div>
+                <div style={{ fontSize: 12, color: "var(--t1)", lineHeight: 1.45,
+                  display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {h.body}
+                </div>
               </div>
             );
           })}

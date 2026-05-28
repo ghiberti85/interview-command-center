@@ -21,8 +21,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, pr
     { id:"ai",        label:"AI" },
     { id:"curriculo", label:"Currículo" },
   ];
-  // navH: real nav height + safe area, no artificial fallback so no excess gap
-  const navH = isMobile ? `calc(${isPWA ? "44px" : "52px"} + env(safe-area-inset-bottom, 0px))` : "0px";
+  const navH = isMobile ? "calc(44px + min(env(safe-area-inset-bottom,0px),18px))" : "0px";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>

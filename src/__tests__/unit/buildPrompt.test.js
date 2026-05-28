@@ -100,13 +100,13 @@ describe("buildPrompt — conteúdo geral", () => {
     expect(prompt).toContain("Tenho preferência por remoto");
   });
 
-  it("instrui para responder em português", () => {
+  it("instrui para responder no idioma da mensagem do recrutador", () => {
     const prompt = buildPrompt({
       process: baseProcess, channel: "linkedin",
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain("Em português");
+    expect(prompt).toContain("mesmo idioma da mensagem do recrutador");
   });
 
   it("proíbe mencionar IA", () => {

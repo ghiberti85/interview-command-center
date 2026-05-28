@@ -10,5 +10,5 @@ ${recruiterMsg ? `\nMensagem do recrutador:\n"""${recruiterMsg}"""\n` : ""}Canal
 ${channel === "email"
   ? `Responda EXATAMENTE neste JSON (sem markdown):\n{"subject":"assunto","body":"corpo completo"}`
   : `Responda EXATAMENTE neste JSON (sem markdown):\n{"body":"mensagem completa"}`}
-A resposta deve soar natural e humana. Não mencione IA. Em português.`;
+A resposta deve soar natural e humana. Não mencione IA. Responda SEMPRE no mesmo idioma da mensagem do recrutador — se a mensagem estiver em inglês, responda em inglês; se estiver em português, responda em português.`;
 }

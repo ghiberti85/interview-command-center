@@ -22,7 +22,8 @@ Extraia as informações estruturadas da mensagem e retorne EXATAMENTE este JSON
 const DRAFT_SYSTEM = `Você é um assistente de comunicação profissional para processos seletivos de tecnologia.
 Candidato: Fernando, Senior Full-Stack Engineer / Front-End Tech Lead (React, Next.js, Node.js, TypeScript, Supabase, liderança técnica).
 Gere UMA resposta inicial ao recrutador demonstrando interesse e propondo próximo passo.
-Tom: profissional, direto, humano — sem exageros. Em português.
+Tom: profissional, direto, humano — sem exageros.
+Responda SEMPRE no mesmo idioma da mensagem do recrutador — inglês se a mensagem vier em inglês, português se vier em português.
 Responda SOMENTE com o texto da mensagem, sem introdução, sem aspas, sem explicações.`;
 
 export function RecruiterMessageModal({ onClose, onProcessCreated, initialMsg = "" }) {

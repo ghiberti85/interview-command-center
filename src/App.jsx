@@ -70,7 +70,6 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
-  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const { resumes, loading: resumesLoading, add: addResume, update: updateResume, remove: removeResume } = useResumes(session);
   const { adaptation, save: saveAdaptation, refetch: refetchAdaptation } = useCVAdaptations(session, selected?.id);
 
@@ -220,34 +219,10 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
               <div style={{ fontWeight:800, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
               <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)", marginTop:1 }}>Command Center</div>
             </div>
-            <div style={{ display:"flex", gap:2, position:"relative" }}>
+            <div style={{ display:"flex", gap:2 }}>
               <button className="icon-btn" onClick={toggleTheme} style={iconBtn()} title="Alternar tema" aria-label="Alternar tema">
                 <Ic n={dark?"sun":"moon"} s={15} c="var(--t3)"/>
               </button>
-              <button className="icon-btn" onClick={()=>setShowHeaderMenu(v=>!v)} style={iconBtn()} title="Mais opções" aria-label="Mais opções">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="2.5" r="1.5" fill="var(--t3)"/><circle cx="7" cy="7" r="1.5" fill="var(--t3)"/><circle cx="7" cy="11.5" r="1.5" fill="var(--t3)"/></svg>
-              </button>
-              {showHeaderMenu && (
-                <>
-                  <div onClick={()=>setShowHeaderMenu(false)} style={{ position:"fixed", inset:0, zIndex:50 }}/>
-                  <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:12, overflow:"hidden", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.25)", minWidth:190 }}>
-                    {[
-                      { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setShowHeaderMenu(false); }, hidden: isDemo },
-                      { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setShowHeaderMenu(false); } },
-                      { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setShowHeaderMenu(false); } },
-                      { label:"Definir senha", icon:"edit", action:()=>{ setShowSetPassword(true); setShowHeaderMenu(false); }, hidden: isDemo },
-                    ].filter(x=>!x.hidden).map((item,i)=>(
-                      <button key={i} onClick={item.action}
-                        style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"none", border:"none", cursor:"pointer", color:"var(--t1)", fontSize:12, fontFamily:"'Outfit',sans-serif", textAlign:"left", borderBottom:i<2?"1px solid var(--border)":"none" }}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="none"}
-                      >
-                        <Ic n={item.icon} s={13} c="var(--t3)"/>{item.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
               <button className="icon-btn" onClick={()=>isDemo?setIsDemo(false):supabase.auth.signOut()} style={iconBtn()} title={isDemo?"Sair do demo":"Sair"} aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>
             </div>
           </div>
@@ -262,6 +237,20 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
                 <span style={{ flex:1 }}>{n.label}</span>
                 {n.urgentCount>0 && <span style={{ padding:"2px 6px", borderRadius:999, background:"var(--red)", color:"#fff", fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700 }}>{n.urgentCount}</span>}
                 {n.count!=null && <span style={{ padding:"2px 7px", borderRadius:999, background:view===n.id?"rgba(255,255,255,0.15)":"var(--bg-s)", color:view===n.id?"#EFEFEF":"var(--t3)", fontSize:11, fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${view===n.id?"rgba(255,255,255,0.2)":"var(--border)"}` }}>{n.count}</span>}
+              </button>
+            ))}
+            <div style={{ borderTop:"1px solid var(--border)", margin:"4px 0" }}/>
+            {[
+              { label:"Perfil & preferências", icon:"edit",   action:()=>setShowProfileModal(true) },
+              { label:"Gerenciar currículos",   icon:"copy",   action:()=>setShowResumes(true) },
+              ...(!isDemo ? [{ label:"Definir senha", icon:"star", action:()=>setShowProfileModal(true) }] : []),
+            ].map((item,i)=>(
+              <button key={i} onClick={item.action} className="nav-btn" style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:9, border:"none", marginBottom:2, background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}
+                onMouseEnter={e=>{ e.currentTarget.style.background="var(--bg-o)"; e.currentTarget.style.color="var(--t2)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="transparent"; e.currentTarget.style.color="var(--t3)"; }}
+              >
+                <Ic n={item.icon} s={14} c="var(--t4)"/>
+                <span>{item.label}</span>
               </button>
             ))}
           </div>
@@ -312,7 +301,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
       </div>
       {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile}/>}
+      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );
@@ -449,7 +438,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
       </div>
       {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile}/>}
+      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo}/>}
 {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );

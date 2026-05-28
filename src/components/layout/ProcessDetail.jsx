@@ -10,7 +10,7 @@ import MessagesTab from "../tabs/MessagesTab.jsx";
 import AITab from "../tabs/AITab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
-export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
+export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, navH: navHProp, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
   const [tab, setTab] = useState(initialTab || "overview");
   useEffect(()=>setTab(initialTab || "overview"),[process.id, initialTab]);
 
@@ -21,7 +21,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, pr
     { id:"ai",        label:"AI" },
     { id:"curriculo", label:"Currículo" },
   ];
-  const navH = isMobile ? "44px" : "0px";
+  const navH = isMobile ? (navHProp || "calc(56px + env(safe-area-inset-bottom, 0px))") : "0px";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>

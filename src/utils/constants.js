@@ -8,7 +8,7 @@ export const STAGE = {
   archived:  { label: "Arquivado",  bar: "var(--t3)", badgeBg: "var(--bg-s)", badgeColor: "var(--t3)",   badgeBorder: "var(--border)" },
 };
 
-export const ACTIVE_STAGES = ["contacted", "screening", "interview", "technical", "offer"];
+export const ACTIVE_STAGES = ["contacted", "interview", "technical", "offer"];
 
 export const CHANNELS = {
   linkedin: { label: "LinkedIn", icon: "linkedin", color: "#0A66C2", accent: "#378FE9", bg: "rgba(10,102,194,0.12)", border: "rgba(10,102,194,0.3)", hint: "Tom profissional e direto. Máximo 3 parágrafos curtos." },

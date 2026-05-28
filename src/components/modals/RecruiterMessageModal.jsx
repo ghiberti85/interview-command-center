@@ -305,7 +305,7 @@ Mensagem do recrutador:
                 )}
                 <Btn variant="primary" onClick={save} data-testid="btn-save">
                   <Ic n={saved ? "check" : "plus"} s={14} c="#fff" />
-                  {saved ? "Abrir processo" : "Salvar no pipeline"}
+                  {saved ? "Abrir processo" : "Salvar"}
                 </Btn>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { STAGE, CHANNELS, SCENARIOS } from "../../utils/constants.js";
+import { CHANNELS, SCENARIOS } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
@@ -24,7 +24,7 @@ function extractMsgFromNotes(notes) {
   return "";
 }
 
-export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profile, adaptation }) {
+export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profile, adaptation, onUpdate }) {
   const [channel, setChannel] = useState("linkedin");
   const [scenario, setScenario] = useState("reply_recruiter");
   const [recruiterMsg, setRecruiterMsg] = useState(() => extractMsgFromNotes(process.notes));
@@ -35,14 +35,17 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedSub, setCopiedSub] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showSent, setShowSent] = useState(true);
 
   const ch = CHANNELS[channel];
   const scenLabel = SCENARIOS.find(s => s.id === scenario)?.label || scenario;
-  const canGen = true;
+  const sentMessages = process.sentMessages || [];
 
   const generate = async () => {
     setLoading(true);
     setGenerated(null);
+    setSaved(false);
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
       const cvContext = adaptation?.content || profile?.cvText || "";
@@ -62,6 +65,26 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
     await navigator.clipboard.writeText(text);
     setter(true);
     setTimeout(() => setter(false), 2000);
+  };
+
+  const saveToProcess = () => {
+    if (!generated || !onUpdate) return;
+    const entry = {
+      body: generated.body,
+      subject: generated.subject || null,
+      channel: generated.channel,
+      scenario: generated.scenario,
+      recruiterMsg: generated.recruiterMsg || null,
+      ts: generated.ts,
+    };
+    const updated = { ...process, sentMessages: [entry, ...sentMessages] };
+    onUpdate(updated);
+    setSaved(true);
+  };
+
+  const deleteSent = (ts) => {
+    if (!onUpdate) return;
+    onUpdate({ ...process, sentMessages: sentMessages.filter(m => m.ts !== ts) });
   };
 
   // ── Shared sub-components ────────────────────────────────────────────────────
@@ -170,21 +193,21 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
   const GenerateBtn = ({ full }) => (
     <button
       onClick={generate}
-      disabled={loading || !canGen}
+      disabled={loading}
       style={{
         width: full ? "100%" : undefined,
         padding: 13, borderRadius: 12,
-        border: `1px solid ${!canGen ? "var(--border)" : ch.border}`,
-        background: loading ? "var(--bg-o)" : !canGen ? "var(--bg-o)" : ch.bg,
-        color: loading ? "var(--t3)" : !canGen ? "var(--t4)" : ch.accent,
-        cursor: loading || !canGen ? "not-allowed" : "pointer",
+        border: `1px solid ${ch.border}`,
+        background: loading ? "var(--bg-o)" : ch.bg,
+        color: loading ? "var(--t3)" : ch.accent,
+        cursor: loading ? "not-allowed" : "pointer",
         fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
         transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
       }}
     >
       {loading
         ? <><div style={{ display: "flex", gap: 5 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--t3)", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}</div>Gerando...</>
-        : <><Ic n={ch.icon} s={16} c={!canGen ? "var(--t4)" : ch.accent} />{canGen ? `Gerar para ${ch.label}` : "Cole a mensagem ou escolha um objetivo"}</>
+        : <><Ic n={ch.icon} s={16} c={ch.accent} />Gerar para {ch.label}</>
       }
     </button>
   );
@@ -225,6 +248,12 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
           <Btn variant="ghost" size="sm" onClick={generate} disabled={loading}>
             <Ic n="refresh" s={13} c="var(--t2)" />Regerar
           </Btn>
+          {onUpdate && (
+            <Btn variant="ghost" size="sm" onClick={saveToProcess} disabled={saved}>
+              <Ic n={saved ? "check" : "star"} s={13} c={saved ? "var(--grn)" : "var(--t2)"} />
+              {saved ? "Salvo" : "Salvar"}
+            </Btn>
+          )}
           <Btn
             size="sm"
             onClick={() => copy(generated.body, setCopied)}
@@ -249,13 +278,74 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
     </div>
   );
 
-  // ── Mobile layout: sticky generate button at bottom ─────────────────────────
+  const SentMessagesSection = ({ compact }) => sentMessages.length === 0 ? null : (
+    <div style={{ borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden" }}>
+      <button
+        onClick={() => setShowSent(o => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: compact ? "9px 12px" : "10px 16px", background: "var(--bg-o)", border: "none",
+          cursor: "pointer", borderBottom: showSent ? "1px solid var(--border)" : "none",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Ic n="send" s={12} c="var(--grn)" />
+          <span style={{ ...T.label, color: "var(--grn)" }}>Respostas enviadas</span>
+          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "rgba(34,198,122,0.12)", color: "var(--grn)", ...T.mono }}>{sentMessages.length}</span>
+        </div>
+        <span style={{ fontSize: 10, color: "var(--t4)" }}>{showSent ? "▲" : "▼"}</span>
+      </button>
+      {showSent && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {sentMessages.map((m, i) => {
+            const cfg = CHANNELS[m.channel];
+            return (
+              <div key={m.ts} style={{ padding: compact ? "10px 12px" : "14px 16px", borderBottom: i < sentMessages.length - 1 ? "1px solid var(--border)" : "none", background: "var(--bg-r)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Ic n={cfg?.icon || "msg"} s={11} c={cfg?.accent || "var(--t3)"} />
+                    <span style={{ fontSize: 10, color: cfg?.accent || "var(--t3)", ...T.mono, fontWeight: 600 }}>{cfg?.label}</span>
+                    <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>· {m.scenario}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>
+                      {new Date(m.ts).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                    </span>
+                    <button onClick={() => copy(m.body, () => {})} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
+                      <Ic n="copy" s={12} c="var(--t3)" />
+                    </button>
+                    {onUpdate && (
+                      <button onClick={() => deleteSent(m.ts)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
+                        <Ic n="trash" s={12} c="var(--red)" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {m.recruiterMsg && (
+                  <div style={{ fontSize: 11, color: "var(--t4)", fontStyle: "italic", marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    ↳ "{m.recruiterMsg.slice(0, 60)}{m.recruiterMsg.length > 60 ? "…" : ""}"
+                  </div>
+                )}
+                {m.subject && (
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t2)", marginBottom: 4 }}>{m.subject}</div>
+                )}
+                <div style={{ fontSize: 13, color: "var(--t1)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{m.body}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Mobile layout ────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, padding: "16px 16px 8px" }}>
+          <SentMessagesSection compact />
           {generated && <ResultCard />}
-          {!generated && !loading && <EmptyPlaceholder />}
+          {!generated && !loading && sentMessages.length === 0 && <EmptyPlaceholder />}
           <RecruiterInput />
           <ChannelScenario />
           <ExtraCtxToggle />
@@ -267,21 +357,22 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
     );
   }
 
-  // ── Desktop layout: history sidebar ─────────────────────────────────────────
+  // ── Desktop layout ───────────────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, padding: "20px 20px 24px" }}>
+        <SentMessagesSection />
         <RecruiterInput />
         <ChannelScenario />
         <ExtraCtxToggle />
         <GenerateBtn />
-        {!generated && !loading && <EmptyPlaceholder />}
+        {!generated && !loading && sentMessages.length === 0 && <EmptyPlaceholder />}
         {generated && <ResultCard />}
       </div>
       <div style={{ width: 210, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px 12px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 6 }}>
           <Ic n="cal" s={12} c="var(--t4)" />
-          <span style={{ ...T.label }}>Histórico</span>
+          <span style={{ ...T.label }}>Histórico da sessão</span>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
           {history.length === 0 && (
@@ -295,7 +386,7 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
             return (
               <div
                 key={i}
-                onClick={() => setGenerated(h)}
+                onClick={() => { setGenerated(h); setSaved(false); }}
                 style={{
                   padding: 10, borderRadius: 10, marginBottom: 6, cursor: "pointer",
                   border: `1px solid ${act ? cfg?.border || "var(--border)" : "var(--border)"}`,

@@ -21,7 +21,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
     { id:"ai",        label:"AI" },
     { id:"curriculo", label:"Currículo" },
   ];
-  const navH = isMobile ? "calc(52px + env(safe-area-inset-bottom, 0px))" : "0px";
+  const navH = isMobile ? "calc(64px + env(safe-area-inset-bottom, 20px))" : "0px";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>

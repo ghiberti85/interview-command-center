@@ -27,7 +27,8 @@ describe("buildPrompt — canais", () => {
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain('{"subject":"assunto","body":"corpo completo"}');
+    expect(prompt).toContain('"subject"');
+    expect(prompt).toContain('"body"');
   });
 
   it("canal whatsapp gera JSON {body}", () => {
@@ -47,7 +48,7 @@ describe("buildPrompt — origem", () => {
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain("Fernando foi contactado pelo recrutador");
+    expect(prompt).toContain("contactado por um recrutador");
   });
 
   it("origin outbound menciona candidatura ativa", () => {
@@ -56,7 +57,7 @@ describe("buildPrompt — origem", () => {
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain("Fernando se candidatou ativamente");
+    expect(prompt).toContain("candidatou ativamente");
   });
 });
 

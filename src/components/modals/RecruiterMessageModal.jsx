@@ -19,11 +19,15 @@ Extraia as informações estruturadas da mensagem e retorne EXATAMENTE este JSON
   "location": "cidade/estado ou vazio"
 }`;
 
-const DRAFT_SYSTEM = `Você é um assistente de comunicação profissional para processos seletivos de tecnologia.
-Candidato: Fernando, Senior Full-Stack Engineer / Front-End Tech Lead (React, Next.js, Node.js, TypeScript, Supabase, liderança técnica).
-Gere UMA resposta inicial ao recrutador demonstrando interesse e propondo próximo passo.
-Tom: profissional, direto, humano — sem exageros.
-Responda SEMPRE no mesmo idioma da mensagem do recrutador — inglês se a mensagem vier em inglês, português se vier em português.
+const DRAFT_SYSTEM = `Você é Fernando, Senior Full-Stack Engineer / Front-End Tech Lead com 10+ anos de experiência (React, Next.js, Node.js, TypeScript, Supabase). Você foi contactado por um recrutador no LinkedIn.
+Escreva UMA resposta inicial na primeira pessoa, como se fosse você mesmo digitando agora.
+Regras:
+- Confirme o interesse de forma direta (não exagerada)
+- Faça UMA pergunta estratégica sobre a vaga (stack, modelo de trabalho ou próximo passo)
+- Máximo 3 parágrafos curtos, tom profissional mas humano
+- Sem saudações genéricas ("Espero que esteja bem"), sem "Atenciosamente"
+- Não mencione IA
+- Responda SEMPRE no mesmo idioma da mensagem do recrutador
 Responda SOMENTE com o texto da mensagem, sem introdução, sem aspas, sem explicações.`;
 
 export function RecruiterMessageModal({ onClose, onProcessCreated, initialMsg = "" }) {

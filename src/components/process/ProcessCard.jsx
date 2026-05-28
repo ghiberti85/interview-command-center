@@ -8,7 +8,7 @@ import Ic from "../ui/Ic.jsx";
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
 
 const DRAG_THRESHOLD = 150; // px to trigger snap
-const SNAP_OFFSET    = 100; // px card stays open at confirm state
+const SNAP_OFFSET    = 120; // px card stays open at confirm state
 
 export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile, onQuickReply }) {
   const s = STAGE[process.stage] || STAGE.archived;
@@ -48,23 +48,25 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
   return (
     <div data-testid="card-wrapper" style={{ position:"relative", marginBottom:6, borderRadius:12, overflow:"hidden" }}>
       {isMobile && onSwipeAction && (
-        <div data-testid="swipe-bg" style={{ position:"absolute", inset:0, background:"var(--red)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:14 }}>
+        <div data-testid="swipe-bg" style={{ position:"absolute", inset:0, background:"rgba(220,38,38,0.95)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:12, gap:0 }}>
           {showConfirm ? (
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-              <span style={{ fontSize:11, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>Encerrar?</span>
-              <button
-                data-testid="btn-confirm-archive"
-                onClick={handleConfirm}
-                style={{ padding:"6px 14px", borderRadius:8, background:"rgba(255,255,255,0.25)", border:"1px solid rgba(255,255,255,0.5)", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
-              >Confirmar</button>
-              <button
-                onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ padding:"4px 10px", borderRadius:8, background:"none", border:"none", color:"rgba(255,255,255,0.7)", fontSize:11, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
-              >Cancelar</button>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, paddingRight:2 }}>
+              <span style={{ fontSize:12, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:700, letterSpacing:"-0.01em" }}>Encerrar processo?</span>
+              <div style={{ display:"flex", gap:8 }}>
+                <button
+                  onClick={e=>{ e.stopPropagation(); reset(); }}
+                  style={{ minWidth:72, padding:"10px 14px", borderRadius:10, background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.3)", color:"rgba(255,255,255,0.9)", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                >Cancelar</button>
+                <button
+                  data-testid="btn-confirm-archive"
+                  onClick={handleConfirm}
+                  style={{ minWidth:72, padding:"10px 14px", borderRadius:10, background:"#fff", border:"none", color:"#DC2626", fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                >Encerrar</button>
+              </div>
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-              <Ic n="close" s={18} c="#fff"/>
+              <Ic n="close" s={20} c="#fff"/>
               <span style={{ fontSize:10, color:"#fff", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>Encerrar</span>
             </div>
           )}

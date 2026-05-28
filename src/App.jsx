@@ -51,6 +51,7 @@ function Spinner() {
 // ─── Main App ────────────────────────────────────────────────────────────────
 export default function App() {
   const isMobile = useIsMobile();
+  const isPWA = typeof window !== "undefined" && (window.matchMedia("(display-mode: standalone)").matches || !!window.navigator.standalone);
   const { dark, toggle: toggleTheme } = useTheme();
   const { session, isRecovery, clearRecovery } = useAuth();
   const [isDemo, setIsDemo] = useState(false);
@@ -493,7 +494,7 @@ export default function App() {
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} isPWA={isPWA} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
             </div>
           )}
         </div>
@@ -501,14 +502,14 @@ export default function App() {
         {view==="pipeline" && mobileScreen==="list" && (
           <button
             onClick={()=>{ setRecruiterInitialMsg(""); setShowRecruiterModal(true); }}
-            style={{ position:"fixed", bottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px) + 12px)", right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
+            style={{ position:"fixed", bottom:`calc(${isPWA ? "44px" : "52px"} + env(safe-area-inset-bottom, 0px) + 12px)`, right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
             aria-label="Colar mensagem LinkedIn"
           >
             <Ic n="linkedin" s={22} c="#fff"/>
           </button>
         )}
 
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"min(env(safe-area-inset-bottom,0px),16px)", flexShrink:0 }}>
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom: isPWA ? "env(safe-area-inset-bottom, 0px)" : "min(env(safe-area-inset-bottom,0px),16px)", flexShrink:0 }}>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },
             { id:"dashboard", icon:"chart",   label:"Stats"    },
@@ -516,10 +517,10 @@ export default function App() {
           ].map(n=>{
             const on = view===n.id;
             return (
-              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:4, background:"none", border:"none", cursor:"pointer", color:on?"var(--t1)":"var(--t4)", minHeight:52, position:"relative" }}>
+              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding: isPWA ? "6px 0 5px" : "8px 0 6px", gap:3, background:"none", border:"none", cursor:"pointer", color:on?"var(--t1)":"var(--t4)", minHeight: isPWA ? 44 : 52, position:"relative" }}>
                 {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:24, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
-                <Ic n={n.icon} s={22} c={on?"var(--t1)":"var(--t4)"}/>
-                <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.05em" }}>{n.label}</span>
+                <Ic n={n.icon} s={isPWA ? 20 : 22} c={on?"var(--t1)":"var(--t4)"}/>
+                <span style={{ fontSize: isPWA ? 10 : 11, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.05em" }}>{n.label}</span>
               </button>
             );
           })}

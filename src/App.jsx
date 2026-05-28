@@ -31,12 +31,11 @@ import ProcessDetail from "./components/layout/ProcessDetail.jsx";
 import LoginScreen from "./components/auth/LoginScreen.jsx";
 
 // Modals
-import NewProcessModal from "./components/modals/NewProcessModal.jsx";
 import SetPasswordModal from "./components/modals/SetPasswordModal.jsx";
 import ProfileSetupModal from "./components/modals/ProfileSetupModal.jsx";
 import ResumesModal from "./components/modals/ResumesModal.jsx";
 import ImportModal from "./components/modals/ImportModal.jsx";
-import { RecruiterMessageModal } from "./components/modals/RecruiterMessageModal.jsx";
+import NewEntryModal from "./components/modals/NewEntryModal.jsx";
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -58,7 +57,8 @@ export default function App() {
   const [processes, setProcesses] = useState([]);
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState("pipeline");
-  const [showNew, setShowNew] = useState(false);
+  const [showNewEntry, setShowNewEntry] = useState(false);
+  const [newEntryInitialMsg, setNewEntryInitialMsg] = useState("");
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortBy, setSortBy] = useState("urgencia");
@@ -72,9 +72,6 @@ export default function App() {
   const [showImport, setShowImport] = useState(false);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
-  const [showRecruiterModal, setShowRecruiterModal] = useState(false);
-  const [recruiterInitialMsg, setRecruiterInitialMsg] = useState("");
-  const [showNewMenu, setShowNewMenu] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const { resumes, loading: resumesLoading, add: addResume, update: updateResume, remove: removeResume } = useResumes(session);
   const { adaptation, save: saveAdaptation, refetch: refetchAdaptation } = useCVAdaptations(session, selected?.id);
@@ -163,42 +160,18 @@ export default function App() {
   const filtered = sortProcesses(filterProcesses(listSrc, search, stageFilter), sortBy);
   const urgent = active.filter(p=>{ const d=daysDiff(p.nextStepDate); return d!==null&&d>=0&&d<=2; }).length;
 
-  const [emptyPasteMsg, setEmptyPasteMsg] = useState("");
-
-  const openRecruiterWithMsg = (m) => {
-    setRecruiterInitialMsg(m || "");
-    setShowRecruiterModal(true);
-  };
-
   const EmptyState = () => (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:20, padding:"40px 32px", maxWidth:460, margin:"0 auto" }}>
-      <div style={{ width:52, height:52, borderRadius:14, background:"rgba(10,102,194,0.1)", border:"1px solid rgba(10,102,194,0.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <Ic n="linkedin" s={22} c="#0A66C2"/>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:16, padding:"48px 32px", maxWidth:400, margin:"0 auto", textAlign:"center" }}>
+      <div style={{ width:52, height:52, borderRadius:14, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <Ic n="pipeline" s={22} c="var(--acc)"/>
       </div>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Cole uma mensagem do LinkedIn</div>
-        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>A IA extrai empresa, cargo e stack — e gera uma resposta pronta para copiar.</div>
+      <div>
+        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Nenhum processo ainda</div>
+        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>Adicione um processo novo para começar a organizar sua busca.</div>
       </div>
-      <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
-        <textarea
-          value={emptyPasteMsg}
-          onChange={e=>setEmptyPasteMsg(e.target.value)}
-          onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"&&emptyPasteMsg.trim()) openRecruiterWithMsg(emptyPasteMsg); }}
-          placeholder="Cole a mensagem aqui…"
-          style={{ ...T.input, resize:"none", height:110, lineHeight:1.65, fontSize:13 }}
-        />
-        <Btn variant="primary" full onClick={()=>openRecruiterWithMsg(emptyPasteMsg)} disabled={!emptyPasteMsg.trim()}>
-          <Ic n="ai" s={14} c="#fff"/> Analisar mensagem
-        </Btn>
-      </div>
-      <div style={{ display:"flex", alignItems:"center", gap:8, width:"100%" }}>
-        <div style={{ flex:1, height:1, background:"var(--border)" }}/>
-        <span style={{ fontSize:11, color:"var(--t4)", fontFamily:"'JetBrains Mono',monospace" }}>ou</span>
-        <div style={{ flex:1, height:1, background:"var(--border)" }}/>
-      </div>
-      <button onClick={()=>setShowNew(true)} style={{ color:"var(--t3)", fontSize:13, fontFamily:"'Outfit',sans-serif", background:"none", border:"1px solid var(--border)", borderRadius:8, cursor:"pointer", padding:"8px 16px" }}>
-        Adicionar manualmente
-      </button>
+      <Btn variant="primary" onClick={()=>setShowNewEntry(true)}>
+        <Ic n="plus" s={14} c="#fff"/> Adicionar processo
+      </Btn>
     </div>
   );
 
@@ -324,42 +297,10 @@ export default function App() {
               <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}/>
             ))}
           </div>
-          <div style={{ padding:"8px", position:"relative" }}>
-            {showNewMenu && <div onClick={()=>setShowNewMenu(false)} style={{ position:"fixed", inset:0, zIndex:50 }}/>}
-            {showNewMenu && (
-              <div style={{ position:"absolute", bottom:"calc(100% - 4px)", left:8, right:8, background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:12, overflow:"hidden", zIndex:60, boxShadow:"0 -4px 20px rgba(0,0,0,0.2)" }}>
-                <button onClick={()=>{ setShowNew(true); setShowNewMenu(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"none", border:"none", borderBottom:"1px solid var(--border)", cursor:"pointer", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"left" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="none"}
-                >
-                  <div style={{ width:28, height:28, borderRadius:8, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <Ic n="edit" s={13} c="var(--acc)"/>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:13 }}>Manualmente</div>
-                    <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>Preencher campos</div>
-                  </div>
-                </button>
-                <button onClick={()=>{ setShowRecruiterModal(true); setShowNewMenu(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"none", border:"none", cursor:"pointer", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"left" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="none"}
-                >
-                  <div style={{ width:28, height:28, borderRadius:8, background:"rgba(10,102,194,0.1)", border:"1px solid rgba(10,102,194,0.25)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <Ic n="linkedin" s={13} c="#0A66C2"/>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:13 }}>De mensagem LinkedIn</div>
-                    <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>IA extrai as informações</div>
-                  </div>
-                </button>
-              </div>
-            )}
-            <button className="nav-btn" onClick={()=>setShowNewMenu(v=>!v)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--acc-b)", background:showNewMenu?"var(--acc-d)":"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
+          <div style={{ padding:"8px" }}>
+            <button className="nav-btn" onClick={()=>setShowNewEntry(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--acc-b)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <Ic n="plus" s={14} c="var(--acc)"/>
               Novo Processo
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ marginLeft:2, transform:showNewMenu?"rotate(180deg)":"none", transition:"transform 0.15s" }}><path d="M2 4l3 3 3-3" stroke="var(--acc)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -378,12 +319,11 @@ export default function App() {
           )}
         </div>
       </div>
-      {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={false}/>}
+      {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile}/>}
       {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={false} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
-      {showRecruiterModal && <RecruiterMessageModal initialMsg={recruiterInitialMsg} onClose={()=>{ setShowRecruiterModal(false); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }}/>}
     </>
   );
 
@@ -499,17 +439,12 @@ export default function App() {
           )}
         </div>
 
-        {view==="pipeline" && mobileScreen==="list" && (
-          <button
-            onClick={()=>{ setRecruiterInitialMsg(""); setShowRecruiterModal(true); }}
-            style={{ position:"fixed", bottom:"calc(44px + 12px)", right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
-            aria-label="Colar mensagem LinkedIn"
-          >
-            <Ic n="linkedin" s={22} c="#fff"/>
+<div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0 }}>
+          {/* Novo — action button, always first */}
+          <button onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--acc)", minHeight:44 }}>
+            <Ic n="plus" s={19} c="var(--acc)"/>
+            <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:600, letterSpacing:"0.05em" }}>Novo</span>
           </button>
-        )}
-
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0 }}>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },
             { id:"dashboard", icon:"chart",   label:"Stats"    },
@@ -526,12 +461,11 @@ export default function App() {
           })}
         </div>
       </div>
-      {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={true}/>}
+      {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile}/>}
       {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={true} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
-      {showRecruiterModal && <RecruiterMessageModal initialMsg={recruiterInitialMsg} onClose={()=>{ setShowRecruiterModal(false); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setMobileScreen("detail"); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }}/>}
     </>
   );
 }

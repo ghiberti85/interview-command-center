@@ -1,4 +1,4 @@
-const CACHE_NAME = "icc-v4";
+const CACHE_NAME = "icc-v3";
 const STATIC_ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -19,23 +19,21 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Network-first para API calls, cache-first para assets estáticos
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Nunca cachear: Supabase, proxy IA, ícones/manifest (devem sempre vir frescos)
+  // Nunca cachear chamadas ao Supabase ou ao proxy IA
   if (
     url.hostname.includes("supabase.co") ||
-    request.method !== "GET" ||
-    url.pathname.startsWith("/icons/") ||
-    url.pathname === "/manifest.json" ||
-    url.pathname === "/favicon.svg"
+    request.method !== "GET"
   ) {
     return;
   }
 
-  // Cache-first para assets com hash do Vite (JS/CSS/fontes)
-  if (url.pathname.match(/\.(js|css|woff2?)$/) && url.pathname.includes("/assets/")) {
+  // Cache-first para assets com hash (JS/CSS do Vite)
+  if (url.pathname.match(/\.(js|css|woff2?|png|svg|ico)$/)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>

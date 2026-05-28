@@ -10,7 +10,7 @@ import MessagesTab from "../tabs/MessagesTab.jsx";
 import AITab from "../tabs/AITab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
-export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile, resumes, onManageResumes, initialTab }) {
+export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
   const [tab, setTab] = useState(initialTab || "overview");
   useEffect(()=>setTab(initialTab || "overview"),[process.id, initialTab]);
 
@@ -21,7 +21,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
     { id:"ai",        label:"AI" },
     { id:"curriculo", label:"Currículo" },
   ];
-  const tabH = isMobile ? "calc(100dvh - 268px)" : "calc(100vh - 260px)";
+  const navH = isMobile ? "calc(52px + env(safe-area-inset-bottom, 0px))" : "0px";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
@@ -44,12 +44,12 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
         <Tabs tabs={tabs} active={tab} onChange={setTab}/>
       </div>
       <div style={{ flex:1, overflow:"hidden", minHeight:0 }}>
-        {tab==="overview"  && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
-        {tab==="timeline"  && <div style={{ height:"100%", overflowY:"auto", padding:20 }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
-        {tab==="messages"  && <div style={{ height:tabH }}><MessagesTab process={process} isMobile={isMobile} autoFocus={initialTab==="messages"}/></div>}
-        {tab==="ai"        && <div style={{ height:tabH }}><AITab process={process} isMobile={isMobile}/></div>}
+        {tab==="overview"  && <div style={{ height:"100%", overflowY:"auto", padding:20, paddingBottom:`calc(20px + ${navH})` }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
+        {tab==="timeline"  && <div style={{ height:"100%", overflowY:"auto", padding:20, paddingBottom:`calc(20px + ${navH})` }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
+        {tab==="messages"  && <div style={{ height:"100%" }}><MessagesTab process={process} isMobile={isMobile} navH={navH} autoFocus={initialTab==="messages"}/></div>}
+        {tab==="ai"        && <div style={{ height:"100%" }}><AITab process={process} isMobile={isMobile} navH={navH}/></div>}
         {tab==="curriculo" && (
-          <div style={{ height:tabH, display:"flex", flexDirection:"column" }}>
+          <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"8px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
               <div style={{ fontSize:11, color:"var(--t3)" }}>
                 {profile.stack.length>0 ? `${profile.stack.length} tecnologias no perfil` : "Perfil não configurado"}
@@ -59,7 +59,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, profile, 
               </button>
             </div>
             <div style={{ flex:1, minHeight:0 }}>
-              <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes}/>
+              <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes} adaptation={adaptation} onSaveAdaptation={onSaveAdaptation}/>
             </div>
           </div>
         )}

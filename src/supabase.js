@@ -36,6 +36,31 @@ export function rowToProcess(row) {
   };
 }
 
+// Map DB row → cv_adaptation object
+export function rowToCVAdaptation(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    processId: row.process_id,
+    content: row.content,
+    jdSnapshot: row.jd_snapshot || null,
+    qaAnswers: row.qa_answers || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// Map cv_adaptation object → DB row
+export function cvAdaptationToRow(a) {
+  return {
+    user_id: a.userId,
+    process_id: a.processId,
+    content: a.content,
+    jd_snapshot: a.jdSnapshot || null,
+    qa_answers: a.qaAnswers || null,
+  };
+}
+
 // Map app process object → DB row
 export function processToRow(p) {
   return {

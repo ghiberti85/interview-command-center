@@ -114,6 +114,10 @@ Objetivo: endereçar dívida técnica crítica, completar cobertura de testes e 
 - **Tags editáveis inline** — adicionar/remover sem abrir modo de edição completo | ✅
 - **Swipe to archive no mobile** — gesto nativo para encerrar processo | ✅
 - **Indicador "contactado via"** — canal do primeiro contato (LinkedIn, E-mail, WhatsApp, Indicação) | ✅
+- **FAB LinkedIn no mobile** — botão flutuante na lista para colar mensagem com 1 toque | ✅
+- **MessagesTab mobile** — botão Gerar sticky, resultado no topo; nunca coberto pela bottom nav | ✅
+- **ProcessDetail tabH** — altura da aba mobile corrigida para descontar bottom nav (70px) | ✅
+- **MessagesTab parse** — `parseAIResponse()` robusto com fallback para JSON em markdown | ✅
 
 ### Refatoração e TypeScript
 
@@ -139,6 +143,18 @@ src/
 ## v1.5 — IA Avançada e Wow Factor
 
 Objetivo: features que diferenciam o app de qualquer planilha ou Notion e tornam a IA indispensável no dia a dia.
+
+### Implementado (v1.5-parcial)
+
+| Funcionalidade | Status |
+|---|---|
+| **RecruiterMessageModal** — colar mensagem LinkedIn → IA extrai empresa/cargo/stack/salário → revisão → cria processo + rascunho de resposta | ✅ |
+| **CVTab Q&A flow** — IA gera perguntas binárias sobre a JD → usuário responde sim/não → IA adapta CV com apenas o confirmado | ✅ |
+| **cv_adaptations** — tabela Supabase com RLS + trigger updated_at para salvar adaptação por processo | ✅ |
+| **Storage bucket cv-files** — bucket privado com políticas por user_id para CVs em PDF | ✅ |
+| **useCVAdaptations hook** — CRUD de adaptações com fetch por process_id, upsert e clear | ✅ |
+| **Integração ICC → DIL** — botão "Praticar para esta vaga" no OverviewTab abre DevInterviewLab com role/company/stack como query params | ✅ |
+| **RecruiterMessageModal reescrito** — fluxo 3 etapas (paste→working→result), draft em plain text com DRAFT_SYSTEM dedicado, initialMsg prop, EmptyState com área de cole inline | ✅ |
 
 ### Prep Kit sob demanda ⭐
 

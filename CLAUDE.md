@@ -66,14 +66,16 @@ src/
 │       ├── SetPasswordModal.jsx
 │       ├── ProfileSetupModal.jsx  # upload de PDF na aba "CV Completo" (pdfjs lazy)
 │       ├── ResumesModal.jsx
-│       └── ImportModal.jsx        # importação genérica: JSON/CSV/PDF/ZIP/texto colado
+│       ├── ImportModal.jsx        # importação genérica: JSON/CSV/PDF/ZIP/texto colado
+│       └── RecruiterMessageModal.jsx  # colar msg LinkedIn → IA extrai campos → cria processo + draft
 │
 ├── hooks/
 │   ├── useAuth.js             # Sessão Supabase + detecção PASSWORD_RECOVERY
 │   ├── useIsMobile.js         # Breakpoint 768px via ResizeObserver
 │   ├── useTheme.js            # Dark/light com persistência localStorage
 │   ├── useUserProfile.js      # Perfil (stack, resumo, CV base) em localStorage
-│   └── useResumes.js          # CRUD de currículos na tabela `resumes` do Supabase
+│   ├── useResumes.js          # CRUD de currículos na tabela `resumes` do Supabase
+│   └── useCVAdaptations.js    # CRUD de adaptações de CV na tabela `cv_adaptations`
 │
 ├── constants/
 │   └── index.js               # DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn
@@ -83,8 +85,7 @@ src/
 │   ├── sort.js                # sortProcesses (urgencia/empresa/stage/recente)
 │   ├── filterProcesses.js     # filterProcesses (busca + filtro de stage)
 │   ├── dateUtils.js           # fmtDate, daysDiff
-│   ├── buildPrompt.js         # buildCVPrompt para o CVTab
-│   └── importHelpers.js       # isChatGPTFormat, isICCFormat, looksLikeRecruitment, parseCSV, normalizeProcess
+│   └── buildPrompt.js         # buildCVPrompt para o CVTab
 │
 └── lib/
     └── ai.js                  # callAI — helper de chamada ao proxy Anthropic
@@ -290,7 +291,7 @@ const T = {
 // n = nome, s = size, c = color
 ```
 
-Ícones disponíveis: `target`, `pipeline`, `chart`, `archive`, `plus`, `search`, `back`, `star`, `starF`, `edit`, `close`, `trash`, `cal`, `alert`, `copy`, `check`, `refresh`, `send`, `msg`, `ai`, `sun`, `moon`, `linkedin`, `email`, `whatsapp`, `info`, `logout`, `upload`.
+Ícones disponíveis: `target`, `pipeline`, `chart`, `archive`, `plus`, `search`, `back`, `star`, `starF`, `edit`, `close`, `trash`, `cal`, `alert`, `copy`, `check`, `refresh`, `send`, `msg`, `ai`, `sun`, `moon`, `linkedin`, `email`, `whatsapp`, `info`, `logout`.
 
 Para adicionar um novo ícone, adicione no objeto `P` dentro de `Ic`.
 
@@ -402,6 +403,19 @@ type Step = {
 ### Tabela Supabase (`processes`)
 
 Colunas em `snake_case`: `id`, `company`, `role`, `stage`, `location`, `salary`, `recruiter`, `recruiter_email`, `origin`, `contacted_date`, `next_step_date`, `next_step_note`, `job_url`, `tags` (TEXT[]), `notes`, `steps` (JSONB), `ai_context`, `starred`, `created_at`, `updated_at`, **`user_id` (UUID, FK → auth.users.id)**.
+
+### Tabela Supabase (`cv_adaptations`)
+
+Colunas: `id` (uuid PK), `user_id` (uuid FK → auth.users), `process_id` (text FK → processes.id ON DELETE CASCADE), `content` (text — CV adaptado gerado), `jd_snapshot` (text nullable — JD usada), `qa_answers` (jsonb nullable — respostas do Q&A), `created_at`, `updated_at` (trigger automático).
+
+4 políticas RLS: SELECT/INSERT/UPDATE/DELETE com `auth.uid() = user_id`.
+
+Mappers: `rowToCVAdaptation(row)` e `cvAdaptationToRow(a)` em `supabase.js`.
+
+### Storage (`cv-files`)
+
+Bucket privado para uploads de PDF de currículo base. Path: `{user_id}/base/{resume_id}.pdf`.
+Políticas de leitura/escrita: `auth.uid()::text = (storage.foldername(name))[1]`.
 
 ---
 
@@ -522,36 +536,12 @@ Adicione em `SCENARIOS`:
 { id: "novo_cenario", label: "Label do cenário" }
 ```
 
-### Importar processos
-
-`ImportModal` (em `src/components/modals/ImportModal.jsx`) é o ponto único de entrada para importação de dados externos. Detecta o formato automaticamente:
-
-| Formato | Detecção | Processamento |
-|---|---|---|
-| `.zip` | `JSZip` + `conversations.json` | ChatGPT — filtro por período → IA por conversa |
-| `.json` com `mapping` | `isChatGPTFormat()` | ChatGPT — mesmo fluxo do ZIP |
-| `.json` com `company` | `isICCFormat()` | ICC JSON — parse direto, sem IA |
-| `.csv` | extensão | `parseCSV()` — parse direto, sem IA |
-| `.pdf` | extensão | extração via pdfjs → única chamada IA |
-| Texto colado | input manual | única chamada IA |
-
-As funções de detecção e parsing estão em `src/utils/importHelpers.js` (testadas).
-
-**ICC JSON format** — importe processos sem IA:
-```json
-[{ "company": "Empresa", "role": "Cargo", "stage": "contacted", "origin": "inbound", "tags": [] }]
-```
-
-**CSV format** — colunas aceitas: `company`, `role`, `stage`, `location`, `salary`, `recruiter`, `recruiteremail`, `notes`, `tags` (separadas por `;`).
-
 ### Aba Currículo — perfil e currículos salvos
 
 O perfil do usuário (`useUserProfile`) é persistido em `localStorage` com a chave `icc-user-profile`:
 ```js
 { stack: string[], summary: string, cvText: string }
 ```
-
-`ProfileSetupModal` tem aba "CV Completo" com upload de PDF via drag & drop — o texto é extraído por `pdfjs-dist` (lazy) e preenche o textarea. O usuário pode editar livremente depois.
 
 Currículos adicionais são persistidos no Supabase via `useResumes(session)`:
 ```js
@@ -562,9 +552,9 @@ Currículos adicionais são persistidos no Supabase via `useResumes(session)`:
 // RLS: 4 políticas auth.uid() = user_id (igual à tabela processes)
 ```
 
-`ResumesModal` permite listar, criar, editar e excluir CVs. Também suporta upload de PDF com drag & drop.
+`ResumesModal` permite listar, criar, editar e excluir CVs. Suporta upload de PDF com drag & drop — o texto é extraído via `pdfjs-dist` (carregado lazy para não inflar o bundle inicial).
 
-**Worker do pdfjs:** o worker é importado com import estático `?url` no topo de cada arquivo que o usa:
+**Worker do pdfjs:** o worker é importado com import estático `?url` no topo do `App.jsx`:
 ```js
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 // Usar esta var na inicialização lazy:
@@ -573,35 +563,6 @@ _pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 Nunca use `new URL("...", import.meta.url)` dentro de função assíncrona — o Vite não consegue resolver o padrão em build-time.
 
 O `CVTab` recebe `process`, `profile`, `isMobile`, `resumes` e `onManageResumes`. O fluxo tem 4 etapas: `input` (seleciona CV base + cola JD) → `analyzing` → `review` (checkboxes verde/âmbar) → `result`. A regra de segurança está no system prompt do Claude: tecnologias fora da `stack` do usuário são sinalizadas como "não confirmadas" e só entram no resultado com autorização explícita via checkbox.
-
-### Menu hamburger (mobile)
-
-No layout mobile, o header exibe apenas:
-- Logo/título "Interview OS"
-- Badge de urgência (processos com `nextStepDate` em ≤ 2 dias)
-- Botão hamburger (três traços de largura decrescente)
-
-O hamburger abre um **bottom sheet** com overlay escuro e itens:
-1. Novo processo → `setShowNew(true)`
-2. Importar processos → `setShowImport(true)` (oculto no modo demo)
-3. Tema claro/escuro → `toggleTheme()`
-4. Perfil & preferências → `setShowProfileModal(true)`
-5. Definir senha → `setShowSetPassword(true)` (oculto no modo demo)
-6. Sair / Sair do demo → `supabase.auth.signOut()` ou `setIsDemo(false)`
-
-O estado `hamburgerOpen` vive em `App.jsx`. Fechar: clique no overlay ou ação concluída.
-
-### Active state de navegação
-
-**Desktop sidebar:** aba ativa usa `background: "var(--acc)"` (roxo sólido) + `color: "#EFEFEF"` + ícone branco. Badge de contagem com `rgba(255,255,255,0.15)` de fundo.
-
-**Mobile stage filter chips:** mesma regra — chip ativo com `background: "var(--acc)"` + `color: "#EFEFEF"`.
-
-**Mobile bottom nav:** aba ativa com barra roxa no topo (`var(--acc)`) + ícone/texto brancos (`"var(--t1)"`).
-
-### Select dark mode
-
-Todo `<select>` precisa de `colorScheme: dark ? "dark" : "light"` no style para que o browser renderize a seta nativa com a cor correta em dark mode. `dark` vem de `useTheme()`.
 
 ### Adicionar quick action no AI tab
 Adicione no array `quickActions` dentro de `AITab`:
@@ -642,9 +603,17 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | CVs salvos no Supabase (tabela `resumes`) | Permite múltiplos CVs por idioma, reutilizáveis entre processos diferentes |
 | `ImportModal` genérico substituindo `ImportChatGPTModal` | Suporta múltiplos formatos (JSON/CSV/PDF/ZIP/texto) sem prender o usuário ao ChatGPT |
 | `importHelpers.js` separado do modal | Funções puras (`parseCSV`, `normalizeProcess`, etc.) ficam testáveis sem montar o componente |
-| Hamburger mobile em vez de ícones individuais | Header menos poluído — urgência e hamburger são os dois únicos elementos à direita |
-| `colorScheme` nos `<select>` | Seta nativa do browser fica branca em dark mode sem precisar de select customizado |
-| pdfjs importado em cada arquivo que usa (`?url`) | Worker URL resolvido em build-time pelo Vite; múltiplos arquivos (Modal, Profile) podem usar sem passar prop |
+| `RecruiterMessageModal` independente do `NewProcessModal` | Fluxo completamente diferente — Cole→Extrair→Revisar→Criar não cabe como tab do modal existente |
+| CVTab com Q&A em vez de checkboxes de tech | Mais intuitivo e gera contexto rico: a pergunta é direta ("Você usou X?") e a resposta vai no payload da 2ª chamada IA |
+| Duas chamadas IA no CVTab (perguntas → CV) | Separa responsabilidades — usuário revisa antes da geração final; evita CV com techs não confirmadas |
+| `cv_adaptations.content` como text, não arquivo | Conteúdo gerado por IA não precisa de Storage — o usuário pode copiar e exportar manualmente |
+| `process_id` em `cv_adaptations` como `text` | Coluna `id` da tabela `processes` é `text`, não `uuid` — FK deve ter tipo compatível |
+| Integração ICC→DIL via query params, sem banco | Unidirecional e zero acoplamento — ICC abre DIL com `?role=&company=&stack=` e DIL lê sem depender de API compartilhada |
+| `buildDILUrl` em `OverviewTab` usa tags como stack | Tags já representam as tecnologias do processo; reutilizá-las evita campo extra e mantém o modelo de dados simples |
+| `RecruiterMessageModal` 3 etapas em vez de 4 | `paste→working→result` — review e draft colapsados; draft gerado em paralelo com a exibição dos campos; menos friction |
+| Draft do recruiter em plain text, não JSON | `DRAFT_SYSTEM` explícito retorna só o texto — elimina parse frágil que causava draft vazio em produção |
+| `initialMsg` prop no `RecruiterMessageModal` | Permite pré-preencher a mensagem via `EmptyState` ou qualquer outro ponto de entrada sem estado global extra |
+| `EmptyState` com área de cole inline | Primeira ação do usuário (colar mensagem LinkedIn) está disponível diretamente na tela inicial, sem precisar abrir modal |
 
 ---
 

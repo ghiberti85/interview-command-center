@@ -262,6 +262,9 @@ Alterar salary + "Salvar" → onUpdate chamado com dados atualizados
 "Cancelar" → volta ao modo leitura sem chamar onUpdate
 jobUrl "https://..." → renderiza link "↗ Vaga"
 jobUrl "" ou "javascript:..." → link não renderizado
+role + company presentes → botão "Praticar para esta vaga" visível com URL correta
+role ou company ausente → botão não renderizado
+tags viram stack= na URL do DevInterviewLab
 ```
 
 #### `TimelineTab`
@@ -949,7 +952,7 @@ A componentização de `App.jsx` não criou novos testes unitários (os módulos
 - `src/__tests__/components/ProcessCard.test.jsx` — importa de `src/components/process/ProcessCard.jsx`
 - `src/__tests__/unit/sort.test.js` — importa de `src/utils/sort.js`
 
-**Suite completa:** 230 testes, 16 arquivos, todos passando.
+**Suite completa:** 172 testes, 14 arquivos, todos passando.
 
 ### Cenários a cobrir em v1.5 (pendente)
 
@@ -961,104 +964,78 @@ A componentização de `App.jsx` não criou novos testes unitários (os módulos
 
 ---
 
-## Adições v1.4.1 — ImportModal genérico, hamburger, PDF no perfil
+## Adições v1.5 — Mensagem de recrutador + CV adaptado por processo
 
-### Status
+### Novos arquivos de teste criados
 
-**IMPLEMENTADOS e passando (230 testes totais — 16 suítes):**
-
-#### `importHelpers` — `src/__tests__/unit/importHelpers.test.js` ✅ (38 testes)
-
-Cobre todas as funções puras extraídas de `ImportModal.jsx` para `src/utils/importHelpers.js`:
-
+#### `RecruiterMessageModal` — `src/__tests__/components/RecruiterMessageModal.test.jsx` ✅ (18 testes — reescrito para fluxo 3 etapas)
 ```
-isChatGPTFormat:
-  array com campo mapping → true
-  array vazio → false
-  array sem mapping → false
-  não-array (null, string, objeto) → false
-
-isICCFormat:
-  array com campo company → true
-  array vazio → false
-  array sem company → false
-  não-array → false
-
-looksLikeRecruitment:
-  "recrutador", "job", "vaga", "interview", "desenvolvedor" → true
-  conversa genérica → false
-  case-insensitive
-  título vazio ou undefined → false
-
-parseCSV:
-  CSV simples com cabeçalho → array de objetos com chaves em minúsculas
-  múltiplas linhas → array correto
-  filtra linhas sem company
-  aceita alias "empresa" (português)
-  retorna [] para CSV sem dados, texto vazio, uma única linha
-  remove aspas duplas dos valores
-  converte cabeçalhos para minúsculas
-  suporta \r\n (Windows)
-  campos ausentes ficam como string vazia
-
-normalizeProcess:
-  preserva campos válidos do ICC
-  stage inválido → "contacted"
-  origin "outbound" preservado; desconhecido → "inbound"
-  fallback "Empresa?" e "Cargo?" para campos ausentes
-  aliases "empresa" e "cargo" (português)
-  tags como string ";"-separada vira array
-  tags array mantido como array; sem tags → []
-  gera id quando ausente
-  recruiterEmail aceita alias "email"
-  convTitle null quando ausente, preservado quando presente
+Step paste: textarea renderizado, botão Extrair desabilitado sem texto, habilitado com texto
+Cancelar → onClose chamado
+Extração bem-sucedida → step review com campos preenchidos (empresa, recrutador, cargo)
+Extração com erro → mensagem de erro exibida
+Campos do review são editáveis
+Criar processo → onProcessCreated chamado com stage="contacted", origin="inbound", channel="linkedin"
+Rascunho de resposta exibido no step draft
+Botão Copiar → clipboard.writeText com draft
+Tags criadas a partir da stack extraída
+Notas incluem mensagem original colada
+Botão Abrir processo → onClose chamado
+Botão Voltar no review → retorna ao step paste
 ```
 
-#### `ProfileSetupModal` — `src/__tests__/components/ProfileSetupModal.test.jsx` ✅ (14 testes)
-
-Mock de `pdfjs-dist` e `pdfjs-dist/build/pdf.worker.mjs?url` via `vi.mock`.
-
+#### `CVTab` — `src/__tests__/components/CVTab.test.jsx` ✅ (23 testes — reescrito para Q&A)
 ```
-Abas:
-  Stack ativa por padrão com pré-preenchimento do initial
-  Navega para Resumo → pré-preenche summary
-  Navega para CV Completo → exibe "Importar CV em PDF"
-
-Salvar:
-  stack com vírgulas e espaços → split correto em array
-  chama onSave com objeto correto
-  chama onClose após salvar
-  chama onClose ao cancelar
-
-Upload de PDF (aba CV Completo):
-  exibe área de upload ("Importar CV em PDF", "Arraste ou clique")
-  upload de PDF → chama pdfjs, preenche textarea com texto extraído
-  erro pdfjs → exibe e.message como mensagem de erro
-  textarea permanece editável após upload
-  salva cvText extraído no onSave
+Fluxo Q&A:
+- Analisar JD → step-qa com perguntas geradas pela IA
+- Perguntas exibem texto correto
+- Botão Gerar desabilitado quando perguntas sem resposta
+- Botão Gerar habilitado após responder todas
+- Clicar Sim destaca a pergunta
+- Botão Voltar no Q&A retorna para step-input
+- Erro na análise → step-input
+Fluxo result:
+- step-result com texto gerado pela IA
+- Copiar → clipboard.writeText
+- Botão Salvar adaptação → onSaveAdaptation com (content, jdText, qaAnswers[])
+- Nova análise → step-input
+- Voltar do result → step-qa
+Banner de adaptação salva quando adaptation prop presente
 ```
 
-**Abordagem de mock:** `vi.mock("pdfjs-dist")` com `getDocument` como `vi.fn()` controlável por teste.
-`mockImplementation` (não `mockReturnValue`) para promises rejeitadas — evita unhandled rejection
-antes da promise ser consumida.
+### Novos hooks e mappers (sem testes unitários isolados — cobertos via componentes)
 
-### Novos arquivos de teste
+- `useCVAdaptations` — CRUD hook (fetch, save via upsert, clear) para tabela `cv_adaptations`
+- `rowToCVAdaptation` / `cvAdaptationToRow` — mappers em `supabase.js`
 
-```
-src/__tests__/
-├── unit/
-│   └── importHelpers.test.js   ← NEW — isChatGPTFormat, isICCFormat, looksLikeRecruitment, parseCSV, normalizeProcess
-└── components/
-    └── ProfileSetupModal.test.jsx  ← NEW — abas, salvar, upload de PDF
-```
+### Banco de dados
 
-### Refatoração de produção junto com os testes
+Tabela `cv_adaptations` criada via migração com 4 políticas RLS.
+Bucket `cv-files` criado no Storage com políticas por `user_id`.
 
-- `src/utils/importHelpers.js` — funções puras extraídas de `ImportModal.jsx` (extração necessária para testabilidade)
-- `src/components/modals/ImportModal.jsx` — importa de `importHelpers.js` em vez de definir inline
+**Suite completa:** 247 testes, 17 arquivos, todos passando.
 
-### Cenários a cobrir em v1.5 (pendente)
+---
 
-- `ImportModal` — testes de componente para o fluxo completo (upload de arquivo, seleção de conversas ChatGPT, step review/import). Complexidade: depende de JSZip, pdfjs e callAI; requer mocks pesados.
-- Hamburger mobile — coberto pelo E2E-5 (viewport iPhone); não há teste de componente para App.jsx.
-- `Ic` — smoke test para o ícone `upload` e verificação que todos os 28 ícones renderizam SVG.
+## Adições v1.5 — Mobile UX e correção de geração de mensagens
+
+### Correções implementadas (sem novos arquivos de teste)
+
+- **MessagesTab** — reescrita com `MESSAGES_SYSTEM` prompt explícito e `parseAIResponse()` robusto:
+  - Parse com fallback: tenta `JSON.parse` direto → regex greedy → retorna `{ body: text }` como último recurso
+  - Elimina falha silenciosa quando Claude envolve JSON em markdown code block
+  - Layout mobile: `flex column` com botão Gerar sticky no rodapé, resultado no topo do scroll
+  - Resultado sempre visível imediatamente após geração, nunca coberto pela bottom nav
+
+- **ProcessDetail** — `tabH` mobile corrigido de `268px` para `338px` (+70px da bottom nav fixa)
+
+- **App.jsx (mobile)** — FAB LinkedIn flutuante na lista mobile: botão circular azul (`#0A66C2`) fixo acima da bottom nav, abre `RecruiterMessageModal` com 1 toque. Aparece apenas em `view==="pipeline"` e `mobileScreen==="list"`.
+
+### Cenários a cobrir (pendente para suite E2E)
+
+- `MessagesTab` — geração bem-sucedida com mock de `callAI` retornando JSON e texto plano
+- `MessagesTab` — parseAIResponse com JSON envolto em markdown code block
+- Mobile layout — botão Gerar sticky não coberto por bottom nav
+- FAB LinkedIn abre RecruiterMessageModal
+
+**Suite completa:** 251 testes, 17 arquivos, todos passando.

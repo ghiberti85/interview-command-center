@@ -58,7 +58,7 @@ describe("ProcessCard — channel icon", () => {
 });
 
 describe("ProcessCard — swipe to archive", () => {
-  it("swipe left 90px → onSwipeAction chamado", () => {
+  it("swipe left 160px → mostra confirmação, NÃO aciona diretamente", () => {
     const onSwipeAction = vi.fn();
     render(
       <ProcessCard
@@ -67,12 +67,26 @@ describe("ProcessCard — swipe to archive", () => {
         onSwipeAction={onSwipeAction}
       />
     );
-    const card = screen.getByTestId("process-card");
-    fireTouchSwipe(card, 90);
+    fireTouchSwipe(screen.getByTestId("process-card"), 160);
+    expect(onSwipeAction).not.toHaveBeenCalled();
+    expect(screen.getByTestId("btn-confirm-archive")).toBeDefined();
+  });
+
+  it("swipe 160px + clicar Confirmar → onSwipeAction chamado", () => {
+    const onSwipeAction = vi.fn();
+    render(
+      <ProcessCard
+        process={{ company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
+        isMobile={true}
+        onSwipeAction={onSwipeAction}
+      />
+    );
+    fireTouchSwipe(screen.getByTestId("process-card"), 160);
+    fireEvent.click(screen.getByTestId("btn-confirm-archive"));
     expect(onSwipeAction).toHaveBeenCalledTimes(1);
   });
 
-  it("swipe left 50px → onSwipeAction NÃO chamado (snap back)", () => {
+  it("swipe left 50px → snap back, sem confirmação", () => {
     const onSwipeAction = vi.fn();
     render(
       <ProcessCard
@@ -81,12 +95,12 @@ describe("ProcessCard — swipe to archive", () => {
         onSwipeAction={onSwipeAction}
       />
     );
-    const card = screen.getByTestId("process-card");
-    fireTouchSwipe(card, 50);
+    fireTouchSwipe(screen.getByTestId("process-card"), 50);
     expect(onSwipeAction).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("btn-confirm-archive")).toBeNull();
   });
 
-  it("sem isMobile → onSwipeAction não é vinculado aos touch events", () => {
+  it("sem isMobile → swipe não ativa nada", () => {
     const onSwipeAction = vi.fn();
     render(
       <ProcessCard
@@ -95,8 +109,7 @@ describe("ProcessCard — swipe to archive", () => {
         onSwipeAction={onSwipeAction}
       />
     );
-    const card = screen.getByTestId("process-card");
-    fireTouchSwipe(card, 90);
+    fireTouchSwipe(screen.getByTestId("process-card"), 160);
     expect(onSwipeAction).not.toHaveBeenCalled();
   });
 });

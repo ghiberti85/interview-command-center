@@ -7,43 +7,77 @@ import Ic from "../ui/Ic.jsx";
 
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
 
+const DRAG_THRESHOLD = 150; // px to trigger snap
+const SNAP_OFFSET    = 100; // px card stays open at confirm state
+
 export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile, onQuickReply }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
   const touchStartX = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const reset = () => { setSwipeOffset(0); setShowConfirm(false); };
+
+  const handleTouchStart = (e) => {
+    if (showConfirm) return;
+    touchStartX.current = e.touches[0].clientX;
+  };
   const handleTouchMove = (e) => {
     if (touchStartX.current === null) return;
     const dx = touchStartX.current - e.touches[0].clientX;
-    if (dx > 0) setSwipeOffset(Math.min(dx, 110));
+    if (dx > 0) setSwipeOffset(Math.min(dx, 200));
   };
   const handleTouchEnd = () => {
-    if (swipeOffset >= 80 && onSwipeAction) onSwipeAction();
-    setSwipeOffset(0);
+    if (swipeOffset >= DRAG_THRESHOLD) {
+      setShowConfirm(true);
+      setSwipeOffset(SNAP_OFFSET);
+    } else {
+      setSwipeOffset(0);
+    }
     touchStartX.current = null;
+  };
+
+  const handleConfirm = (e) => {
+    e.stopPropagation();
+    reset();
+    onSwipeAction();
   };
 
   return (
     <div data-testid="card-wrapper" style={{ position:"relative", marginBottom:6, borderRadius:12, overflow:"hidden" }}>
       {isMobile && onSwipeAction && (
-        <div data-testid="swipe-bg" style={{ position:"absolute", inset:0, background:"var(--red)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:20 }}>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-            <Ic n="close" s={18} c="#fff"/>
-            <span style={{ fontSize:10, color:"#fff", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>Encerrar</span>
-          </div>
+        <div data-testid="swipe-bg" style={{ position:"absolute", inset:0, background:"var(--red)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:14 }}>
+          {showConfirm ? (
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+              <span style={{ fontSize:11, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>Encerrar?</span>
+              <button
+                data-testid="btn-confirm-archive"
+                onClick={handleConfirm}
+                style={{ padding:"6px 14px", borderRadius:8, background:"rgba(255,255,255,0.25)", border:"1px solid rgba(255,255,255,0.5)", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+              >Confirmar</button>
+              <button
+                onClick={e=>{ e.stopPropagation(); reset(); }}
+                style={{ padding:"4px 10px", borderRadius:8, background:"none", border:"none", color:"rgba(255,255,255,0.7)", fontSize:11, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+              >Cancelar</button>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+              <Ic n="close" s={18} c="#fff"/>
+              <span style={{ fontSize:10, color:"#fff", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>Encerrar</span>
+            </div>
+          )}
         </div>
       )}
     <div
       data-testid="process-card"
       className="process-card"
-      onClick={onClick}
+      onClick={() => { if (showConfirm) { reset(); return; } onClick(); }}
       onTouchStart={isMobile&&onSwipeAction?handleTouchStart:undefined}
       onTouchMove={isMobile&&onSwipeAction?handleTouchMove:undefined}
       onTouchEnd={isMobile&&onSwipeAction?handleTouchEnd:undefined}
-      style={{ background:"var(--bg-r)", border:`1.5px solid ${selected?"var(--acc-b)":"var(--border)"}`, borderLeft:`3px solid ${s.bar}`, borderRadius:12, padding:"12px 14px", cursor:"pointer", transform:`translateX(-${swipeOffset}px)`, transition:swipeOffset===0?"transform 0.2s":"none", position:"relative" }}>
+      style={{ background:"var(--bg-r)", border:`1.5px solid ${selected?"var(--acc-b)":"var(--border)"}`, borderLeft:`3px solid ${s.bar}`, borderRadius:12, padding:"12px 14px", cursor:"pointer", transform:`translateX(-${swipeOffset}px)`, transition:swipeOffset===0||showConfirm?"transform 0.25s ease":"none", position:"relative" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
         <div style={{ minWidth:0, flex:1 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>

@@ -451,8 +451,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
       {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile}/>}
-      {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={true} isDemo={isDemo}/>}
-      {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+{showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );
 }

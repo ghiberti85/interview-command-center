@@ -1,26 +1,20 @@
 import { useState, useRef } from "react";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
+import { getPdfjs } from "../../lib/ai.js";
+
 async function extractPdfText(file) {
-  let lib;
-  try {
-    lib = await import("pdfjs-dist");
-  } catch { throw new Error("Falha ao carregar leitor de PDF."); }
-  // pdfjs v5 exports named or via default — handle both
+  const lib = await getPdfjs();
   const getDocument = lib.getDocument ?? lib.default?.getDocument;
-  const GWO = lib.GlobalWorkerOptions ?? lib.default?.GlobalWorkerOptions;
-  if (!getDocument || !GWO) throw new Error("Biblioteca PDF indisponível.");
-  GWO.workerSrc = pdfWorkerUrl;
+  if (!getDocument) throw new Error("Biblioteca PDF indisponível.");
   const buffer = await file.arrayBuffer();
   const pdf = await getDocument({ data: buffer }).promise;
   let text = "";
   for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    // pdfjs v5 items can include TextMarkedContent (no .str) — filter defensively
     text += content.items
       .filter(item => typeof item.str === "string")
       .map(item => item.str)

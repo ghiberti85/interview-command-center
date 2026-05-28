@@ -22,12 +22,27 @@ export async function callAI(messages, system, token) {
 
 // pdfjs é carregado sob demanda para não penalizar o bundle inicial
 let _pdfjsLib = null;
+let _workerSrc = null;
+
+async function resolveWorkerSrc() {
+  if (_workerSrc) return _workerSrc;
+  try {
+    // iOS Safari PWA: criar blob URL para o worker evita restrições do service worker
+    const resp = await fetch(pdfWorkerUrl);
+    const blob = await resp.blob();
+    _workerSrc = URL.createObjectURL(blob);
+  } catch {
+    _workerSrc = pdfWorkerUrl;
+  }
+  return _workerSrc;
+}
+
 export async function getPdfjs() {
   if (!_pdfjsLib) {
     const lib = await import("pdfjs-dist");
     // pdfjs v5: named exports ou via .default — tratar ambos
     const GWO = lib.GlobalWorkerOptions ?? lib.default?.GlobalWorkerOptions;
-    if (GWO) GWO.workerSrc = pdfWorkerUrl;
+    if (GWO) GWO.workerSrc = await resolveWorkerSrc();
     _pdfjsLib = lib;
   }
   return _pdfjsLib;

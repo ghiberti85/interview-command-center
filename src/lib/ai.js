@@ -24,21 +24,32 @@ export async function callAI(messages, system, token) {
 let _pdfjsLib = null;
 export async function getPdfjs() {
   if (!_pdfjsLib) {
-    _pdfjsLib = await import("pdfjs-dist");
-    _pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+    const lib = await import("pdfjs-dist");
+    // pdfjs v5: named exports ou via .default — tratar ambos
+    const GWO = lib.GlobalWorkerOptions ?? lib.default?.GlobalWorkerOptions;
+    if (GWO) GWO.workerSrc = pdfWorkerUrl;
+    _pdfjsLib = lib;
   }
   return _pdfjsLib;
 }
 
 export async function extractTextFromPdf(file) {
-  const pdfjsLib = await getPdfjs();
+  const lib = await getPdfjs();
+  const getDocument = lib.getDocument ?? lib.default?.getDocument;
+  if (!getDocument) throw new Error("PDF library unavailable.");
   const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const pdf = await getDocument({ data: buffer }).promise;
   const pages = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    pages.push(content.items.map(item => item.str).join(" "));
+    // filtrar TextMarkedContent (sem .str) que existe no pdfjs v5
+    pages.push(
+      content.items
+        .filter(item => typeof item.str === "string")
+        .map(item => item.str)
+        .join(" ")
+    );
   }
   return pages.join("\n\n");
 }

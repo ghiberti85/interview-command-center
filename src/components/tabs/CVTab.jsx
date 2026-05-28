@@ -155,14 +155,14 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
         )}
         <div style={{ padding: "12px 14px", background: "var(--acc-d)", border: "1px solid var(--acc-b)", borderRadius: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
           <Ic n="info" s={14} c="var(--acc)" />
-          <div style={{ fontSize: 12, color: "var(--acc)", lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: "var(--acc-text)", lineHeight: 1.6 }}>
             A IA vai perguntar sobre tecnologias da vaga para garantir que o currículo inclua <strong>apenas o que você realmente domina</strong>.
           </div>
         </div>
         <div style={{ padding: "12px 14px", background: "var(--bg-o)", borderRadius: 10, border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ ...T.label }}>Currículo base para adaptação</div>
-            <button data-testid="btn-manage-resumes" onClick={onManageResumes} style={{ fontSize: 11, color: "var(--acc)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
+            <button data-testid="btn-manage-resumes" onClick={onManageResumes} style={{ fontSize: 11, color: "var(--acc-text)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
               <Ic n="edit" s={11} c="var(--acc)" />Gerenciar
             </button>
           </div>
@@ -184,7 +184,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           )}
           {!hasResumes && (
             <div style={{ fontSize: 11, color: "var(--t3)" }}>
-              Nenhum currículo salvo ainda. <button onClick={onManageResumes} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--acc)", fontSize: 11, fontFamily: "'Outfit',sans-serif" }}>Adicionar agora →</button>
+              Nenhum currículo salvo ainda. <button onClick={onManageResumes} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--acc-text)", fontSize: 11, fontFamily: "'Outfit',sans-serif" }}>Adicionar agora →</button>
             </div>
           )}
         </div>
@@ -216,7 +216,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
     <div data-testid="step-qa" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "14px" : "20px", display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ padding: "10px 14px", background: "var(--acc-d)", border: "1px solid var(--acc-b)", borderRadius: 10 }}>
-          <span style={{ fontSize: 12, color: "var(--acc)", fontFamily: "'Outfit',sans-serif" }}>
+          <span style={{ fontSize: 12, color: "var(--acc-text)", fontFamily: "'Outfit',sans-serif" }}>
             Responda sobre sua experiência real com cada item. O currículo adaptado vai usar <strong>apenas o que você confirmar</strong>.
           </span>
         </div>

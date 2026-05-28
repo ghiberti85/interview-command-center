@@ -314,8 +314,8 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         {/* Mobile header */}
         <div style={{ paddingTop:"max(12px, env(safe-area-inset-top, 12px))", paddingBottom:"10px", paddingLeft:"16px", paddingRight:"16px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           {mobileScreen==="detail" && view!=="dashboard" ? (
-            <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
-              <Ic n="back" s={16} c="var(--acc)"/>Voltar
+            <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
+              <Ic n="back" s={16} c="var(--acc-text)"/>Voltar
             </button>
           ) : (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -353,7 +353,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
                 { label: isDemo?"Sair do modo demo":"Sair da conta", icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
               ].map((item,i)=>(
 
-                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
+                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc-text)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                 >

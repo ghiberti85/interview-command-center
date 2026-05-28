@@ -345,7 +345,7 @@ CONVERSA:\n${text.slice(0, 4000)}`;
                 </div>
               </div>
               <div style={{ fontSize:12, color:"var(--t3)" }}>
-                <span style={{ color:"var(--acc)", fontWeight:600 }}>{selectedConvCount}</span> de <span style={{ color:"var(--t2)" }}>{filteredConvs.length}</span> conversas selecionadas
+                <span style={{ color:"var(--acc-text)", fontWeight:600 }}>{selectedConvCount}</span> de <span style={{ color:"var(--t2)" }}>{filteredConvs.length}</span> conversas selecionadas
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:4, maxHeight:300, overflowY:"auto" }}>
                 {filteredConvs.map(conv => {
@@ -364,7 +364,7 @@ CONVERSA:\n${text.slice(0, 4000)}`;
                 })}
               </div>
               <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-                <button onClick={()=>{ const s={}; filteredConvs.forEach(c=>s[c.id]=true); setSelectedConvs(s); }} style={{ fontSize:11, color:"var(--acc)", background:"none", border:"none", cursor:"pointer" }}>Selecionar tudo</button>
+                <button onClick={()=>{ const s={}; filteredConvs.forEach(c=>s[c.id]=true); setSelectedConvs(s); }} style={{ fontSize:11, color:"var(--acc-text)", background:"none", border:"none", cursor:"pointer" }}>Selecionar tudo</button>
                 <button onClick={()=>setSelectedConvs({})} style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>Nenhum</button>
               </div>
             </div>

@@ -100,9 +100,9 @@ export function OverviewTab({ process, onUpdate, onDelete }) {
         <div style={{ padding:"12px 14px", background:"var(--bg-o)", border:"1px solid var(--border)", borderRadius:10, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div>
             <div style={{ ...T.label, marginBottom:3 }}>Contato</div>
-            <div style={{ fontSize:13, color:"var(--acc)" }}>{process.recruiter} · {process.recruiterEmail}</div>
+            <div style={{ fontSize:13, color:"var(--acc-text)" }}>{process.recruiter} · {process.recruiterEmail}</div>
           </div>
-          {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && <a href={process.jobUrl} target="_blank" rel="noreferrer noopener" style={{ padding:"5px 12px", borderRadius:7, border:"1px solid var(--acc-b)", color:"var(--acc)", textDecoration:"none", fontSize:11, ...T.mono }}>↗ Vaga</a>}
+          {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && <a href={process.jobUrl} target="_blank" rel="noreferrer noopener" style={{ padding:"5px 12px", borderRadius:7, border:"1px solid var(--acc-b)", color:"var(--acc-text)", textDecoration:"none", fontSize:11, ...T.mono }}>↗ Vaga</a>}
         </div>
       )}
       {process.notes && (
@@ -120,7 +120,7 @@ export function OverviewTab({ process, onUpdate, onDelete }) {
           href={buildDILUrl(process)}
           target="_blank"
           rel="noopener noreferrer"
-          style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"10px 16px", borderRadius:10, border:"1px solid var(--acc-b)", background:"var(--acc-d)", color:"var(--acc)", textDecoration:"none", fontSize:13, fontWeight:500, fontFamily:"'Outfit',sans-serif", transition:"opacity 0.15s" }}
+          style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"10px 16px", borderRadius:10, border:"1px solid var(--acc-b)", background:"var(--acc-d)", color:"var(--acc-text)", textDecoration:"none", fontSize:13, fontWeight:500, fontFamily:"'Outfit',sans-serif", transition:"opacity 0.15s" }}
           onMouseEnter={e=>e.currentTarget.style.opacity="0.8"}
           onMouseLeave={e=>e.currentTarget.style.opacity="1"}
         >

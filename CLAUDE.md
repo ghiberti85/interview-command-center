@@ -242,7 +242,8 @@ style={{ color: "#EFEFEF", background: "#17171A" }}
 | `--t2` | `#9A9AA8` | `#606060` | Texto secundário |
 | `--t3` | `#52525C` | `#999990` | Texto muted / labels |
 | `--t4` | `#333338` | `#C8C8C0` | Texto ghost / placeholders |
-| `--acc` | `#7C6AFF` | `#5B47FF` | Accent violet (primário) |
+| `--acc` | `#7C6AFF` | `#5B47FF` | Accent violet (fills: botões, nav ativo) |
+| `--acc-text` | `#B0A5FF` | `#5B47FF` | Accent violet para texto — contraste WCAG AA |
 | `--acc-d` | `rgba(124,106,255,0.14)` | `rgba(91,71,255,0.10)` | Accent dim |
 | `--acc-b` | `rgba(124,106,255,0.30)` | `rgba(91,71,255,0.25)` | Accent border |
 | `--grn` | `#22C67A` | `#16A05E` | Success |

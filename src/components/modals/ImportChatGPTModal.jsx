@@ -264,7 +264,7 @@ Se FOR sobre recrutamento, retorne este JSON:
                 <div style={{ ...T.label, marginBottom:8 }}>Como exportar do ChatGPT</div>
                 {["1. Abra o ChatGPT → clique no seu avatar (canto superior direito)", "2. Vá em Settings → Data Controls", "3. Clique em Export data → Confirm export", "4. Aguarde o email com o link de download (pode levar alguns minutos)", "5. Baixe o .zip e faça o upload aqui"].map((t,i)=>(
                   <div key={i} style={{ fontSize:12, color:"var(--t2)", lineHeight:1.7, display:"flex", gap:8 }}>
-                    <span style={{ color:"var(--acc)", fontFamily:"'JetBrains Mono',monospace", flexShrink:0 }}>{i+1}.</span>{t.slice(3)}
+                    <span style={{ color:"var(--acc-text)", fontFamily:"'JetBrains Mono',monospace", flexShrink:0 }}>{i+1}.</span>{t.slice(3)}
                   </div>
                 ))}
               </div>
@@ -297,7 +297,7 @@ Se FOR sobre recrutamento, retorne este JSON:
                 )}
               </div>
               <div style={{ fontSize:12, color:"var(--t3)" }}>
-                <span style={{ color:"var(--acc)", fontWeight:600 }}>{selectedCount}</span> de <span style={{ color:"var(--t2)" }}>{filtered.length}</span> conversas selecionadas para análise
+                <span style={{ color:"var(--acc-text)", fontWeight:600 }}>{selectedCount}</span> de <span style={{ color:"var(--t2)" }}>{filtered.length}</span> conversas selecionadas para análise
                 {selectedCount > 0 && <span style={{ color:"var(--t3)" }}> · Conversas com aparência de recrutamento foram pré-selecionadas</span>}
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:4, maxHeight:340, overflowY:"auto" }}>
@@ -310,7 +310,7 @@ Se FOR sobre recrutamento, retorne este JSON:
                     <label key={conv.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", borderRadius:8, cursor:"pointer", background:selected[conv.id]?"var(--acc-d)":"var(--bg-o)", border:`1px solid ${selected[conv.id]?"var(--acc-b)":"var(--border)"}`, transition:"all 0.15s" }}>
                       <input type="checkbox" checked={!!selected[conv.id]} onChange={e=>setSelected(s=>({...s,[conv.id]:e.target.checked}))} style={{ width:15, height:15, accentColor:"var(--acc)", cursor:"pointer", flexShrink:0 }}/>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, color:selected[conv.id]?"var(--acc)":"var(--t1)", fontWeight:selected[conv.id]?500:400, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{conv.title||"Sem título"}</div>
+                        <div style={{ fontSize:13, color:selected[conv.id]?"var(--acc-text)":"var(--t1)", fontWeight:selected[conv.id]?500:400, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{conv.title||"Sem título"}</div>
                       </div>
                       <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
                         {isRecruiter && <span style={{ fontSize:9, padding:"2px 6px", borderRadius:4, background:"rgba(34,198,122,0.12)", color:"var(--grn)", ...T.mono }}>recrutamento</span>}
@@ -321,7 +321,7 @@ Se FOR sobre recrutamento, retorne este JSON:
                 })}
               </div>
               <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-                <button onClick={()=>{ const s={}; filtered.forEach(c=>s[c.id]=true); setSelected(s); }} style={{ fontSize:11, color:"var(--acc)", background:"none", border:"none", cursor:"pointer" }}>Selecionar tudo</button>
+                <button onClick={()=>{ const s={}; filtered.forEach(c=>s[c.id]=true); setSelected(s); }} style={{ fontSize:11, color:"var(--acc-text)", background:"none", border:"none", cursor:"pointer" }}>Selecionar tudo</button>
                 <button onClick={()=>setSelected({})} style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>Desmarcar tudo</button>
               </div>
             </div>
@@ -356,7 +356,7 @@ Se FOR sobre recrutamento, retorne este JSON:
                   <input type="checkbox" checked={!!approved[r.id]} onChange={e=>setApproved(a=>({...a,[r.id]:e.target.checked}))} style={{ width:16, height:16, accentColor:"var(--acc)", cursor:"pointer", flexShrink:0, marginTop:2 }}/>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:14, fontWeight:700, color:approved[r.id]?"var(--acc)":"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>{r.company||"Empresa?"}</span>
+                      <span style={{ fontSize:14, fontWeight:700, color:approved[r.id]?"var(--acc-text)":"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>{r.company||"Empresa?"}</span>
                       <span style={{ fontSize:12, color:"var(--t3)" }}>·</span>
                       <span style={{ fontSize:12, color:"var(--t2)" }}>{r.role||"Cargo?"}</span>
                       <Badge stage={r.stage||"contacted"}/>

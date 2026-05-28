@@ -41,7 +41,7 @@ Seja direto, prático e orientado a ação. Responda em português.`;
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
       <div style={{ padding:isMobile?"10px 14px":"12px 16px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
-        <div style={{ ...T.label, marginBottom:6, display:"flex", alignItems:"center", gap:6, color:"var(--acc)" }}>
+        <div style={{ ...T.label, marginBottom:6, display:"flex", alignItems:"center", gap:6, color:"var(--acc-text)" }}>
           <Ic n="ai" s={11} c="var(--acc)"/>Quick Actions
         </div>
         <div style={{ display:"flex", gap:6, overflowX:isMobile?"auto":"visible", flexWrap:isMobile?"nowrap":"wrap", paddingBottom:isMobile?4:0, WebkitOverflowScrolling:"touch" }}>

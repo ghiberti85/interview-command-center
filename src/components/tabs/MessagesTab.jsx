@@ -92,7 +92,7 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
   const RecruiterInput = () => (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <Ic n="msg" s={12} c="var(--acc)" />
+        <Ic n="msg" s={12} c="var(--acc-text)" />
         <span style={{ ...T.label, color: "var(--t2)" }}>Mensagem do recrutador</span>
         <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono, marginLeft: 2 }}>(opcional)</span>
       </div>
@@ -153,7 +153,7 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
                 padding: "7px 10px", borderRadius: 8, cursor: "pointer", textAlign: "left",
                 border: `1px solid ${scenario === s.id ? "var(--acc-b)" : "var(--border)"}`,
                 background: scenario === s.id ? "var(--acc-d)" : "var(--bg-o)",
-                color: scenario === s.id ? "var(--acc)" : "var(--t2)",
+                color: scenario === s.id ? "var(--acc-text)" : "var(--t2)",
                 fontSize: 12, fontFamily: "'Outfit',sans-serif", transition: "all 0.15s",
               }}
             >
@@ -171,11 +171,11 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profil
         onClick={() => setExtraCtx(o => !o)}
         style={{
           display: "flex", alignItems: "center", gap: 5, background: "none", border: "none",
-          cursor: "pointer", color: extraCtx ? "var(--acc)" : "var(--t3)",
+          cursor: "pointer", color: extraCtx ? "var(--acc-text)" : "var(--t3)",
           fontSize: 11, ...T.mono, padding: 0, marginBottom: extraCtx ? 8 : 0, transition: "color 0.15s",
         }}
       >
-        <Ic n="info" s={12} c={extraCtx ? "var(--acc)" : "var(--t3)"} />
+        <Ic n="info" s={12} c={extraCtx ? "var(--acc-text)" : "var(--t3)"} />
         Contexto adicional {extraCtx ? "▲" : "▼"}
       </button>
       {extraCtx && (

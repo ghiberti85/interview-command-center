@@ -243,7 +243,6 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
             {[
               { label:"Perfil & preferências", icon:"edit",   action:()=>setShowProfileModal(true) },
               { label:"Gerenciar currículos",   icon:"copy",   action:()=>setShowResumes(true) },
-              ...(!isDemo ? [{ label:"Definir senha", icon:"star", action:()=>setShowProfileModal(true) }] : []),
             ].map((item,i)=>(
               <button key={i} onClick={item.action} className="nav-btn" style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:9, border:"none", marginBottom:2, background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}
                 onMouseEnter={e=>{ e.currentTarget.style.background="var(--bg-o)"; e.currentTarget.style.color="var(--t2)"; }}

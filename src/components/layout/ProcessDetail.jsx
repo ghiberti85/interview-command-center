@@ -46,7 +46,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, pr
       <div style={{ flex:1, overflow:"hidden", minHeight:0 }}>
         {tab==="overview"  && <div style={{ height:"100%", overflowY:"auto", padding:20, paddingBottom:`calc(20px + ${navH})` }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
         {tab==="timeline"  && <div style={{ height:"100%", overflowY:"auto", padding:20, paddingBottom:`calc(20px + ${navH})` }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
-        {tab==="messages"  && <div style={{ height:"100%" }}><MessagesTab process={process} isMobile={isMobile} navH={navH} autoFocus={initialTab==="messages"}/></div>}
+        {tab==="messages"  && <div style={{ height:"100%" }}><MessagesTab process={process} isMobile={isMobile} navH={navH} autoFocus={initialTab==="messages"} profile={profile} adaptation={adaptation}/></div>}
         {tab==="ai"        && <div style={{ height:"100%" }}><AITab process={process} isMobile={isMobile} navH={navH}/></div>}
         {tab==="curriculo" && (
           <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>

@@ -1,6 +1,6 @@
 import { STAGE, CHANNELS } from "./constants.js";
 
-export function buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra }) {
+export function buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra, cvContext }) {
   const ch = CHANNELS[channel];
   const isInbound = process.origin !== "outbound";
   return `Você é Fernando, Senior Full-Stack Engineer / Front-End Tech Lead com 10+ anos de experiência (React, Next.js, Node.js, TypeScript, Supabase, liderança técnica).
@@ -12,7 +12,7 @@ Processo seletivo:
 - Etapa atual: ${STAGE[process.stage]?.label}
 - Recrutador(a): ${process.recruiter || "não informado"}
 - Salário: ${process.salary || "não informado"}
-${recruiterMsg ? `\nMensagem recebida:\n"""${recruiterMsg}"""\n` : ""}
+${cvContext ? `\nCurrículo de referência (use para personalizar a mensagem com experiências reais):\n"""\n${cvContext.slice(0, 3000)}\n"""\n` : ""}${recruiterMsg ? `\nMensagem recebida:\n"""${recruiterMsg}"""\n` : ""}
 Objetivo desta mensagem: ${scenLabel}
 Canal: ${ch.label} — ${ch.hint}${extra ? `\nContexto adicional: ${extra}` : ""}
 

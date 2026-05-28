@@ -24,7 +24,7 @@ function extractMsgFromNotes(notes) {
   return "";
 }
 
-export function MessagesTab({ process, isMobile, autoFocus, navH = "0px" }) {
+export function MessagesTab({ process, isMobile, autoFocus, navH = "0px", profile, adaptation }) {
   const [channel, setChannel] = useState("linkedin");
   const [scenario, setScenario] = useState("reply_recruiter");
   const [recruiterMsg, setRecruiterMsg] = useState(() => extractMsgFromNotes(process.notes));
@@ -45,7 +45,8 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px" }) {
     setGenerated(null);
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
-      const prompt = buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra: extraVal });
+      const cvContext = adaptation?.content || profile?.cvText || "";
+      const prompt = buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra: extraVal, cvContext });
       const raw = await callAI([{ role: "user", content: prompt }], MESSAGES_SYSTEM, s?.access_token);
       const parsed = parseAIResponse(raw);
       const entry = { ...parsed, channel, scenario: scenLabel, recruiterMsg, ts: Date.now() };

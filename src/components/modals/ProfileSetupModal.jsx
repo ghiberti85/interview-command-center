@@ -8,15 +8,23 @@ async function extractPdfText(file) {
   let lib;
   try {
     lib = await import("pdfjs-dist");
-    lib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   } catch { throw new Error("Falha ao carregar leitor de PDF."); }
+  // pdfjs v5 exports named or via default — handle both
+  const getDocument = lib.getDocument ?? lib.default?.getDocument;
+  const GWO = lib.GlobalWorkerOptions ?? lib.default?.GlobalWorkerOptions;
+  if (!getDocument || !GWO) throw new Error("Biblioteca PDF indisponível.");
+  GWO.workerSrc = pdfWorkerUrl;
   const buffer = await file.arrayBuffer();
-  const pdf = await lib.getDocument({ data: buffer }).promise;
+  const pdf = await getDocument({ data: buffer }).promise;
   let text = "";
   for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    text += content.items.map(item => item.str).join(" ") + "\n";
+    // pdfjs v5 items can include TextMarkedContent (no .str) — filter defensively
+    text += content.items
+      .filter(item => typeof item.str === "string")
+      .map(item => item.str)
+      .join(" ") + "\n";
   }
   return text.trim();
 }

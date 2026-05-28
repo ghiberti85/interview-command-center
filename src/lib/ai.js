@@ -22,53 +22,59 @@ export async function callAI(messages, system, token) {
 
 // ── PDF extraction ────────────────────────────────────────────────────────────
 
-// pdfjs lazy-loaded — reused across calls
+// ── Attempt 1: pdfjs (handles everything — needs worker) ─────────────────────
+
 let _pdfjsLib = null;
 
 async function extractWithPdfjs(buffer) {
-  if (!_pdfjsLib) {
-    _pdfjsLib = await import("pdfjs-dist");
-  }
+  if (!_pdfjsLib) _pdfjsLib = await import("pdfjs-dist");
   const lib = _pdfjsLib;
   const GWO = lib.GlobalWorkerOptions ?? lib.default?.GlobalWorkerOptions;
-
-  // Use the static URL resolved by Vite at build time.
-  // pdfjs will:
-  //   1. Try to spin up a real Worker with this URL (works on desktop/Android)
-  //   2. If Worker() construction fails, auto-fallback to FakeWorker which
-  //      does dynamic import() of the same URL in the main thread —
-  //      this is what makes it work on iOS Safari PWA where Worker is blocked.
-  if (GWO && !GWO.workerSrc) {
-    GWO.workerSrc = pdfWorkerUrl;
-  }
-
+  if (GWO && !GWO.workerSrc) GWO.workerSrc = pdfWorkerUrl;
   const getDocument = lib.getDocument ?? lib.default?.getDocument;
   if (!getDocument) throw new Error("pdfjs getDocument not found");
-
   const pdf = await getDocument({ data: new Uint8Array(buffer) }).promise;
   const pages = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items
-      .filter(x => typeof x.str === "string")
-      .map(x => x.str)
-      .join(" ");
-    pages.push(text);
+    pages.push(content.items.filter(x => typeof x.str === "string").map(x => x.str).join(" "));
   }
   return pages.join("\n\n").replace(/\s+/g, " ").trim();
 }
 
-// Pure-JS fallback — no library, no worker.
-// Handles uncompressed PDFs (BT/ET text blocks) and extracts long readable
-// ASCII sequences as a last resort. Most modern PDFs (from Word/Google Docs)
-// use zlib-compressed streams, so this is only a safety net.
-function extractPdfTextPureJS(buffer) {
-  const bytes = new Uint8Array(buffer);
-  const latin1 = new TextDecoder("latin-1").decode(bytes);
-  const strings = [];
+// ── Attempt 2: native DecompressionStream + BT/ET parser ─────────────────────
+// Works on iOS Safari 16.4+ (and all modern browsers) with no workers.
+// PDF FlateDecode streams use zlib format (RFC 1950) → "deflate" in the API.
 
-  // Strategy 1: BT...ET blocks (uncompressed content streams)
+async function zlibDecompress(bytes) {
+  if (typeof DecompressionStream === "undefined") return null;
+  try {
+    const ds = new DecompressionStream("deflate");
+    const writer = ds.writable.getWriter();
+    const reader = ds.readable.getReader();
+    // Fire-and-forget write; close signals end-of-input
+    writer.write(bytes).catch(() => {});
+    writer.close().catch(() => {});
+    const chunks = [];
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+    } catch { /* partial output is still usable */ }
+    if (!chunks.length) return null;
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) { out.set(c, off); off += c.length; }
+    return out;
+  } catch { return null; }
+}
+
+function parseBtEtBlocks(latin1) {
+  const strings = [];
   const btEtRe = /BT\s([\s\S]+?)\sET/g;
   let m;
   while ((m = btEtRe.exec(latin1)) !== null) {
@@ -83,47 +89,96 @@ function extractPdfTextPureJS(buffer) {
       while ((s = inner.exec(t[1])) !== null) strings.push(s[1]);
     }
   }
-  if (strings.length > 0) {
-    return strings
+  return strings;
+}
+
+async function extractWithDecompression(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const dec = new TextDecoder("latin-1");
+  const latin1 = dec.decode(bytes);
+  const allStrings = [];
+
+  // Iterate over every stream...endstream block in the PDF
+  const streamStartRe = /stream\r?\n/g;
+  let sm;
+  while ((sm = streamStartRe.exec(latin1)) !== null) {
+    const dataStart = sm.index + sm[0].length;
+    const endIdx = latin1.indexOf("\nendstream", dataStart);
+    if (endIdx === -1) continue;
+
+    // Check the dictionary preceding this stream for /FlateDecode
+    const dictSlice = latin1.slice(Math.max(0, sm.index - 512), sm.index);
+    const isFlate = /\/FlateDecode|\/Fl(?:\s|\/|>)/.test(dictSlice);
+
+    if (isFlate) {
+      const compressed = bytes.slice(dataStart, endIdx);
+      const decompressed = await zlibDecompress(compressed);
+      if (!decompressed) continue;
+      const content = dec.decode(decompressed);
+      allStrings.push(...parseBtEtBlocks(content));
+    } else {
+      // Uncompressed stream — parse directly
+      const content = latin1.slice(dataStart, endIdx);
+      allStrings.push(...parseBtEtBlocks(content));
+    }
+  }
+
+  if (allStrings.length > 0) {
+    return allStrings
       .join(" ")
       .replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\\\\/g, "\\")
       .replace(/\\([()])/g, "$1")
       .replace(/\s+/g, " ")
       .trim();
   }
+  return "";
+}
 
-  // Strategy 2: long ASCII runs — catches text in uncompressed metadata/annotations
+// ── Attempt 3: ASCII run extraction (last resort) ────────────────────────────
+
+function extractAsciiRuns(buffer) {
+  const bytes = new Uint8Array(buffer);
   let ascii = "";
   for (let i = 0; i < bytes.length; i++) {
     const b = bytes[i];
     ascii += (b >= 32 && b < 127) || b === 10 ? String.fromCharCode(b) : " ";
   }
-  const runs = ascii.match(/[A-Za-z][A-Za-z0-9 .,;:@()\-+#/'"!?]{5,}/g) || [];
-  const filtered = runs.filter(r =>
-    r.trim().length >= 8 &&
-    !/^(stream|endstream|obj|endobj|xref|trailer|startxref|Width|Height|Filter|Length|Subtype|Resources)/.test(r.trim())
-  );
-  return filtered.join(" ").replace(/\s+/g, " ").trim();
+  const runs = ascii.match(/[A-Za-z][A-Za-z0-9 .,;:@()\-+#/'"!?]{7,}/g) || [];
+  return runs
+    .filter(r => !/^(stream|endstream|obj|endobj|xref|trailer|startxref|Width|Height|Filter|Length|Subtype|Resources|BitsPerComponent|ColorSpace)/.test(r.trim()))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
+
+// ── Public entry point ────────────────────────────────────────────────────────
 
 export async function extractTextFromPdf(file) {
   const buffer = await file.arrayBuffer();
 
-  // pdfjs handles compressed streams, complex layouts — works on all modern PDFs
+  // 1. pdfjs — best quality, handles all layouts (requires worker)
   try {
     const text = await extractWithPdfjs(buffer);
-    if (text.length > 50) return text;
-    if (text.length > 0) {
-      throw new Error("Este PDF parece ser escaneado (só imagens). Cole o texto do currículo manualmente.");
-    }
+    if (text.length > 50) { console.log("[PDF] extracted via pdfjs"); return text; }
+    if (text.length > 0) throw new Error("PDF escaneado");
   } catch (e) {
-    if (e.message.includes("escaneado")) throw e;
-    console.warn("[PDF] pdfjs failed, trying pure-JS fallback:", e?.message || e);
+    if (e.message === "PDF escaneado") {
+      throw new Error("Este PDF parece conter apenas imagens (escaneado). Cole o texto manualmente.");
+    }
+    console.warn("[PDF] pdfjs failed:", e?.message);
   }
 
-  // Fallback: pure-JS — works for older/uncompressed PDFs
-  const text = extractPdfTextPureJS(buffer);
-  if (text.length >= 50) return text;
+  // 2. DecompressionStream + BT/ET parser — handles modern compressed PDFs natively
+  try {
+    const text = await extractWithDecompression(buffer);
+    if (text.length > 50) { console.log("[PDF] extracted via DecompressionStream"); return text; }
+  } catch (e) {
+    console.warn("[PDF] DecompressionStream failed:", e?.message);
+  }
 
-  throw new Error("Não foi possível extrair texto deste PDF. Se for um PDF escaneado (imagem), cole o conteúdo manualmente.");
+  // 3. Plain ASCII run extraction — last resort for old/simple PDFs
+  const text = extractAsciiRuns(buffer);
+  if (text.length >= 50) { console.log("[PDF] extracted via ASCII runs"); return text; }
+
+  throw new Error("Não foi possível extrair texto deste PDF. Se for um arquivo escaneado (imagem), cole o conteúdo manualmente.");
 }

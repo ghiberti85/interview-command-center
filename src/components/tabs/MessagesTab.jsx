@@ -17,10 +17,17 @@ function parseAIResponse(raw) {
   return { body: text };
 }
 
+function extractMsgFromNotes(notes) {
+  if (!notes) return "";
+  const prefix = "Mensagem original:\n";
+  if (notes.startsWith(prefix)) return notes.slice(prefix.length).trim();
+  return "";
+}
+
 export function MessagesTab({ process, isMobile, autoFocus, navH = "0px" }) {
   const [channel, setChannel] = useState("linkedin");
   const [scenario, setScenario] = useState("reply_recruiter");
-  const [recruiterMsg, setRecruiterMsg] = useState("");
+  const [recruiterMsg, setRecruiterMsg] = useState(() => extractMsgFromNotes(process.notes));
   const [extraCtx, setExtraCtx] = useState(false);
   const [extraVal, setExtraVal] = useState("");
   const [generated, setGenerated] = useState(null);

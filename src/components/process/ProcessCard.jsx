@@ -21,16 +21,27 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
   const reset = () => { setSwipeOffset(0); setOpen(false); };
 
   const handleTouchStart = (e) => {
-    if (open) return;
     touchStartX.current = e.touches[0].clientX;
   };
   const handleTouchMove = (e) => {
     if (touchStartX.current === null) return;
     const dx = touchStartX.current - e.touches[0].clientX;
-    if (dx > 0) setSwipeOffset(Math.min(dx, ACTION_W + 20));
+    if (open) {
+      // swiping right closes: offset goes from ACTION_W down toward 0
+      const offset = ACTION_W - Math.max(0, -dx);
+      setSwipeOffset(Math.max(0, offset));
+    } else if (dx > 0) {
+      setSwipeOffset(Math.min(dx, ACTION_W + 20));
+    }
   };
   const handleTouchEnd = () => {
-    if (swipeOffset >= DRAG_THRESHOLD) {
+    if (open) {
+      if (swipeOffset < ACTION_W * 0.6) {
+        reset();
+      } else {
+        setSwipeOffset(ACTION_W);
+      }
+    } else if (swipeOffset >= DRAG_THRESHOLD) {
       setOpen(true);
       setSwipeOffset(ACTION_W);
     } else {

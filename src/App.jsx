@@ -427,10 +427,9 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         </div>
 
 <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0 }}>
-          {/* Novo — action button, always first */}
-          <button onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--acc)", minHeight:44 }}>
-            <Ic n="plus" s={19} c="var(--acc)"/>
-            <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:600, letterSpacing:"0.05em" }}>Novo</span>
+          <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t4)", minHeight:44, position:"relative" }}>
+            <Ic n="plus" s={19} c="var(--t4)"/>
+            <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>
           </button>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },

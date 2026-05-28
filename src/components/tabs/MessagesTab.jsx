@@ -38,7 +38,7 @@ export function MessagesTab({ process, isMobile, autoFocus, navH = "0px" }) {
 
   const ch = CHANNELS[channel];
   const scenLabel = SCENARIOS.find(s => s.id === scenario)?.label || scenario;
-  const canGen = scenario !== "reply_recruiter" || recruiterMsg.trim().length > 0;
+  const canGen = true;
 
   const generate = async () => {
     setLoading(true);

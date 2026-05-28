@@ -455,11 +455,11 @@ export default function App() {
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))" }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(44px + env(safe-area-inset-bottom,0px) + 16px)" }}><MobileDashboard processes={processes}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))", animation:"slideUp 0.2s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(44px + env(safe-area-inset-bottom,0px) + 16px)", animation:"slideUp 0.2s ease" }}>
               <div style={{ padding:"12px 16px 8px" }}>
                 <div style={{ position:"relative" }}>
                   <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={14} c="var(--t4)"/></div>
@@ -486,7 +486,7 @@ export default function App() {
                 {filtered.length===0 ? (
                   processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>Nenhum resultado</div>
                 ) : filtered.map(p=>(
-                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("overview");setMobileScreen("detail");}} selected={false} isMobile={true} onSwipeAction={()=>updateProcess({...p,stage:"rejected"})} onQuickReply={()=>{setSelected(p);setMobileDetailTab("messages");setMobileScreen("detail");}}/>
+                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("overview");setMobileScreen("detail");}} selected={false} isMobile={true} onSwipeAction={()=>updateProcess({...p,stage:"rejected"})}/>
                 ))}
               </div>
             </div>
@@ -502,14 +502,14 @@ export default function App() {
         {view==="pipeline" && mobileScreen==="list" && (
           <button
             onClick={()=>{ setRecruiterInitialMsg(""); setShowRecruiterModal(true); }}
-            style={{ position:"fixed", bottom:"calc(44px + min(env(safe-area-inset-bottom,0px),18px) + 12px)", right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
+            style={{ position:"fixed", bottom:"calc(44px + env(safe-area-inset-bottom,0px) + 12px)", right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
             aria-label="Colar mensagem LinkedIn"
           >
             <Ic n="linkedin" s={22} c="#fff"/>
           </button>
         )}
 
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"min(env(safe-area-inset-bottom,0px),18px)", flexShrink:0 }}>
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"env(safe-area-inset-bottom,0px)", flexShrink:0 }}>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },
             { id:"dashboard", icon:"chart",   label:"Stats"    },

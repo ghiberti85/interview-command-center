@@ -10,7 +10,7 @@ const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp",
 const DRAG_THRESHOLD = 140; // px to snap open
 const ACTION_W = 160;       // width of the revealed action panel
 
-export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile, onQuickReply }) {
+export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
@@ -128,17 +128,6 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
         )}
         {process.nextStepNote && (
           <div style={{ marginTop:8, fontSize:11, color:"var(--t3)", borderTop:"1px solid var(--border)", paddingTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.nextStepNote}</div>
-        )}
-        {isMobile && onQuickReply && (
-          <div style={{ marginTop:10, borderTop:"1px solid var(--border)", paddingTop:10 }}>
-            <button
-              onClick={e=>{ e.stopPropagation(); onQuickReply(); }}
-              style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, width:"100%", padding:"8px 0", borderRadius:8, border:"1px solid var(--acc-b)", background:"var(--acc-d)", color:"var(--acc)", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
-            >
-              <Ic n="msg" s={13} c="var(--acc)"/>
-              Gerar resposta
-            </button>
-          </div>
         )}
       </div>
     </div>

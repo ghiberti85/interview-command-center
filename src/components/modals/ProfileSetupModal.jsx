@@ -3,25 +3,7 @@ import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
-import { getPdfjs } from "../../lib/ai.js";
-
-async function extractPdfText(file) {
-  const lib = await getPdfjs();
-  const getDocument = lib.getDocument ?? lib.default?.getDocument;
-  if (!getDocument) throw new Error("Biblioteca PDF indisponível.");
-  const buffer = await file.arrayBuffer();
-  const pdf = await getDocument({ data: buffer }).promise;
-  let text = "";
-  for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items
-      .filter(item => typeof item.str === "string")
-      .map(item => item.str)
-      .join(" ") + "\n";
-  }
-  return text.trim();
-}
+import { extractTextFromPdf } from "../../lib/ai.js";
 
 export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
   const [stack, setStack] = useState((initial?.stack||[]).join(", "));
@@ -37,7 +19,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
     setPdfLoading(true);
     setPdfError("");
     try {
-      const text = await extractPdfText(file);
+      const text = await extractTextFromPdf(file);
       if (!text) throw new Error("Nenhum texto encontrado no PDF.");
       setCvText(text);
     } catch (e) {

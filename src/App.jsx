@@ -309,7 +309,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   return (
     <>
       <style>{GLOBAL_CSS}</style>
-      <div style={{ display:"flex", flexDirection:"column", height:"100dvh", background:"var(--bg)", overflow:"hidden" }}>
+      <div style={{ position:"fixed", inset:0, display:"flex", flexDirection:"column", background:"var(--bg)", overflow:"hidden" }}>
         {/* Mobile header */}
         <div style={{ paddingTop:"max(12px, env(safe-area-inset-top, 12px))", paddingBottom:"10px", paddingLeft:"16px", paddingRight:"16px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           {mobileScreen==="detail" && view!=="dashboard" ? (

@@ -17,7 +17,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, na
     { id:"vaga",      label:"Vaga"      },
     { id:"curriculo", label:"Currículo" },
   ];
-  const navH = isMobile ? (navHProp || "calc(56px + env(safe-area-inset-bottom, 0px))") : "0px";
+  const navH = isMobile ? (navHProp || "calc(56px + var(--sab))") : "0px";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>

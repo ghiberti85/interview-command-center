@@ -84,11 +84,11 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
               <button
                 data-testid="btn-confirm-archive"
                 onClick={handleConfirm}
-                style={{ width:"100%", padding:"10px 0", borderRadius:8, background:"#fff", border:"none", color: actionColor, fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"10px 0", borderRadius:8, background:"rgba(255,255,255,0.22)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
               >{actionLabel}</button>
               <button
                 onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"rgba(0,0,0,0.25)", border:"1px solid rgba(255,255,255,0.18)", color:"rgba(255,255,255,0.75)", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
               >Cancelar</button>
             </>
           ) : (

@@ -81,6 +81,16 @@ export default function App() {
     document.body.style.color = vars["--t1"];
   }, [dark]);
 
+  // --sab (safe-area-bottom): only use env() in PWA standalone mode.
+  // viewport-fit=cover makes env(safe-area-inset-bottom) return ~34px even
+  // in the browser, where the OS chrome already handles the home indicator.
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sab",
+      isPWA ? "env(safe-area-inset-bottom, 0px)" : "0px"
+    );
+  }, [isPWA]);
+
   // Load processes
   useEffect(() => {
     if (isDemo) {
@@ -343,7 +353,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         {hamburgerOpen && (
           <>
             <div onClick={()=>setHamburgerOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:199, backdropFilter:"blur(2px)" }}/>
-            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", zIndex:200, animation:"slideUp 0.25s ease" }}>
+            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"calc(20px + var(--sab))", zIndex:200, animation:"slideUp 0.25s ease" }}>
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
                 { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
@@ -370,11 +380,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(56px + env(safe-area-inset-bottom, 0px) + 12px)" }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(56px + var(--sab) + 12px)" }}><MobileDashboard processes={processes}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(56px + env(safe-area-inset-bottom, 0px) + 12px)", animation:"slideUp 0.2s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(56px + var(--sab) + 12px)", animation:"slideUp 0.2s ease" }}>
               <div style={{ padding:"12px 16px 8px" }}>
                 <div style={{ position:"relative" }}>
                   <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={14} c="var(--t4)"/></div>
@@ -409,12 +419,12 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} isPWA={isPWA} navH="calc(56px + env(safe-area-inset-bottom, 0px))" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} isPWA={isPWA} navH="calc(56px + var(--sab))" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
             </div>
           )}
         </div>
 
-<div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, paddingBottom:"env(safe-area-inset-bottom, 0px)" }}>
+<div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, paddingBottom:"var(--sab)" }}>
           <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"10px 0 8px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:56, position:"relative" }}>
             <Ic n="plus" s={19} c="var(--t1)"/>
             <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>

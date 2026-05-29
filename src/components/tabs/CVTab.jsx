@@ -197,7 +197,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           <div data-testid="stack-preview" style={{ fontSize: 12, color: "var(--t2)" }}>{profile.stack.slice(0, 8).join(" · ")}{profile.stack.length > 8 ? ` · +${profile.stack.length - 8} mais` : ""}</div>
         </div>
       </div>
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "env(safe-area-inset-bottom, 14px)" : "14px" }}>
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px" }}>
         <Btn data-testid="btn-analyze" onClick={generateQuestions} full disabled={!jd.trim()}>Analisar job description</Btn>
       </div>
     </div>
@@ -250,7 +250,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           {questions.filter(q => answers[q.id] !== null).length}/{questions.length} respondidas
         </div>
       </div>
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "env(safe-area-inset-bottom, 14px)" : "14px", display: "flex", gap: 8 }}>
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px", display: "flex", gap: 8 }}>
         <Btn data-testid="btn-back-to-input" variant="ghost" onClick={() => setStep("input")} size="sm"><Ic n="back" s={13} c="var(--t2)" /></Btn>
         <Btn data-testid="btn-generate" onClick={generateCV} full disabled={!allAnswered}>
           {allAnswered ? "Gerar currículo adaptado" : `Responda todas as perguntas (${questions.filter(q => answers[q.id] !== null).length}/${questions.length})`}
@@ -272,7 +272,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           {result}
         </div>
       </div>
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "env(safe-area-inset-bottom, 14px)" : "14px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px", display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Btn data-testid="btn-back-to-qa" variant="ghost" onClick={() => setStep("qa")} size="sm"><Ic n="back" s={13} c="var(--t2)" /></Btn>
         <Btn data-testid="btn-copy" onClick={copyResult} variant={copied ? "secondary" : "primary"}>
           <Ic n={copied ? "check" : "copy"} s={14} c={copied ? "var(--grn)" : "#fff"} />{copied ? "Copiado!" : "Copiar"}

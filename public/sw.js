@@ -1,4 +1,4 @@
-const CACHE_NAME = "icc-v19";
+const CACHE_NAME = "icc-v20";
 const STATIC_ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -14,46 +14,34 @@ self.addEventListener("activate", (event) => {
       Promise.all(
         keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Network-first para API calls, cache-first para assets estáticos
+// Network-first para tudo — sempre busca o código mais novo, cache só como fallback offline
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Nunca cachear chamadas ao Supabase ou ao proxy IA
+  // Nunca interceptar chamadas ao Supabase, proxy IA ou POST
   if (
     url.hostname.includes("supabase.co") ||
+    url.hostname.includes("anthropic") ||
     request.method !== "GET"
   ) {
     return;
   }
 
-  // Cache-first para assets com hash (JS/CSS do Vite)
-  if (url.pathname.match(/\.(js|css|woff2?|png|svg|ico)$/)) {
-    event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((res) => {
-            if (res.ok) {
-              const clone = res.clone();
-              caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-            }
-            return res;
-          })
-      )
-    );
-    return;
-  }
-
-  // Network-first para navegação (SPA routes)
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match("/index.html"))
-    );
-  }
+  // Network-first: tenta buscar da rede, cai no cache se offline
+  event.respondWith(
+    fetch(request)
+      .then((res) => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(request).then((cached) => cached || caches.match("/index.html")))
+  );
 });

@@ -248,7 +248,7 @@ Objetivo: transformar o app em algo que vale compartilhar e, potencialmente, em 
 ## Linha do tempo
 
 ```
-v1.3 ✅        v1.4 ✅              v1.5                v2.0
+v1.3 ✅        v1.4 ✅              v1.5 (parcial ✅)     v2.0
   │               │                   │                  │
 Em produção   Componentizado      IA Avançada         Plataforma
               UX features         Prep Kit            Calendar
@@ -257,5 +257,17 @@ Em produção   Componentizado      IA Avançada         Plataforma
               buildPrompt         Import por URL      Open source?
               filterProcesses     TypeScript
                                   Testes E2E
-                                  Observabilidade
+                                  UX simplificação ✅
+                                  ConversaTab ✅
+                                  VagaTab ✅
 ```
+
+## UX Simplification — 3-tab flow (v1.5.1) ✅ (concluído)
+
+| Funcionalidade | Status |
+|---|---|
+| 3 abas em vez de 5: Conversa / Vaga / Currículo | ✅ |
+| `ConversaTab` — thread de conversa (recebidas + geradas) substituindo MessagesTab + AITab + TimelineTab | ✅ |
+| `VagaTab` — dados da vaga + próxima etapa com auto-stage + notas, substituindo OverviewTab | ✅ |
+| Cards compactos sem preview de nota | ✅ |
+| Arquivos obsoletos removidos (TimelineTab, AITab, OverviewTab, MessagesTab) | ✅ |

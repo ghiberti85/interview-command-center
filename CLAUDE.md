@@ -50,11 +50,9 @@ src/
 │   │   ├── PipelineBar.jsx    # Barra de progresso do pipeline
 │   │   ├── InlineTags.jsx     # Tags editáveis inline
 │   │   └── Tabs.jsx           # Navegação de abas do processo
-│   ├── tabs/                  # Conteúdo das abas do processo
-│   │   ├── OverviewTab.jsx    # Dados da vaga + recrutador + próxima etapa
-│   │   ├── TimelineTab.jsx    # Linha do tempo de etapas
-│   │   ├── MessagesTab.jsx    # Gerador de respostas por canal
-│   │   ├── AITab.jsx          # Chat livre com IA
+│   ├── tabs/                  # Conteúdo das abas do processo (3 abas)
+│   │   ├── ConversaTab.jsx    # Thread de conversa: mensagens do recrutador + respostas geradas
+│   │   ├── VagaTab.jsx        # Dados da vaga + próxima etapa com auto-stage + notas
 │   │   └── CVTab.jsx          # Adaptação de currículo por JD
 │   ├── layout/                # Estrutura de tela
 │   │   ├── Dashboard.jsx      # Dashboard desktop + mobile (painel de métricas)
@@ -521,11 +519,11 @@ O estado `sortBy` vive no App root junto com `search` e `stageFilter`.
 
 Mapeadores já tratam: `rowToProcess` → `channel: row.channel || ""`, `processToRow` → `channel: p.channel || null`.
 
-A constante `CONTACT_CHANNELS` define os valores disponíveis com label e ícone. O seletor aparece no `OverviewTab` (somente quando `origin === "inbound"`) e no `NewProcessModal`.
+A constante `CONTACT_CHANNELS` define os valores disponíveis com label e ícone. O seletor aparece no `VagaTab` (somente quando `origin === "inbound"`) e no `NewProcessModal`.
 
 ### Tags editáveis inline
 
-`InlineTags` é um componente standalone (definido antes de `OverviewTab`) que recebe `process` e `onUpdate`. Renderiza tags com botão × para remover e input inline para adicionar. Chama `onUpdate` diretamente sem abrir o modo de edição completo.
+`InlineTags` é um componente standalone que recebe `process` e `onUpdate`. Renderiza tags com botão × para remover e input inline para adicionar. Chama `onUpdate` diretamente. Usado no `VagaTab`.
 
 ### Swipe to archive (mobile)
 
@@ -564,12 +562,6 @@ _pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 Nunca use `new URL("...", import.meta.url)` dentro de função assíncrona — o Vite não consegue resolver o padrão em build-time.
 
 O `CVTab` recebe `process`, `profile`, `isMobile`, `resumes` e `onManageResumes`. O fluxo tem 4 etapas: `input` (seleciona CV base + cola JD) → `analyzing` → `review` (checkboxes verde/âmbar) → `result`. A regra de segurança está no system prompt do Claude: tecnologias fora da `stack` do usuário são sinalizadas como "não confirmadas" e só entram no resultado com autorização explícita via checkbox.
-
-### Adicionar quick action no AI tab
-Adicione no array `quickActions` dentro de `AITab`:
-```js
-{ label: "Texto do botão", prompt: `Prompt detalhado...` }
-```
 
 ### Adicionar novo ícone
 Adicione no objeto `P` dentro de `Ic`:
@@ -615,6 +607,11 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | Draft do recruiter em plain text, não JSON | `DRAFT_SYSTEM` explícito retorna só o texto — elimina parse frágil que causava draft vazio em produção |
 | `initialMsg` prop no `RecruiterMessageModal` | Permite pré-preencher a mensagem via `EmptyState` ou qualquer outro ponto de entrada sem estado global extra |
 | `EmptyState` com área de cole inline | Primeira ação do usuário (colar mensagem LinkedIn) está disponível diretamente na tela inicial, sem precisar abrir modal |
+| 3 abas em vez de 5 (Conversa / Vaga / Currículo) | Reduz complexidade cognitiva — Overview + Timeline + Messages + AI colapsados em 2 abas naturais |
+| `ConversaTab` como thread cronológico | Mensagem do recrutador + resposta gerada ficam no mesmo contexto visual — mais natural que abas separadas |
+| `VagaTab` com auto-stage via meeting type | Selecionar o tipo da próxima etapa já atualiza o stage — zero esforço para manter o pipeline sincronizado |
+| Cards sem preview de nota | Menos ruído visual — a nota fica na aba Vaga, não no card da lista |
+| `buildDILUrl` movido para `VagaTab` | Segue o componente que exibe dados da vaga — mais coeso que ficar no OverviewTab removido |
 
 ---
 

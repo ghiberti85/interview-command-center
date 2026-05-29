@@ -142,9 +142,6 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
             </div>
           </div>
         )}
-        {process.nextStepNote && (
-          <div style={{ marginTop:8, fontSize:11, color:"var(--t3)", borderTop:"1px solid var(--border)", paddingTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.nextStepNote}</div>
-        )}
       </div>
     </div>
   );

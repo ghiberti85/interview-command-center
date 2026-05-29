@@ -4,21 +4,17 @@ import Ic from "../ui/Ic.jsx";
 import Badge from "../ui/Badge.jsx";
 import Tabs from "../process/Tabs.jsx";
 import PipelineBar from "../process/PipelineBar.jsx";
-import OverviewTab from "../tabs/OverviewTab.jsx";
-import TimelineTab from "../tabs/TimelineTab.jsx";
-import MessagesTab from "../tabs/MessagesTab.jsx";
-import AITab from "../tabs/AITab.jsx";
+import ConversaTab from "../tabs/ConversaTab.jsx";
+import VagaTab from "../tabs/VagaTab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
 export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, navH: navHProp, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
-  const [tab, setTab] = useState(initialTab || "overview");
-  useEffect(()=>setTab(initialTab || "overview"),[process.id, initialTab]);
+  const [tab, setTab] = useState(initialTab || "conversa");
+  useEffect(()=>setTab(initialTab || "conversa"),[process.id, initialTab]);
 
   const tabs = [
-    { id:"overview",  label:"Overview" },
-    { id:"timeline",  label:"Timeline" },
-    { id:"messages",  label:"Respostas" },
-    { id:"ai",        label:"AI" },
+    { id:"conversa",  label:"Conversa"  },
+    { id:"vaga",      label:"Vaga"      },
     { id:"curriculo", label:"Currículo" },
   ];
   const navH = isMobile ? (navHProp || "calc(56px + env(safe-area-inset-bottom, 0px))") : "0px";
@@ -44,10 +40,8 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, na
         <Tabs tabs={tabs} active={tab} onChange={setTab}/>
       </div>
       <div style={{ flex:1, overflow:"hidden", minHeight:0 }}>
-        {tab==="overview"  && <div style={{ height:"100%", overflowY:"auto", padding:20, paddingBottom:`calc(20px + ${navH})` }}><OverviewTab process={process} onUpdate={onUpdate} onDelete={onDelete}/></div>}
-        {tab==="timeline"  && <div style={{ height:"100%", overflowY:"auto", padding:20, paddingBottom:`calc(20px + ${navH})` }}><TimelineTab process={process} onUpdate={onUpdate}/></div>}
-        {tab==="messages"  && <div style={{ height:"100%" }}><MessagesTab process={process} isMobile={isMobile} navH={navH} autoFocus={initialTab==="messages"} profile={profile} adaptation={adaptation} onUpdate={onUpdate}/></div>}
-        {tab==="ai"        && <div style={{ height:"100%" }}><AITab process={process} isMobile={isMobile} navH={navH}/></div>}
+        {tab==="conversa"  && <div style={{ height:"100%" }}><ConversaTab process={process} isMobile={isMobile} navH={navH} profile={profile} adaptation={adaptation} onUpdate={onUpdate}/></div>}
+        {tab==="vaga"      && <div style={{ height:"100%" }}><VagaTab process={process} onUpdate={onUpdate} onDelete={onDelete} isMobile={isMobile}/></div>}
         {tab==="curriculo" && (
           <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"8px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>

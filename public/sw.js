@@ -1,4 +1,4 @@
-const CACHE_NAME = "icc-v3";
+const CACHE_NAME = "icc-v18";
 const STATIC_ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {

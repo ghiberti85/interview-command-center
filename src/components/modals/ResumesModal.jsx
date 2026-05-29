@@ -103,7 +103,6 @@ export function ResumesModal({ onClose, isMobile, resumes, onAdd, onUpdate, onDe
                   <div style={{ opacity:0.15, display:"flex", justifyContent:"center", marginBottom:12 }}><Ic n="edit" s={36} c="var(--t2)"/></div>
                   <div style={{ fontSize:14, fontWeight:600, color:"var(--t1)", marginBottom:6 }}>Nenhum currículo salvo</div>
                   <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6, marginBottom:16 }}>Faça upload de um PDF ou cole o texto do seu currículo. Salvo no Supabase, disponível em qualquer dispositivo.</div>
-                  <Btn data-testid="btn-add-from-empty" onClick={openNew}><Ic n="plus" s={14} c="#fff"/>Adicionar currículo</Btn>
                 </div>
               ) : (
                 resumes.map(r => (

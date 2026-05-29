@@ -35,7 +35,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Gerador de mensagens IA (LinkedIn / E-mail / WhatsApp) | ✅ |
 | AI Coach para preparação de entrevistas | ✅ |
 | **Aba Currículo** — adapta CV ao JD usando só tecnologias confirmadas, com aprovação por checkbox | ✅ |
-| **Import do ChatGPT** — upload de .zip, filtro por período/projeto, extração por IA, revisão antes de salvar | ✅ |
+| **Importação genérica** — JSON/CSV/PDF/ZIP (ChatGPT)/texto colado, extração por IA ou parse direto | ✅ |
 
 #### Currículos & Perfil
 | Funcionalidade | Status |
@@ -44,6 +44,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | **Armazenamento de múltiplos CVs no Supabase** — tabela `resumes` com RLS | ✅ |
 | **Upload de PDF com extração de texto** — pdfjs-dist lazy-loaded | ✅ |
 | **Gestão de CVs** — modal com listagem, criar, editar, excluir, drag & drop | ✅ |
+| **Upload de PDF no perfil** — aba "CV Completo" do ProfileSetupModal extrai texto automaticamente | ✅ |
 
 #### Infraestrutura & Mobile
 | Funcionalidade | Status |
@@ -56,7 +57,9 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Mobile UX — touch targets 44px, bottom nav 52px, safe area iPhone | ✅ |
 | **PWA** — manifest, service worker, ícones 192/512px, meta tags Apple/Android | ✅ |
 | **Componentização** — App.jsx extraído em hooks, utils, constants, lib e components | ✅ |
-| Suite de testes — 172 testes (unit + component + integration) | ✅ |
+| **Hamburger menu (mobile)** — header limpo com alerta urgência + bottom sheet de ações | ✅ |
+| **Active tab contrast** — aba ativa com roxo sólido + texto branco (desktop, chips, bottom nav) | ✅ |
+| Suite de testes — 230 testes (unit + component + integration) | ✅ |
 | `.env.example` com todas as variáveis documentadas | ✅ |
 
 ### Infraestrutura
@@ -234,13 +237,18 @@ Objetivo: transformar o app em algo que vale compartilhar e, potencialmente, em 
 | Rate limiting persistente na Edge Function (Supabase KV) | 🟡 Média | v1.5 |
 | Lazy import de JSZip (reduzir bundle inicial) | 🟢 Baixa | v1.5 |
 | Extrair `checkRateLimit` → `supabase/functions/.../utils.ts` | 🟢 Baixa | v1.5 |
+| ~~`ImportChatGPTModal` → `ImportModal` genérico~~ | ✅ Concluído | v1.4 |
+| ~~Hamburger menu mobile + bottom sheet~~ | ✅ Concluído | v1.4 |
+| ~~Active tab contrast (solid purple + white)~~ | ✅ Concluído | v1.4 |
+| ~~PDF upload no ProfileSetupModal~~ | ✅ Concluído | v1.4 |
+| ~~`importHelpers.js` (funções puras testáveis)~~ | ✅ Concluído | v1.4 |
 
 ---
 
 ## Linha do tempo
 
 ```
-v1.3 ✅        v1.4 ✅              v1.5                v2.0
+v1.3 ✅        v1.4 ✅              v1.5 (parcial ✅)     v2.0
   │               │                   │                  │
 Em produção   Componentizado      IA Avançada         Plataforma
               UX features         Prep Kit            Calendar
@@ -249,5 +257,17 @@ Em produção   Componentizado      IA Avançada         Plataforma
               buildPrompt         Import por URL      Open source?
               filterProcesses     TypeScript
                                   Testes E2E
-                                  Observabilidade
+                                  UX simplificação ✅
+                                  ConversaTab ✅
+                                  VagaTab ✅
 ```
+
+## UX Simplification — 3-tab flow (v1.5.1) ✅ (concluído)
+
+| Funcionalidade | Status |
+|---|---|
+| 3 abas em vez de 5: Conversa / Vaga / Currículo | ✅ |
+| `ConversaTab` — thread de conversa (recebidas + geradas) substituindo MessagesTab + AITab + TimelineTab | ✅ |
+| `VagaTab` — dados da vaga + próxima etapa com auto-stage + notas, substituindo OverviewTab | ✅ |
+| Cards compactos sem preview de nota | ✅ |
+| Arquivos obsoletos removidos (TimelineTab, AITab, OverviewTab, MessagesTab) | ✅ |

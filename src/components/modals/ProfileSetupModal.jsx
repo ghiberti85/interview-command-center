@@ -1,27 +1,11 @@
 import { useState, useRef } from "react";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
+import { extractTextFromPdf } from "../../lib/ai.js";
+import { supabase } from "../../supabase.js";
 
-async function extractPdfText(file) {
-  let lib;
-  try {
-    lib = await import("pdfjs-dist");
-    lib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-  } catch { throw new Error("Falha ao carregar leitor de PDF."); }
-  const buffer = await file.arrayBuffer();
-  const pdf = await lib.getDocument({ data: buffer }).promise;
-  let text = "";
-  for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map(item => item.str).join(" ") + "\n";
-  }
-  return text.trim();
-}
-
-export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
+export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }) {
   const [stack, setStack] = useState((initial?.stack||[]).join(", "));
   const [summary, setSummary] = useState(initial?.summary||"");
   const [cvText, setCvText] = useState(initial?.cvText||"");
@@ -30,12 +14,18 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
   const [pdfError, setPdfError] = useState("");
   const pdfRef = useRef();
 
+  // Password change state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState(null); // { ok: bool, text: string }
+
   const handlePdf = async (file) => {
     if (!file) return;
     setPdfLoading(true);
     setPdfError("");
     try {
-      const text = await extractPdfText(file);
+      const text = await extractTextFromPdf(file);
       if (!text) throw new Error("Nenhum texto encontrado no PDF.");
       setCvText(text);
     } catch (e) {
@@ -51,20 +41,43 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
     onClose();
   };
 
+  const changePassword = async () => {
+    if (newPassword.length < 6) { setPwdMsg({ ok:false, text:"A senha precisa ter ao menos 6 caracteres." }); return; }
+    if (newPassword !== confirmPassword) { setPwdMsg({ ok:false, text:"As senhas não conferem." }); return; }
+    setPwdLoading(true);
+    setPwdMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPwdMsg({ ok:false, text:"Erro ao atualizar senha. Tente novamente." });
+    } else {
+      setPwdMsg({ ok:true, text:"Senha atualizada com sucesso!" });
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+    setPwdLoading(false);
+  };
+
+  const TABS = [
+    ["stack","Stack"],
+    ["summary","Resumo"],
+    ["cvText","CV"],
+    ...(!isDemo ? [["senha","Senha"]] : []),
+  ];
+
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:isMobile?"flex-end":"center", justifyContent:"center", zIndex:300, backdropFilter:"blur(6px)" }}>
       <div style={{ background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:isMobile?"20px 20px 0 0":16, padding:isMobile?"20px 16px 28px":"28px", width:isMobile?"100%":560, maxHeight:isMobile?"90dvh":"85vh", overflowY:"auto", display:"flex", flexDirection:"column", gap:16 }}>
         {isMobile && <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto -4px" }}/>}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
-            <h3 style={{ margin:0, fontSize:17, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>Seu perfil profissional</h3>
-            <div style={{ fontSize:12, color:"var(--t3)", marginTop:3 }}>Usado para adaptar o currículo com precisão — só será incluído o que estiver aqui</div>
+            <h3 style={{ margin:0, fontSize:17, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>Perfil & preferências</h3>
+            <div style={{ fontSize:12, color:"var(--t3)", marginTop:3 }}>Usado para adaptar o currículo com precisão</div>
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:4, color:"var(--t3)" }}><Ic n="close" s={16} c="var(--t3)"/></button>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}><Ic n="close" s={16} c="var(--t3)"/></button>
         </div>
 
         <div style={{ display:"flex", gap:4, background:"var(--bg-o)", borderRadius:10, padding:4 }}>
-          {[["stack","Stack"],["summary","Resumo"],["cvText","CV Completo"]].map(([id,label])=>(
+          {TABS.map(([id,label])=>(
             <button key={id} onClick={()=>setTab(id)} style={{ flex:1, padding:"7px 10px", borderRadius:7, border:"none", background:tab===id?"var(--bg-r)":"transparent", color:tab===id?"var(--t1)":"var(--t3)", fontSize:12, fontWeight:tab===id?600:400, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.2)":"none" }}>{label}</button>
           ))}
         </div>
@@ -73,7 +86,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             <label style={{ ...T.label }}>Tecnologias e ferramentas (separadas por vírgula ou enter)</label>
             <textarea value={stack} onChange={e=>setStack(e.target.value)} rows={6} placeholder={"React, Next.js, TypeScript, Node.js, Supabase, PostgreSQL,\nREST API, GraphQL, Jest, Cypress, Docker,\nFigma, Storybook, Tailwind CSS, CSS Modules..."} style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
-            <div style={{ fontSize:11, color:"var(--t3)" }}>A IA só mencionará tecnologias desta lista ao adaptar o currículo. Itens fora da lista serão sinalizados como "não confirmados" e precisarão da sua autorização.</div>
+            <div style={{ fontSize:11, color:"var(--t3)" }}>A IA só mencionará tecnologias desta lista ao adaptar o currículo.</div>
           </div>
         )}
 
@@ -86,7 +99,6 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
 
         {tab==="cvText" && (
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {/* PDF upload area */}
             <div
               onClick={()=>pdfRef.current?.click()}
               onDragOver={e=>e.preventDefault()}
@@ -109,20 +121,60 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial }) {
               </div>
               <input ref={pdfRef} type="file" accept=".pdf" style={{ display:"none" }} onChange={e=>handlePdf(e.target.files[0])}/>
             </div>
-
             {pdfError && (
               <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", fontSize:12, color:"var(--red)" }}>{pdfError}</div>
             )}
-
             <label style={{ ...T.label }}>CV completo (ou cole manualmente)</label>
             <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={12} placeholder="Cole aqui o texto do seu currículo atual, ou importe um PDF acima. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
           </div>
         )}
 
-        <div style={{ display:"flex", gap:8, paddingTop:4 }}>
-          <Btn onClick={save} full>Salvar perfil</Btn>
-          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        </div>
+        {tab==="senha" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>Defina ou altere a senha da sua conta.</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              <label style={{ ...T.label }}>Nova senha</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e=>{ setNewPassword(e.target.value); setPwdMsg(null); }}
+                placeholder="Mínimo 6 caracteres"
+                style={{ ...T.input }}
+              />
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              <label style={{ ...T.label }}>Confirmar nova senha</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e=>{ setConfirmPassword(e.target.value); setPwdMsg(null); }}
+                placeholder="Repita a nova senha"
+                style={{ ...T.input }}
+              />
+            </div>
+            {pwdMsg && (
+              <div style={{ padding:"8px 12px", borderRadius:8, fontSize:12,
+                background: pwdMsg.ok ? "rgba(34,198,122,0.08)" : "rgba(255,106,106,0.08)",
+                border: `1px solid ${pwdMsg.ok ? "rgba(34,198,122,0.25)" : "rgba(255,106,106,0.25)"}`,
+                color: pwdMsg.ok ? "var(--grn)" : "var(--red)" }}>
+                {pwdMsg.text}
+              </div>
+            )}
+            <Btn onClick={changePassword} disabled={pwdLoading || !newPassword} full>
+              {pwdLoading ? "Salvando..." : "Atualizar senha"}
+            </Btn>
+          </div>
+        )}
+
+        {tab !== "senha" && (
+          <div style={{ display:"flex", gap:8, paddingTop:4 }}>
+            <Btn onClick={save} full>Salvar perfil</Btn>
+            <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          </div>
+        )}
+        {tab === "senha" && (
+          <Btn variant="ghost" onClick={onClose} full>Fechar</Btn>
+        )}
       </div>
     </div>
   );

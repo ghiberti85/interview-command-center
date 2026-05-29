@@ -1017,6 +1017,56 @@ Bucket `cv-files` criado no Storage com políticas por `user_id`.
 
 ---
 
+## Adições v1.5.1 — UX Simplification (3-tab flow)
+
+### Componentes removidos (testes obsoletos)
+
+Os seguintes arquivos foram deletados e seus testes se tornam obsoletos:
+- `src/components/tabs/MessagesTab.jsx` → removido
+- `src/components/tabs/AITab.jsx` → removido
+- `src/components/tabs/OverviewTab.jsx` → removido
+- `src/components/tabs/TimelineTab.jsx` → removido
+
+Arquivos de teste existentes que referenciam estes componentes devem ser:
+- `src/__tests__/components/OverviewTab.test.jsx` — renomear/reescrever para `VagaTab.test.jsx`
+- `src/__tests__/components/TimelineTab.test.jsx` — remover (funcionalidade eliminada)
+- `src/__tests__/integration/ai-calls.test.jsx` — atualizar para referenciar `ConversaTab`
+
+### Novos cenários a cobrir
+
+#### `ConversaTab` — `src/__tests__/components/ConversaTab.test.jsx`
+```
+Thread vazia → placeholder "Nenhuma mensagem ainda" visível
+sentMessages preenchido → composeOpen=false por padrão
+sentMessages vazio → composeOpen=true por padrão
+Entrada com recruiterMsg → bubble da esquerda visível
+Entrada sem recruiterMsg → apenas bubble direita
+Botão "Copiar" → clipboard.writeText chamado com body
+Botão "Salvar" → onUpdate chamado com sentMessages atualizado
+callAI retorna JSON → bubble aparece no thread
+callAI retorna erro → bubble de erro aparece
+"Nova mensagem do recrutador" → abre compose
+```
+
+#### `VagaTab` — `src/__tests__/components/VagaTab.test.jsx`
+```
+Renderiza company, role, location, salary
+Campo editável: clicar company → input aparece, blur → onUpdate chamado
+Data de próxima etapa + diff ≤2 → badge URGENTE visível
+Data de próxima etapa + diff ≤7 → badge EM BREVE visível
+Tipo "entrevista" selecionado → onUpdate com stage="interview"
+Tipo "proposta" → onUpdate com stage="offer"
+Tipo "outro" → stage não muda
+Link da vaga "https://..." → link "Abrir vaga" visível
+Link "javascript:..." → link NÃO renderizado
+notes com prefixo "Mensagem original:" → mostra contextMsg separado
+Botão "Excluir processo" → onDelete chamado
+```
+
+**Suite atual:** 251 testes, 17 arquivos (alguns quebrarão até serem atualizados com novos caminhos).
+
+---
+
 ## Adições v1.5 — Mobile UX e correção de geração de mensagens
 
 ### Correções implementadas (sem novos arquivos de teste)

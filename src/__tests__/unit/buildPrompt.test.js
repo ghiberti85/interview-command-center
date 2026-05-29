@@ -27,7 +27,8 @@ describe("buildPrompt — canais", () => {
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain('{"subject":"assunto","body":"corpo completo"}');
+    expect(prompt).toContain('"subject"');
+    expect(prompt).toContain('"body"');
   });
 
   it("canal whatsapp gera JSON {body}", () => {
@@ -47,7 +48,7 @@ describe("buildPrompt — origem", () => {
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain("Fernando foi contactado pelo recrutador");
+    expect(prompt).toContain("contactado por um recrutador");
   });
 
   it("origin outbound menciona candidatura ativa", () => {
@@ -56,7 +57,7 @@ describe("buildPrompt — origem", () => {
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain("Fernando se candidatou ativamente");
+    expect(prompt).toContain("candidatou ativamente");
   });
 });
 
@@ -100,13 +101,13 @@ describe("buildPrompt — conteúdo geral", () => {
     expect(prompt).toContain("Tenho preferência por remoto");
   });
 
-  it("instrui para responder em português", () => {
+  it("instrui para responder no idioma da mensagem do recrutador", () => {
     const prompt = buildPrompt({
       process: baseProcess, channel: "linkedin",
       scenario: "reply_recruiter", scenLabel: "Responder contato inicial",
       recruiterMsg: "", extra: "",
     });
-    expect(prompt).toContain("Em português");
+    expect(prompt).toContain("mesmo idioma da mensagem do recrutador");
   });
 
   it("proíbe mencionar IA", () => {

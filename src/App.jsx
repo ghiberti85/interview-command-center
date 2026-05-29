@@ -31,12 +31,10 @@ import ProcessDetail from "./components/layout/ProcessDetail.jsx";
 import LoginScreen from "./components/auth/LoginScreen.jsx";
 
 // Modals
-import NewProcessModal from "./components/modals/NewProcessModal.jsx";
 import SetPasswordModal from "./components/modals/SetPasswordModal.jsx";
 import ProfileSetupModal from "./components/modals/ProfileSetupModal.jsx";
 import ResumesModal from "./components/modals/ResumesModal.jsx";
-import ImportModal from "./components/modals/ImportModal.jsx";
-import { RecruiterMessageModal } from "./components/modals/RecruiterMessageModal.jsx";
+import NewEntryModal from "./components/modals/NewEntryModal.jsx";
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -51,30 +49,27 @@ function Spinner() {
 // ─── Main App ────────────────────────────────────────────────────────────────
 export default function App() {
   const isMobile = useIsMobile();
+  const isPWA = typeof window !== "undefined" && (window.matchMedia("(display-mode: standalone)").matches || !!window.navigator.standalone);
   const { dark, toggle: toggleTheme } = useTheme();
   const { session, isRecovery, clearRecovery } = useAuth();
   const [isDemo, setIsDemo] = useState(false);
   const [processes, setProcesses] = useState([]);
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState("pipeline");
-  const [showNew, setShowNew] = useState(false);
+  const [showNewEntry, setShowNewEntry] = useState(false);
+  const [newEntryInitialMsg, setNewEntryInitialMsg] = useState("");
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [sortBy, setSortBy] = useState("urgencia");
   const [mobileScreen, setMobileScreen] = useState("list");
-  const [mobileDetailTab, setMobileDetailTab] = useState("overview");
+  const [mobileDetailTab, setMobileDetailTab] = useState("conversa");
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
   const [showSetPassword, setShowSetPassword] = useState(false);
-  const { profile, saveProfile } = useUserProfile();
+  const { profile, saveProfile } = useUserProfile(session);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showImport, setShowImport] = useState(false);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);
-  const [showRecruiterModal, setShowRecruiterModal] = useState(false);
-  const [recruiterInitialMsg, setRecruiterInitialMsg] = useState("");
-  const [showNewMenu, setShowNewMenu] = useState(false);
-  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const { resumes, loading: resumesLoading, add: addResume, update: updateResume, remove: removeResume } = useResumes(session);
   const { adaptation, save: saveAdaptation, refetch: refetchAdaptation } = useCVAdaptations(session, selected?.id);
 
@@ -85,6 +80,16 @@ export default function App() {
     document.body.style.background = vars["--bg"];
     document.body.style.color = vars["--t1"];
   }, [dark]);
+
+  // --sab (safe-area-bottom): only use env() in PWA standalone mode.
+  // viewport-fit=cover makes env(safe-area-inset-bottom) return ~34px even
+  // in the browser, where the OS chrome already handles the home indicator.
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sab",
+      isPWA ? "env(safe-area-inset-bottom, 0px)" : "0px"
+    );
+  }, [isPWA]);
 
   // Load processes
   useEffect(() => {
@@ -149,55 +154,24 @@ export default function App() {
     }
   }, [isMobile, session]);
 
-  const importProcesses = useCallback(async (newProcesses) => {
-    if (isDemo || !newProcesses.length) return;
-    const rows = newProcesses.map(p => ({ ...processToRow(p), user_id: session?.user?.id }));
-    const { error } = await supabase.from("processes").insert(rows);
-    if (!error) setProcesses(prev => [...newProcesses, ...prev]);
-  }, [session, isDemo]);
-
-  const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
+const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   const archived = processes.filter(p=>["rejected","archived"].includes(p.stage));
   const listSrc = view==="archived" ? archived : active;
   const filtered = sortProcesses(filterProcesses(listSrc, search, stageFilter), sortBy);
   const urgent = active.filter(p=>{ const d=daysDiff(p.nextStepDate); return d!==null&&d>=0&&d<=2; }).length;
 
-  const [emptyPasteMsg, setEmptyPasteMsg] = useState("");
-
-  const openRecruiterWithMsg = (m) => {
-    setRecruiterInitialMsg(m || "");
-    setShowRecruiterModal(true);
-  };
-
   const EmptyState = () => (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:20, padding:"40px 32px", maxWidth:460, margin:"0 auto" }}>
-      <div style={{ width:52, height:52, borderRadius:14, background:"rgba(10,102,194,0.1)", border:"1px solid rgba(10,102,194,0.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <Ic n="linkedin" s={22} c="#0A66C2"/>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:16, padding:"48px 32px", maxWidth:400, margin:"0 auto", textAlign:"center" }}>
+      <div style={{ width:52, height:52, borderRadius:14, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <Ic n="pipeline" s={22} c="var(--acc)"/>
       </div>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Cole uma mensagem do LinkedIn</div>
-        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>A IA extrai empresa, cargo e stack — e gera uma resposta pronta para copiar.</div>
+      <div>
+        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Nenhum processo ainda</div>
+        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>Adicione um processo novo para começar a organizar sua busca.</div>
       </div>
-      <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
-        <textarea
-          value={emptyPasteMsg}
-          onChange={e=>setEmptyPasteMsg(e.target.value)}
-          onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"&&emptyPasteMsg.trim()) openRecruiterWithMsg(emptyPasteMsg); }}
-          placeholder="Cole a mensagem aqui…"
-          style={{ ...T.input, resize:"none", height:110, lineHeight:1.65, fontSize:13 }}
-        />
-        <Btn variant="primary" full onClick={()=>openRecruiterWithMsg(emptyPasteMsg)} disabled={!emptyPasteMsg.trim()}>
-          <Ic n="ai" s={14} c="#fff"/> Analisar mensagem
-        </Btn>
-      </div>
-      <div style={{ display:"flex", alignItems:"center", gap:8, width:"100%" }}>
-        <div style={{ flex:1, height:1, background:"var(--border)" }}/>
-        <span style={{ fontSize:11, color:"var(--t4)", fontFamily:"'JetBrains Mono',monospace" }}>ou</span>
-        <div style={{ flex:1, height:1, background:"var(--border)" }}/>
-      </div>
-      <button onClick={()=>setShowNew(true)} style={{ color:"var(--t3)", fontSize:13, fontFamily:"'Outfit',sans-serif", background:"none", border:"1px solid var(--border)", borderRadius:8, cursor:"pointer", padding:"8px 16px" }}>
-        Adicionar manualmente
-      </button>
+      <Btn variant="primary" onClick={()=>setShowNewEntry(true)}>
+        <Ic n="plus" s={14} c="#fff"/> Adicionar processo
+      </Btn>
     </div>
   );
 
@@ -255,34 +229,10 @@ export default function App() {
               <div style={{ fontWeight:800, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
               <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)", marginTop:1 }}>Command Center</div>
             </div>
-            <div style={{ display:"flex", gap:2, position:"relative" }}>
+            <div style={{ display:"flex", gap:2 }}>
               <button className="icon-btn" onClick={toggleTheme} style={iconBtn()} title="Alternar tema" aria-label="Alternar tema">
                 <Ic n={dark?"sun":"moon"} s={15} c="var(--t3)"/>
               </button>
-              <button className="icon-btn" onClick={()=>setShowHeaderMenu(v=>!v)} style={iconBtn()} title="Mais opções" aria-label="Mais opções">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="2.5" r="1.5" fill="var(--t3)"/><circle cx="7" cy="7" r="1.5" fill="var(--t3)"/><circle cx="7" cy="11.5" r="1.5" fill="var(--t3)"/></svg>
-              </button>
-              {showHeaderMenu && (
-                <>
-                  <div onClick={()=>setShowHeaderMenu(false)} style={{ position:"fixed", inset:0, zIndex:50 }}/>
-                  <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:12, overflow:"hidden", zIndex:60, boxShadow:"0 8px 24px rgba(0,0,0,0.25)", minWidth:190 }}>
-                    {[
-                      { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setShowHeaderMenu(false); }, hidden: isDemo },
-                      { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setShowHeaderMenu(false); } },
-                      { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setShowHeaderMenu(false); } },
-                      { label:"Definir senha", icon:"edit", action:()=>{ setShowSetPassword(true); setShowHeaderMenu(false); }, hidden: isDemo },
-                    ].filter(x=>!x.hidden).map((item,i)=>(
-                      <button key={i} onClick={item.action}
-                        style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"none", border:"none", cursor:"pointer", color:"var(--t1)", fontSize:12, fontFamily:"'Outfit',sans-serif", textAlign:"left", borderBottom:i<2?"1px solid var(--border)":"none" }}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="none"}
-                      >
-                        <Ic n={item.icon} s={13} c="var(--t3)"/>{item.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
               <button className="icon-btn" onClick={()=>isDemo?setIsDemo(false):supabase.auth.signOut()} style={iconBtn()} title={isDemo?"Sair do demo":"Sair"} aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>
             </div>
           </div>
@@ -297,6 +247,19 @@ export default function App() {
                 <span style={{ flex:1 }}>{n.label}</span>
                 {n.urgentCount>0 && <span style={{ padding:"2px 6px", borderRadius:999, background:"var(--red)", color:"#fff", fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700 }}>{n.urgentCount}</span>}
                 {n.count!=null && <span style={{ padding:"2px 7px", borderRadius:999, background:view===n.id?"rgba(255,255,255,0.15)":"var(--bg-s)", color:view===n.id?"#EFEFEF":"var(--t3)", fontSize:11, fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${view===n.id?"rgba(255,255,255,0.2)":"var(--border)"}` }}>{n.count}</span>}
+              </button>
+            ))}
+            <div style={{ borderTop:"1px solid var(--border)", margin:"4px 0" }}/>
+            {[
+              { label:"Perfil & preferências", icon:"edit",   action:()=>setShowProfileModal(true) },
+              { label:"Gerenciar currículos",   icon:"copy",   action:()=>setShowResumes(true) },
+            ].map((item,i)=>(
+              <button key={i} onClick={item.action} className="nav-btn" style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:9, border:"none", marginBottom:2, background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}
+                onMouseEnter={e=>{ e.currentTarget.style.background="var(--bg-o)"; e.currentTarget.style.color="var(--t2)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="transparent"; e.currentTarget.style.color="var(--t3)"; }}
+              >
+                <Ic n={item.icon} s={14} c="var(--t4)"/>
+                <span>{item.label}</span>
               </button>
             ))}
           </div>
@@ -323,42 +286,10 @@ export default function App() {
               <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}/>
             ))}
           </div>
-          <div style={{ padding:"8px", position:"relative" }}>
-            {showNewMenu && <div onClick={()=>setShowNewMenu(false)} style={{ position:"fixed", inset:0, zIndex:50 }}/>}
-            {showNewMenu && (
-              <div style={{ position:"absolute", bottom:"calc(100% - 4px)", left:8, right:8, background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:12, overflow:"hidden", zIndex:60, boxShadow:"0 -4px 20px rgba(0,0,0,0.2)" }}>
-                <button onClick={()=>{ setShowNew(true); setShowNewMenu(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"none", border:"none", borderBottom:"1px solid var(--border)", cursor:"pointer", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"left" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="none"}
-                >
-                  <div style={{ width:28, height:28, borderRadius:8, background:"var(--acc-d)", border:"1px solid var(--acc-b)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <Ic n="edit" s={13} c="var(--acc)"/>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:13 }}>Manualmente</div>
-                    <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>Preencher campos</div>
-                  </div>
-                </button>
-                <button onClick={()=>{ setShowRecruiterModal(true); setShowNewMenu(false); }}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:"none", border:"none", cursor:"pointer", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", textAlign:"left" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="none"}
-                >
-                  <div style={{ width:28, height:28, borderRadius:8, background:"rgba(10,102,194,0.1)", border:"1px solid rgba(10,102,194,0.25)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <Ic n="linkedin" s={13} c="#0A66C2"/>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:13 }}>De mensagem LinkedIn</div>
-                    <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>IA extrai as informações</div>
-                  </div>
-                </button>
-              </div>
-            )}
-            <button className="nav-btn" onClick={()=>setShowNewMenu(v=>!v)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--acc-b)", background:showNewMenu?"var(--acc-d)":"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
+          <div style={{ padding:"8px" }}>
+            <button className="nav-btn" onClick={()=>setShowNewEntry(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--acc-b)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <Ic n="plus" s={14} c="var(--acc)"/>
               Novo Processo
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ marginLeft:2, transform:showNewMenu?"rotate(180deg)":"none", transition:"transform 0.15s" }}><path d="M2 4l3 3 3-3" stroke="var(--acc)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
         </div>
@@ -377,12 +308,10 @@ export default function App() {
           )}
         </div>
       </div>
-      {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={false}/>}
+      {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile}/>}
-      {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={false} isDemo={isDemo}/>}
+      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
-      {showRecruiterModal && <RecruiterMessageModal initialMsg={recruiterInitialMsg} onClose={()=>{ setShowRecruiterModal(false); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }}/>}
     </>
   );
 
@@ -390,12 +319,12 @@ export default function App() {
   return (
     <>
       <style>{GLOBAL_CSS}</style>
-      <div style={{ display:"flex", flexDirection:"column", height:"100dvh", background:"var(--bg)", overflow:"hidden" }}>
+      <div style={{ position:"fixed", inset:0, display:"flex", flexDirection:"column", background:"var(--bg)", overflow:"hidden" }}>
         {/* Mobile header */}
         <div style={{ paddingTop:"max(12px, env(safe-area-inset-top, 12px))", paddingBottom:"10px", paddingLeft:"16px", paddingRight:"16px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           {mobileScreen==="detail" && view!=="dashboard" ? (
-            <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
-              <Ic n="back" s={16} c="var(--acc)"/>Voltar
+            <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
+              <Ic n="back" s={16} c="var(--acc-text)"/>Voltar
             </button>
           ) : (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -424,19 +353,16 @@ export default function App() {
         {hamburgerOpen && (
           <>
             <div onClick={()=>setHamburgerOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:199, backdropFilter:"blur(2px)" }}/>
-            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", zIndex:200, animation:"slideUp 0.25s ease" }}>
+            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"calc(20px + var(--sab))", zIndex:200, animation:"slideUp 0.25s ease" }}>
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
-                { label:"Novo processo (manual)", icon:"plus", action:()=>{ setShowNew(true); setHamburgerOpen(false); }, accent:true },
-                { label:"De mensagem LinkedIn", icon:"linkedin", action:()=>{ setShowRecruiterModal(true); setHamburgerOpen(false); }, linkedinBlue:true },
-                { label:"Importar processos", icon:"upload", action:()=>{ setShowImport(true); setHamburgerOpen(false); }, hidden: isDemo },
                 { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
                 { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
                 { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setHamburgerOpen(false); } },
                 { label: isDemo?"Sair do modo demo":"Sair da conta", icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
-              ].filter(item=>!item.hidden).map((item,i)=>(
+              ].map((item,i)=>(
 
-                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
+                <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc-text)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--bg-o)"}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                 >
@@ -454,11 +380,11 @@ export default function App() {
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))" }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(56px + var(--sab) + 12px)" }}><MobileDashboard processes={processes}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px))", animation:"slideUp 0.2s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(56px + var(--sab) + 12px)", animation:"slideUp 0.2s ease" }}>
               <div style={{ padding:"12px 16px 8px" }}>
                 <div style={{ position:"relative" }}>
                   <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={14} c="var(--t4)"/></div>
@@ -485,7 +411,7 @@ export default function App() {
                 {filtered.length===0 ? (
                   processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>Nenhum resultado</div>
                 ) : filtered.map(p=>(
-                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("overview");setMobileScreen("detail");}} selected={false} isMobile={true} onSwipeAction={()=>updateProcess({...p,stage:"rejected"})} onQuickReply={()=>{setSelected(p);setMobileDetailTab("messages");setMobileScreen("detail");}}/>
+                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("conversa");setMobileScreen("detail");}} selected={false} isMobile={true} isArchived={view==="archived"} onSwipeAction={view==="archived" ? ()=>deleteProcess(p.id) : ()=>updateProcess({...p,stage:"rejected"})}/>
                 ))}
               </div>
             </div>
@@ -493,22 +419,16 @@ export default function App() {
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} isPWA={isPWA} navH="calc(56px + var(--sab))" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
             </div>
           )}
         </div>
 
-        {view==="pipeline" && mobileScreen==="list" && (
-          <button
-            onClick={()=>{ setRecruiterInitialMsg(""); setShowRecruiterModal(true); }}
-            style={{ position:"fixed", bottom:"calc(70px + min(env(safe-area-inset-bottom,0px),16px) + 12px)", right:16, zIndex:200, width:52, height:52, borderRadius:"50%", background:"#0A66C2", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(10,102,194,0.45)" }}
-            aria-label="Colar mensagem LinkedIn"
-          >
-            <Ic n="linkedin" s={22} c="#fff"/>
+<div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, paddingBottom:"var(--sab)" }}>
+          <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"10px 0 8px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:56, position:"relative" }}>
+            <Ic n="plus" s={19} c="var(--t1)"/>
+            <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>
           </button>
-        )}
-
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom:"min(env(safe-area-inset-bottom,0px),16px)", flexShrink:0 }}>
           {[
             { id:"pipeline", icon:"pipeline", label:"Pipeline" },
             { id:"dashboard", icon:"chart",   label:"Stats"    },
@@ -516,21 +436,19 @@ export default function App() {
           ].map(n=>{
             const on = view===n.id;
             return (
-              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 6px", gap:4, background:"none", border:"none", cursor:"pointer", color:on?"var(--t1)":"var(--t4)", minHeight:52, position:"relative" }}>
-                {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:24, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
-                <Ic n={n.icon} s={22} c={on?"var(--t1)":"var(--t4)"}/>
-                <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", fontWeight:on?600:400, letterSpacing:"0.05em" }}>{n.label}</span>
+              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"10px 0 8px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:56, position:"relative" }}>
+                {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:20, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
+                <Ic n={n.icon} s={19} c="var(--t1)"/>
+                <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>{n.label}</span>
               </button>
             );
           })}
         </div>
       </div>
-      {showNew && <NewProcessModal onClose={()=>setShowNew(false)} onSave={addProcess} isMobile={true}/>}
+      {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile}/>}
-      {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={importProcesses} isMobile={true} isDemo={isDemo}/>}
-      {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
-      {showRecruiterModal && <RecruiterMessageModal initialMsg={recruiterInitialMsg} onClose={()=>{ setShowRecruiterModal(false); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowRecruiterModal(false); setSelected(p); setMobileScreen("detail"); setRecruiterInitialMsg(""); setEmptyPasteMsg(""); }}/>}
+      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo}/>}
+{showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
     </>
   );
 }

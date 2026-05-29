@@ -50,7 +50,7 @@ export function LoginScreen({ onDemo }) {
   const Logo = () => (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:32 }}>
       <div style={{ width:52, height:52, borderRadius:15, background:"var(--acc)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:14 }}>
-        <Ic n="target" s={24} c="#fff"/>
+        <Ic n="pipeline" s={24} c="#fff"/>
       </div>
       <div style={{ fontWeight:800, fontSize:22, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>Interview OS</div>
       <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.08em", textTransform:"uppercase", marginTop:4 }}>Command Center</div>
@@ -68,7 +68,7 @@ export function LoginScreen({ onDemo }) {
       </div>
       <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", marginBottom:8 }}>{title}</div>
       <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.6 }}>{subtitle} <strong style={{ color:"var(--t1)" }}>{email}</strong></div>
-      <button onClick={()=>switchMode("password")} style={{ marginTop:20, background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+      <button onClick={()=>switchMode("password")} style={{ marginTop:20, background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
         Voltar ao login
       </button>
     </div>
@@ -104,7 +104,7 @@ export function LoginScreen({ onDemo }) {
                 {loading ? "Entrando…" : "Entrar"}
               </Btn>
               <div style={{ marginTop:16, textAlign:"center" }}>
-                <button type="button" onClick={()=>switchMode("magic")} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                <button type="button" onClick={()=>switchMode("magic")} style={{ background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
                   Entrar sem senha (link mágico)
                 </button>
               </div>
@@ -124,7 +124,7 @@ export function LoginScreen({ onDemo }) {
                 {loading ? "Enviando…" : <><Ic n="send" s={14} c="#fff"/>Enviar link</>}
               </Btn>
               <div style={{ marginTop:16, textAlign:"center" }}>
-                <button type="button" onClick={()=>switchMode("password")} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                <button type="button" onClick={()=>switchMode("password")} style={{ background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
                   Voltar ao login com senha
                 </button>
               </div>
@@ -144,7 +144,7 @@ export function LoginScreen({ onDemo }) {
                 {loading ? "Enviando…" : <><Ic n="send" s={14} c="#fff"/>Enviar e-mail de recuperação</>}
               </Btn>
               <div style={{ marginTop:16, textAlign:"center" }}>
-                <button type="button" onClick={()=>switchMode("password")} style={{ background:"none", border:"none", color:"var(--acc)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
+                <button type="button" onClick={()=>switchMode("password")} style={{ background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:600 }}>
                   Voltar ao login
                 </button>
               </div>

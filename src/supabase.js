@@ -33,6 +33,7 @@ export function rowToProcess(row) {
     aiContext: row.ai_context || "",
     starred: row.starred || false,
     channel: row.channel || "",
+    sentMessages: row.sent_messages || [],
   };
 }
 
@@ -83,5 +84,6 @@ export function processToRow(p) {
     ai_context: p.aiContext || "",
     starred: p.starred || false,
     channel: p.channel || null,
+    sent_messages: p.sentMessages || [],
   };
 }

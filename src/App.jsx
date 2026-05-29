@@ -66,7 +66,7 @@ export default function App() {
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
   const [showSetPassword, setShowSetPassword] = useState(false);
-  const { profile, saveProfile } = useUserProfile();
+  const { profile, saveProfile } = useUserProfile(session);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [showResumes, setShowResumes] = useState(false);

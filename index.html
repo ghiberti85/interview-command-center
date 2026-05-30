@@ -25,6 +25,11 @@
           navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
             .then(reg => reg.update())
             .catch(() => {});
+
+          // Quando um novo SW ativa, recarrega para pegar o bundle mais recente
+          navigator.serviceWorker.addEventListener("message", (event) => {
+            if (event.data?.type === "SW_UPDATED") window.location.reload();
+          });
         });
       }
     </script>

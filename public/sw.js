@@ -1,4 +1,4 @@
-const CACHE_NAME = "icc-v21";
+const CACHE_NAME = "icc-v22";
 const STATIC_ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -10,15 +10,14 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      .then((clients) => clients.forEach((client) => client.postMessage({ type: "SW_UPDATED" })))
   );
 });
 
-// Força reload em todos os clientes após ativar novo SW
 self.addEventListener("message", (event) => {
   if (event.data === "skipWaiting") self.skipWaiting();
 });

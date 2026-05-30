@@ -211,3 +211,24 @@ Ao encontrar um bug recorrente ou resolver um problema não trivial:
 2. Referencie os arquivos afetados
 3. Inclua a "lição" — o padrão a evitar no futuro
 4. Commit junto com a correção
+
+---
+
+## ERR-011 — Botão "Cancelar" do swipe ainda vermelho após correção com rgba
+
+**Sintoma:** Mesmo após aumentar a opacidade do preto para `rgba(0,0,0,0.55)`, o botão "Cancelar" continuava aparecendo vermelho escuro no dark mode.
+
+**Causa raiz:** Qualquer cor com canal alpha sobre o painel vermelho (`#DC2626`) resulta em uma mistura vermelha. A transparência não é suficiente para mascarar o fundo — só uma cor 100% opaca resolve.
+
+**Solução aplicada:** Cor sólida sem transparência:
+```js
+// ❌ Ainda mistura com o vermelho
+background: "rgba(0,0,0,0.55)"
+
+// ✅ Opaco — sem influência do fundo
+background: "#1a1a1e"
+```
+
+**Regra:** sobre fundos coloridos intensos (vermelho, verde), nunca use cores com alpha para criar contraste — use sempre cor sólida.
+
+**Arquivo:** `src/components/process/ProcessCard.jsx` — botão "Cancelar" no painel de swipe.

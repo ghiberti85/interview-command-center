@@ -8,7 +8,7 @@ import Ic from "../ui/Ic.jsx";
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
 
 const DRAG_THRESHOLD = 100;
-const ACTION_W = 140;
+const ACTION_W = 160;
 
 export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile, isArchived }) {
   const s = STAGE[process.stage] || STAGE.archived;
@@ -84,11 +84,11 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
               <button
                 data-testid="btn-confirm-archive"
                 onClick={handleConfirm}
-                style={{ width:"100%", padding:"10px 0", borderRadius:8, background:"rgba(255,255,255,0.22)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"8px 0", borderRadius:8, background:"rgba(255,255,255,0.22)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
               >{actionLabel}</button>
               <button
                 onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"#1a1a1e", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.6)", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"8px 0", borderRadius:8, background:"#1a1a1e", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.6)", fontSize:12, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
               >Cancelar</button>
             </>
           ) : (

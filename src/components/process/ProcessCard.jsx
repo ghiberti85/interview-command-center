@@ -75,8 +75,10 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
             background: actionColor,
             borderRadius:"0 12px 12px 0",
             display:"flex", flexDirection:"column",
-            alignItems:"center", justifyContent:"center", gap:8,
-            padding:"0 8px",
+            alignItems:"stretch", justifyContent:"center", gap:6,
+            padding:"0 10px",
+            overflow:"hidden",
+            boxSizing:"border-box",
           }}
         >
           {open ? (
@@ -84,11 +86,11 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
               <button
                 data-testid="btn-confirm-archive"
                 onClick={handleConfirm}
-                style={{ width:"100%", padding:"8px 0", borderRadius:8, background:"rgba(255,255,255,0.22)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"rgba(255,255,255,0.22)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer", boxSizing:"border-box" }}
               >{actionLabel}</button>
               <button
                 onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ width:"100%", padding:"8px 0", borderRadius:8, background:"#1a1a1e", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.6)", fontSize:12, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"#1a1a1e", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.6)", fontSize:12, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer", boxSizing:"border-box" }}
               >Cancelar</button>
             </>
           ) : (

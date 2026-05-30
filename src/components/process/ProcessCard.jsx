@@ -88,7 +88,7 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
               >{actionLabel}</button>
               <button
                 onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"rgba(0,0,0,0.25)", border:"1px solid rgba(255,255,255,0.18)", color:"rgba(255,255,255,0.75)", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
+                style={{ width:"100%", padding:"9px 0", borderRadius:8, background:"rgba(0,0,0,0.55)", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(255,255,255,0.65)", fontSize:13, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
               >Cancelar</button>
             </>
           ) : (

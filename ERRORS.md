@@ -26,22 +26,9 @@ document.documentElement.style.setProperty(
 
 ---
 
-## ERR-002 — Botão "Cancelar" do swipe aparecendo vermelho no dark mode
+## ERR-002 — ~~Swipe to archive removido~~ (mecanismo substituído)
 
-**Sintoma:** Ao fazer swipe em um ProcessCard no mobile, o botão "Cancelar" aparecia com fundo vermelho escuro, indistinguível do botão de confirmação.
-
-**Causa raiz:** O painel de fundo do swipe tem `background: "#DC2626"` (vermelho). O botão "Cancelar" usava `background: "rgba(0,0,0,0.25)"` — transparência baixa demais sobre o fundo vermelho resultava em vermelho escuro.
-
-**Solução aplicada:**
-```js
-// Antes
-background: "rgba(0,0,0,0.25)"
-
-// Depois
-background: "rgba(0,0,0,0.55)"
-```
-
-**Arquivo:** `src/components/process/ProcessCard.jsx` — botão "Cancelar" no painel de swipe.
+**Nota:** O mecanismo de swipe para deletar/encerrar foi removido e substituído por **long-press para seleção múltipla**. Os erros ERR-002 e ERR-011 (relacionados ao painel de swipe) não são mais relevantes — o código correspondente não existe mais.
 
 ---
 
@@ -242,21 +229,4 @@ Ao encontrar um bug recorrente ou resolver um problema não trivial:
 
 ---
 
-## ERR-011 — Botão "Cancelar" do swipe ainda vermelho após correção com rgba
-
-**Sintoma:** Mesmo após aumentar a opacidade do preto para `rgba(0,0,0,0.55)`, o botão "Cancelar" continuava aparecendo vermelho escuro no dark mode.
-
-**Causa raiz:** Qualquer cor com canal alpha sobre o painel vermelho (`#DC2626`) resulta em uma mistura vermelha. A transparência não é suficiente para mascarar o fundo — só uma cor 100% opaca resolve.
-
-**Solução aplicada:** Cor sólida sem transparência:
-```js
-// ❌ Ainda mistura com o vermelho
-background: "rgba(0,0,0,0.55)"
-
-// ✅ Opaco — sem influência do fundo
-background: "#1a1a1e"
-```
-
-**Regra:** sobre fundos coloridos intensos (vermelho, verde), nunca use cores com alpha para criar contraste — use sempre cor sólida.
-
-**Arquivo:** `src/components/process/ProcessCard.jsx` — botão "Cancelar" no painel de swipe.
+## ERR-011 — ~~Swipe removido~~ (ver ERR-002)

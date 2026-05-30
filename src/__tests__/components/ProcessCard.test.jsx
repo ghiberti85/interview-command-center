@@ -1,45 +1,27 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import ProcessCard from "../../components/process/ProcessCard.jsx";
 
-// Mock supabase to avoid import side effects
 vi.mock("../../supabase.js", () => ({
   supabase: { auth: { getSession: vi.fn() } },
   rowToProcess: (r) => r,
   processToRow: (p) => p,
 }));
 
-// Mock Ic to expose data-testid for icon name assertions
 vi.mock("../../components/ui/Ic.jsx", () => ({
   default: ({ n, s = 16 }) => <svg data-testid={`icon-${n}`} width={s} height={s} />,
 }));
 
-// Helper to simulate touch swipe
-function fireTouchSwipe(element, deltaX) {
-  const startX = 200;
-  fireEvent.touchStart(element, { touches: [{ clientX: startX }] });
-  fireEvent.touchMove(element, { touches: [{ clientX: startX - deltaX }] });
-  fireEvent.touchEnd(element, { changedTouches: [{ clientX: startX - deltaX }] });
-}
+const baseProcess = { company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null };
 
 describe("ProcessCard — channel icon", () => {
   it("channel='linkedin' → ícone linkedin visível", () => {
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "linkedin", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={false}
-      />
-    );
+    render(<ProcessCard process={{ ...baseProcess, channel: "linkedin" }} isMobile={false} />);
     expect(screen.getByTestId("icon-linkedin")).toBeDefined();
   });
 
   it("channel='' → sem ícone de canal", () => {
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={false}
-      />
-    );
+    render(<ProcessCard process={baseProcess} isMobile={false} />);
     expect(screen.queryByTestId("icon-linkedin")).toBeNull();
     expect(screen.queryByTestId("icon-email")).toBeNull();
     expect(screen.queryByTestId("icon-whatsapp")).toBeNull();
@@ -47,69 +29,65 @@ describe("ProcessCard — channel icon", () => {
   });
 
   it("channel='whatsapp' → ícone whatsapp visível", () => {
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "whatsapp", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={false}
-      />
-    );
+    render(<ProcessCard process={{ ...baseProcess, channel: "whatsapp" }} isMobile={false} />);
     expect(screen.getByTestId("icon-whatsapp")).toBeDefined();
   });
 });
 
-describe("ProcessCard — swipe to archive", () => {
-  it("swipe left 160px → mostra confirmação, NÃO aciona diretamente", () => {
-    const onSwipeAction = vi.fn();
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={true}
-        onSwipeAction={onSwipeAction}
-      />
-    );
-    fireTouchSwipe(screen.getByTestId("process-card"), 160);
-    expect(onSwipeAction).not.toHaveBeenCalled();
-    expect(screen.getByTestId("btn-confirm-archive")).toBeDefined();
+describe("ProcessCard — long press to select", () => {
+  it("long press 500ms → onLongPress chamado", async () => {
+    vi.useFakeTimers();
+    const onLongPress = vi.fn();
+    render(<ProcessCard process={baseProcess} isMobile={true} onLongPress={onLongPress} onClick={vi.fn()} />);
+    fireEvent.touchStart(screen.getByTestId("process-card"));
+    expect(onLongPress).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(onLongPress).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
-  it("swipe 160px + clicar Confirmar → onSwipeAction chamado", () => {
-    const onSwipeAction = vi.fn();
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={true}
-        onSwipeAction={onSwipeAction}
-      />
-    );
-    fireTouchSwipe(screen.getByTestId("process-card"), 160);
-    fireEvent.click(screen.getByTestId("btn-confirm-archive"));
-    expect(onSwipeAction).toHaveBeenCalledTimes(1);
+  it("touch curto → onLongPress não chamado, onClick chamado", async () => {
+    vi.useFakeTimers();
+    const onLongPress = vi.fn();
+    const onClick = vi.fn();
+    render(<ProcessCard process={baseProcess} isMobile={true} onLongPress={onLongPress} onClick={onClick} />);
+    fireEvent.touchStart(screen.getByTestId("process-card"));
+    act(() => { vi.advanceTimersByTime(100); });
+    fireEvent.touchEnd(screen.getByTestId("process-card"));
+    fireEvent.click(screen.getByTestId("process-card"));
+    expect(onLongPress).not.toHaveBeenCalled();
+    expect(onClick).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
-  it("swipe left 50px → snap back, sem confirmação", () => {
-    const onSwipeAction = vi.fn();
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={true}
-        onSwipeAction={onSwipeAction}
-      />
-    );
-    fireTouchSwipe(screen.getByTestId("process-card"), 50);
-    expect(onSwipeAction).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("btn-confirm-archive")).toBeNull();
+  it("move durante touch → cancela long press", () => {
+    vi.useFakeTimers();
+    const onLongPress = vi.fn();
+    render(<ProcessCard process={baseProcess} isMobile={true} onLongPress={onLongPress} onClick={vi.fn()} />);
+    fireEvent.touchStart(screen.getByTestId("process-card"));
+    fireEvent.touchMove(screen.getByTestId("process-card"));
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(onLongPress).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
-  it("sem isMobile → swipe não ativa nada", () => {
-    const onSwipeAction = vi.fn();
-    render(
-      <ProcessCard
-        process={{ company: "Nubank", channel: "", tags: [], starred: false, stage: "contacted", nextStepDate: null }}
-        isMobile={false}
-        onSwipeAction={onSwipeAction}
-      />
-    );
-    fireTouchSwipe(screen.getByTestId("process-card"), 160);
-    expect(onSwipeAction).not.toHaveBeenCalled();
+  it("selectionMode=true + isSelected=true → checkbox visível com check", () => {
+    render(<ProcessCard process={baseProcess} isMobile={true} selectionMode={true} isSelected={true} onClick={vi.fn()} />);
+    expect(screen.getByTestId("icon-check")).toBeDefined();
+  });
+
+  it("selectionMode=true + isSelected=false → checkbox visível sem check", () => {
+    render(<ProcessCard process={baseProcess} isMobile={true} selectionMode={true} isSelected={false} onClick={vi.fn()} />);
+    expect(screen.queryByTestId("icon-check")).toBeNull();
+  });
+
+  it("sem isMobile → onLongPress nunca chamado mesmo após 500ms", () => {
+    vi.useFakeTimers();
+    const onLongPress = vi.fn();
+    render(<ProcessCard process={baseProcess} isMobile={false} onLongPress={onLongPress} onClick={vi.fn()} />);
+    fireEvent.touchStart(screen.getByTestId("process-card"));
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(onLongPress).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });

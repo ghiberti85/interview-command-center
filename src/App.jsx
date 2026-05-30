@@ -63,6 +63,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState("urgencia");
   const [mobileScreen, setMobileScreen] = useState("list");
   const [mobileDetailTab, setMobileDetailTab] = useState("conversa");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);
   const [dbError, setDbError] = useState(null);
   const [showSetPassword, setShowSetPassword] = useState(false);
@@ -126,15 +128,16 @@ export default function App() {
     if (!isDemo) await supabase.from("processes").upsert({ ...processToRow(updated), user_id: session?.user?.id });
   }, [isDemo, session]);
 
-  const deleteProcess = useCallback(async () => {
-    if (!selected) return;
-    if (!isDemo) await supabase.from("processes").delete().eq("id", selected.id);
+  const deleteProcess = useCallback(async (id) => {
+    const targetId = id || selected?.id;
+    if (!targetId) return;
+    if (!isDemo) await supabase.from("processes").delete().eq("id", targetId);
     setProcesses(prev => {
-      const next = prev.filter(p => p.id !== selected.id);
-      setSelected(next[0] || null);
+      const next = prev.filter(p => p.id !== targetId);
+      if (!id) setSelected(next[0] || null); // só reposiciona selected quando deleta o atual
       return next;
     });
-    if (isMobile) setMobileScreen("list");
+    if (!id && isMobile) setMobileScreen("list");
   }, [selected, isMobile, isDemo]);
 
   const addProcess = useCallback(async (p) => {
@@ -412,7 +415,25 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
                 {filtered.length===0 ? (
                   processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>Nenhum resultado</div>
                 ) : filtered.map(p=>(
-                  <ProcessCard key={p.id} process={p} onClick={()=>{setSelected(p);setMobileDetailTab("conversa");setMobileScreen("detail");}} selected={false} isMobile={true} isArchived={view==="archived"} onSwipeAction={view==="archived" ? ()=>deleteProcess(p.id) : ()=>updateProcess({...p,stage:"rejected"})}/>
+                  <ProcessCard
+                    key={p.id}
+                    process={p}
+                    selected={false}
+                    isMobile={true}
+                    selectionMode={selectionMode}
+                    isSelected={selectedIds.includes(p.id)}
+                    onLongPress={()=>{
+                      setSelectionMode(true);
+                      setSelectedIds(ids => ids.includes(p.id) ? ids : [...ids, p.id]);
+                    }}
+                    onClick={()=>{
+                      if (selectionMode) {
+                        setSelectedIds(ids => ids.includes(p.id) ? ids.filter(id=>id!==p.id) : [...ids, p.id]);
+                      } else {
+                        setSelected(p); setMobileDetailTab("conversa"); setMobileScreen("detail");
+                      }
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -425,7 +446,30 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           )}
         </div>
 
-<div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, paddingBottom:"var(--sab)" }}>
+      {/* Selection mode bar */}
+      {selectionMode && (
+        <div style={{ position:"fixed", bottom:"calc(56px + var(--sab))", left:0, right:0, zIndex:200, background:"var(--bg-r)", borderTop:"1px solid var(--border-md)", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+          <span style={{ fontSize:13, color:"var(--t2)", fontFamily:"'Outfit',sans-serif" }}>
+            {selectedIds.length === 0 ? "Segure para selecionar" : `${selectedIds.length} selecionado${selectedIds.length>1?"s":""}`}
+          </span>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={()=>{ setSelectionMode(false); setSelectedIds([]); }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>Cancelar</button>
+            {selectedIds.length > 0 && (
+              <button onClick={()=>{
+                if (window.confirm(`Deletar ${selectedIds.length} processo${selectedIds.length>1?"s":""}? Esta ação não pode ser desfeita.`)) {
+                  selectedIds.forEach(id => deleteProcess(id));
+                  setSelectionMode(false);
+                  setSelectedIds([]);
+                }
+              }} style={{ padding:"7px 14px", borderRadius:8, border:"none", background:"var(--red, #FF6A6A)", color:"#fff", fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
+                Deletar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, paddingBottom:"var(--sab)" }}>
           <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"10px 0 8px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:56, position:"relative" }}>
             <Ic n="plus" s={19} c="var(--t1)"/>
             <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>

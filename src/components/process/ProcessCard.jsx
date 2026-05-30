@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
@@ -6,119 +6,71 @@ import Badge from "../ui/Badge.jsx";
 import Ic from "../ui/Ic.jsx";
 
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
+const LONG_PRESS_MS = 500;
 
-const DRAG_THRESHOLD = 100;
-const ACTION_W = 160;
-
-export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobile, isArchived }) {
+export function ProcessCard({ process, onClick, selected, isMobile, selectionMode, isSelected, onLongPress }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
-  const touchStartX = useRef(null);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [open, setOpen] = useState(false);
+  const longPressTimer = useRef(null);
+  const didLongPress = useRef(false);
 
-  const reset = () => { setSwipeOffset(0); setOpen(false); };
+  const handleTouchStart = () => {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      onLongPress?.();
+    }, LONG_PRESS_MS);
+  };
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const handleTouchMove = (e) => {
-    if (touchStartX.current === null) return;
-    const dx = touchStartX.current - e.touches[0].clientX;
-    if (open) {
-      // swiping right closes: offset goes from ACTION_W down toward 0
-      const offset = ACTION_W - Math.max(0, -dx);
-      setSwipeOffset(Math.max(0, offset));
-    } else if (dx > 0) {
-      setSwipeOffset(Math.min(dx, ACTION_W + 20));
-    }
-  };
   const handleTouchEnd = () => {
-    if (open) {
-      if (swipeOffset < ACTION_W * 0.6) {
-        reset();
-      } else {
-        setSwipeOffset(ACTION_W);
-      }
-    } else if (swipeOffset >= DRAG_THRESHOLD) {
-      setOpen(true);
-      setSwipeOffset(ACTION_W);
-    } else {
-      setSwipeOffset(0);
-    }
-    touchStartX.current = null;
+    clearTimeout(longPressTimer.current);
   };
 
-  const handleConfirm = (e) => {
-    e.stopPropagation();
-    reset();
-    onSwipeAction();
+  const handleClick = () => {
+    if (didLongPress.current) return;
+    onClick();
   };
-
-  const actionColor = isArchived ? "#991B1B" : "#DC2626";
-  const actionLabel = isArchived ? "Deletar" : "Encerrar";
-  const actionIcon = isArchived ? "trash" : "close";
 
   return (
     <div
       data-testid="card-wrapper"
-      style={{ position:"relative", marginBottom:6, borderRadius:12, overflow:"hidden" }}
+      style={{ position:"relative", marginBottom:6 }}
     >
-      {/* Action panel — clipped by wrapper's overflow:hidden */}
-      {isMobile && onSwipeAction && (
-        <div
-          data-testid="swipe-bg"
-          style={{
-            position:"absolute", top:0, bottom:0, right:0,
-            width: ACTION_W,
-            background: actionColor,
-            display:"flex", flexDirection:"column",
-            alignItems:"stretch", justifyContent:"center", gap:6,
-            padding:"0 10px",
-          }}
-        >
-          {open ? (
-            <>
-              <button
-                data-testid="btn-confirm-archive"
-                onClick={handleConfirm}
-                style={{ padding:"9px 0", borderRadius:7, background:"rgba(255,255,255,0.22)", border:"1px solid rgba(255,255,255,0.35)", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
-              >{actionLabel}</button>
-              <button
-                onClick={e=>{ e.stopPropagation(); reset(); }}
-                style={{ padding:"9px 0", borderRadius:7, background:"#1a1a1e", border:"1px solid rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.6)", fontSize:12, fontWeight:600, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}
-              >Cancelar</button>
-            </>
-          ) : (
-            <>
-              <Ic n={actionIcon} s={20} c="#fff"/>
-              <span style={{ fontSize:10, color:"rgba(255,255,255,0.85)", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"0.06em", textTransform:"uppercase" }}>{actionLabel}</span>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Card */}
       <div
         data-testid="process-card"
         className="process-card"
-        onClick={() => { if (open) { reset(); return; } onClick(); }}
-        onTouchStart={isMobile && onSwipeAction ? handleTouchStart : undefined}
-        onTouchMove={isMobile && onSwipeAction ? handleTouchMove : undefined}
-        onTouchEnd={isMobile && onSwipeAction ? handleTouchEnd : undefined}
+        onClick={handleClick}
+        onTouchStart={isMobile ? handleTouchStart : undefined}
+        onTouchEnd={isMobile ? handleTouchEnd : undefined}
+        onTouchMove={isMobile ? () => clearTimeout(longPressTimer.current) : undefined}
         style={{
           background:"var(--bg-r)",
-          border:`1.5px solid ${selected ? "var(--acc-b)" : "var(--border)"}`,
-          borderLeft:`3px solid ${s.bar}`,
+          border:`1.5px solid ${isSelected ? "var(--red-b, #7f1d1d)" : selected ? "var(--acc-b)" : "var(--border)"}`,
+          borderLeft:`3px solid ${isSelected ? "var(--red, #FF6A6A)" : s.bar}`,
           borderRadius:12,
           padding:"12px 14px", cursor:"pointer",
-          transform:`translateX(-${swipeOffset}px)`,
-          transition: swipeOffset === 0 || open ? "transform 0.25s ease" : "none",
+          transition:"border 0.15s, background 0.15s",
+          background: isSelected ? "var(--red-d, rgba(255,106,106,0.08))" : "var(--bg-r)",
           position:"relative",
+          userSelect:"none",
+          WebkitUserSelect:"none",
         }}
       >
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+          {/* Checkbox in selection mode */}
+          {selectionMode && (
+            <div style={{
+              width:20, height:20, borderRadius:6, flexShrink:0, marginRight:2, marginTop:1,
+              border:`2px solid ${isSelected ? "var(--red, #FF6A6A)" : "var(--border-md)"}`,
+              background: isSelected ? "var(--red, #FF6A6A)" : "transparent",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              transition:"all 0.15s",
+            }}>
+              {isSelected && <Ic n="check" s={11} c="#fff"/>}
+            </div>
+          )}
+
           <div style={{ minWidth:0, flex:1 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <span data-testid="company" style={{ fontWeight:700, fontSize:14, color:"var(--t1)", letterSpacing:"-0.02em", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{process.company}</span>

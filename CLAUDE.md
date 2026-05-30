@@ -101,7 +101,7 @@ src/
 │   │   ├── Btn.jsx            # Botão com variantes (primary/secondary/ghost/danger)
 │   │   └── Badge.jsx          # Badge de stage colorido
 │   ├── process/               # Elementos de processo seletivo
-│   │   ├── ProcessCard.jsx    # Card na lista (com swipe to archive no mobile)
+│   │   ├── ProcessCard.jsx    # Card na lista (com long-press para seleção e deleção no mobile)
 │   │   ├── PipelineBar.jsx    # Barra de progresso do pipeline
 │   │   ├── InlineTags.jsx     # Tags editáveis inline
 │   │   └── Tabs.jsx           # Navegação de abas do processo
@@ -563,9 +563,9 @@ A constante `CONTACT_CHANNELS` define os valores disponíveis com label e ícone
 
 `InlineTags` é um componente standalone que recebe `process` e `onUpdate`. Renderiza tags com botão × para remover e input inline para adicionar. Chama `onUpdate` diretamente. Usado no `VagaTab`.
 
-### Swipe to archive (mobile)
+### Long-press para deletar (mobile)
 
-`ProcessCard` aceita props opcionais `isMobile` e `onSwipeAction`. Quando `isMobile=true`, touch handlers rastreiam o drag horizontal — swipe ≥ 80px para a esquerda aciona `onSwipeAction`. A lista mobile passa `onSwipeAction={()=>updateProcess({...p,stage:"rejected"})}` para cada card.
+`ProcessCard` aceita as props `selectionMode`, `isSelected` e `onLongPress`. Segurar o card por 500ms ativa `onLongPress`, que coloca a lista em modo de seleção (`selectionMode=true` no App). Em modo de seleção, tocar em um card alterna `isSelected`. Uma barra flutuante aparece acima da bottom nav com o botão "Deletar" (com `window.confirm`) e "Cancelar". `deleteProcess` aceita um `id` opcional — quando chamado da seleção múltipla, passa o id diretamente sem reposicionar `selected`.
 
 ### Adicionar cenário no gerador de respostas
 Adicione em `SCENARIOS`:

@@ -1,4 +1,4 @@
-const CACHE_NAME = "icc-v20";
+const CACHE_NAME = "icc-v21";
 const STATIC_ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -18,16 +18,22 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Força reload em todos os clientes após ativar novo SW
+self.addEventListener("message", (event) => {
+  if (event.data === "skipWaiting") self.skipWaiting();
+});
+
 // Network-first para tudo — sempre busca o código mais novo, cache só como fallback offline
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Nunca interceptar chamadas ao Supabase, proxy IA ou POST
+  // Nunca interceptar chamadas ao Supabase, proxy IA, POST ou o próprio sw.js
   if (
     url.hostname.includes("supabase.co") ||
     url.hostname.includes("anthropic") ||
-    request.method !== "GET"
+    request.method !== "GET" ||
+    url.pathname === "/sw.js"
   ) {
     return;
   }

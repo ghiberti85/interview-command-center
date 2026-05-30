@@ -36,7 +36,6 @@ function extractContextNote(notes) {
 export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
   const [editingField, setEditingField] = useState(null);
   const [drafts, setDrafts] = useState({});
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [meetingType, setMeetingType] = useState(() => {
     // Infer meeting type from current stage
     const mt = MEETING_TYPES.find(m => m.stage === process.stage);
@@ -273,24 +272,12 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
       )}
 
       {/* ── Actions ─────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingBottom: 8, flexWrap: "wrap" }}>
-        {!["rejected","archived"].includes(process.stage) && (
-          <Btn variant="secondary" size="sm" onClick={() => onUpdate({ ...process, stage: "rejected" })}>
-            <Ic n="close" s={12} c="var(--t2)" />Encerrar processo
-          </Btn>
-        )}
-        {confirmDelete ? (
-          <>
-            <Btn variant="danger" size="sm" onClick={onDelete}>
-              <Ic n="trash" s={12} c="var(--red)" />Confirmar exclusão
-            </Btn>
-            <Btn variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>Cancelar</Btn>
-          </>
-        ) : (
-          <Btn variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
-            <Ic n="trash" s={12} c="var(--red)" />Excluir processo
-          </Btn>
-        )}
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingBottom: 8 }}>
+        <Btn variant="danger" size="sm" onClick={() => {
+          if (window.confirm("Tem certeza que deseja deletar este processo? Esta ação não pode ser desfeita.")) onDelete();
+        }}>
+          <Ic n="trash" s={12} c="var(--red)" />Deletar processo
+        </Btn>
       </div>
     </div>
   );

@@ -99,6 +99,7 @@ export default function App() {
       setDbLoading(false);
       return;
     }
+    if (!session?.user?.id) return; // aguarda sessão estar pronta
     async function load() {
       setDbLoading(true);
       const { data, error } = await supabase
@@ -112,7 +113,7 @@ export default function App() {
       setDbLoading(false);
     }
     load();
-  }, [isDemo]);
+  }, [isDemo, session?.user?.id]);
 
   // Auto-show set password modal after password recovery redirect
   useEffect(() => {

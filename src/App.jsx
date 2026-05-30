@@ -454,17 +454,37 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           </span>
           <div style={{ display:"flex", gap:8 }}>
             <button onClick={()=>{ setSelectionMode(false); setSelectedIds([]); }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>Cancelar</button>
-            {selectedIds.length > 0 && (
+            {selectedIds.length > 0 && (<>
+              {view === "archived" ? (
+                <button onClick={()=>{
+                  selectedIds.forEach(id => {
+                    const p = processes.find(x => x.id === id);
+                    if (p) updateProcess({ ...p, stage: "contacted" });
+                  });
+                  setSelectionMode(false); setSelectedIds([]);
+                }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"var(--bg-s)", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
+                  Desarquivar
+                </button>
+              ) : (
+                <button onClick={()=>{
+                  selectedIds.forEach(id => {
+                    const p = processes.find(x => x.id === id);
+                    if (p) updateProcess({ ...p, stage: "archived" });
+                  });
+                  setSelectionMode(false); setSelectedIds([]);
+                }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"var(--bg-s)", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
+                  Arquivar
+                </button>
+              )}
               <button onClick={()=>{
                 if (window.confirm(`Deletar ${selectedIds.length} processo${selectedIds.length>1?"s":""}? Esta ação não pode ser desfeita.`)) {
                   selectedIds.forEach(id => deleteProcess(id));
-                  setSelectionMode(false);
-                  setSelectedIds([]);
+                  setSelectionMode(false); setSelectedIds([]);
                 }
               }} style={{ padding:"7px 14px", borderRadius:8, border:"none", background:"var(--red, #FF6A6A)", color:"#fff", fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
                 Deletar
               </button>
-            )}
+            </>)}
           </div>
         </div>
       )}

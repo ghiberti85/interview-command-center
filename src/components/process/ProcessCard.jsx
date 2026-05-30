@@ -63,9 +63,9 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
   return (
     <div
       data-testid="card-wrapper"
-      style={{ position:"relative", marginBottom:6, borderRadius:12 }}
+      style={{ position:"relative", marginBottom:6, borderRadius:12, overflow:"hidden" }}
     >
-      {/* Action panel */}
+      {/* Action panel — clipped by wrapper's overflow:hidden */}
       {isMobile && onSwipeAction && (
         <div
           data-testid="swipe-bg"
@@ -73,12 +73,9 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
             position:"absolute", top:0, bottom:0, right:0,
             width: ACTION_W,
             background: actionColor,
-            borderRadius:"0 12px 12px 0",
             display:"flex", flexDirection:"column",
             alignItems:"stretch", justifyContent:"center", gap:6,
             padding:"0 10px",
-            overflow:"hidden",
-            transform:"translateZ(0)",
           }}
         >
           {open ? (
@@ -114,7 +111,7 @@ export function ProcessCard({ process, onClick, selected, onSwipeAction, isMobil
           background:"var(--bg-r)",
           border:`1.5px solid ${selected ? "var(--acc-b)" : "var(--border)"}`,
           borderLeft:`3px solid ${s.bar}`,
-          borderRadius: swipeOffset > 0 ? "12px 0 0 12px" : 12,
+          borderRadius:12,
           padding:"12px 14px", cursor:"pointer",
           transform:`translateX(-${swipeOffset}px)`,
           transition: swipeOffset === 0 || open ? "transform 0.25s ease" : "none",

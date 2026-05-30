@@ -1,196 +1,104 @@
 # Segurança — Interview Command Center
 
-Este documento descreve os riscos de segurança atuais, mitigações aplicadas e orientações para uso seguro da aplicação.
+Checklist e referência de segurança. **Revise antes de todo PR.**
 
 ---
 
-## Modelo de ameaça
+## Checklist de PR
 
-O Interview Command Center é uma **Single Page Application (SPA)** que faz chamadas diretas à API da Anthropic a partir do browser. Isso implica em um risco principal:
+Antes de abrir ou mergear qualquer PR, verifique:
 
-### ⚠️ Chave de API exposta no frontend
+### Dados e API
+- [ ] Nenhuma chamada direta à API Anthropic — usa sempre `callAI()` via proxy
+- [ ] `Authorization: Bearer <token>` presente em toda chamada ao proxy
+- [ ] `user_id: session?.user?.id` em todo INSERT e UPSERT no Supabase
+- [ ] Nenhum `error.message` do Supabase exposto na UI — só log no console
 
-**Risco:** A `VITE_ANTHROPIC_API_KEY` é incluída no bundle JavaScript e fica acessível a qualquer pessoa que inspecione o código-fonte da aplicação em produção.
+### Links e inputs
+- [ ] Todo `<a href={url}>` valida protocolo: `if (/^https?:\/\//i.test(url))`
+- [ ] Nenhum dado de usuário renderizado como `dangerouslySetInnerHTML`
+- [ ] Inputs de texto não executam código (sem `eval`, sem `Function()`)
 
-**Impacto potencial:**
-- Uso não autorizado da sua cota de API
-- Custos inesperados na conta Anthropic
-- Impossibilidade de revogar acesso sem trocar a chave
+### Variáveis de ambiente
+- [ ] Nenhum secret com prefixo `VITE_` — valores com esse prefixo são embutidos no bundle público
+- [ ] `ANTHROPIC_API_KEY` vive apenas como secret da Edge Function no Supabase
+- [ ] `AI_PROXY_URL` sem fallback hardcoded — falha explicitamente se não configurado
 
-**Mitigações aplicadas:**
-- `.gitignore` configurado para nunca commitar `.env`
-- `.env.example` documenta quais variáveis são necessárias sem expor valores reais
+### Banco de dados
+- [ ] Nova tabela tem as 4 políticas RLS (`auth.uid() = user_id` em SELECT/INSERT/UPDATE/DELETE)
+- [ ] Foreign keys com tipos compatíveis (`process_id` é `text`, não `uuid`)
+- [ ] Migrations aplicadas via `apply_migration`, não direto no SQL editor
 
-**Mitigação recomendada para produção:** implementar um backend proxy (veja abaixo).
+### Autenticação
+- [ ] Fluxo de recovery usa `clearRecovery()` só após senha salva com sucesso
+- [ ] `session === undefined` exibe spinner (carregando), não tela de login
+- [ ] Modo demo não acessa banco — guards `if (isDemo)` em todo CRUD
 
 ---
 
-## Uso seguro — níveis de risco
+## Modelo de ameaças
 
-| Cenário | Risco | Recomendação |
+| Vetor | Mitigação |
+|---|---|
+| Chave Anthropic exposta | Edge Function com `verify_jwt: true` — chave nunca sai do servidor |
+| Acesso a dados de outro usuário | RLS por `auth.uid() = user_id` em todas as tabelas |
+| XSS via conteúdo do recrutador | React escapa HTML por padrão — sem `dangerouslySetInnerHTML` |
+| Open redirect via `jobUrl` | Validação `https?://` antes de renderizar `<a>` |
+| Abuso do proxy de IA | Rate limit 20 req/min por usuário (in-memory na Edge Function) |
+| CSRF | Supabase Auth usa tokens Bearer — não usa cookies de sessão |
+| Clickjacking | `X-Frame-Options: DENY` em `vercel.json` |
+| MIME sniffing | `X-Content-Type-Options: nosniff` em `vercel.json` |
+| Referrer leak | `Referrer-Policy: strict-origin-when-cross-origin` em `vercel.json` |
+
+---
+
+## RLS — padrão obrigatório para toda tabela nova
+
+```sql
+ALTER TABLE nome_tabela ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users_select_own" ON nome_tabela
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "users_insert_own" ON nome_tabela
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "users_update_own" ON nome_tabela
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "users_delete_own" ON nome_tabela
+  FOR DELETE USING (auth.uid() = user_id);
+```
+
+---
+
+## Edge Function
+
+`supabase/functions/anthropic-proxy/index.ts` — `verify_jwt: true`
+
+Rejeita: requests sem JWT, tokens expirados, >20 req/min por usuário.
+
+**Secrets obrigatórios:**
+- `ANTHROPIC_API_KEY`
+- `ALLOWED_ORIGIN` — domínio Vercel de produção
+
+---
+
+## Pendências de ação manual
+
+| Item | Onde | Prioridade |
 |---|---|---|
-| Uso pessoal local (`localhost`) | Baixo | Seguro para uso |
-| Deploy privado (só você acessa) | Médio | Aceitável com chave de escopo limitado |
-| Deploy público (URL acessível) | Alto | Implemente backend proxy |
-| Commit do `.env` no GitHub | Crítico | **Nunca faça isso** |
+| Configurar `ALLOWED_ORIGIN` na Edge Function | Supabase → Edge Functions → Secrets | 🔴 Alta |
+| Aumentar senha mínima para 12 chars | Supabase → Auth → Password settings | 🔴 Alta |
+| Rate limiting persistente (Supabase KV) | Edge Function | 🟡 Média |
 
 ---
 
-## Implementar backend proxy (recomendado para produção)
+## Regras para código gerado por IA
 
-Em vez de chamar a API Anthropic diretamente do browser, crie um endpoint intermediário que mantém a chave no servidor.
-
-### Opção 1 — Vercel Edge Function
-
-Crie `/api/chat.js` na raiz do projeto:
-
-```js
-export const config = { runtime: 'edge' };
-
-export default async function handler(req) {
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
-
-  // Autenticação básica (implemente conforme sua necessidade)
-  const auth = req.headers.get('x-app-token');
-  if (auth !== process.env.APP_SECRET) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  const body = await req.json();
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': process.env.ANTHROPIC_API_KEY, // variável server-side
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await response.json();
-  return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-```
-
-No frontend, substitua as chamadas diretas:
-
-```js
-// Antes (direto para Anthropic)
-const res = await fetch("https://api.anthropic.com/v1/messages", {
-  headers: { "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, ... }
-});
-
-// Depois (via proxy)
-const res = await fetch("/api/chat", {
-  method: "POST",
-  headers: {
-    "x-app-token": import.meta.env.VITE_APP_SECRET,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(payload),
-});
-```
-
-### Opção 2 — Supabase Edge Functions
-
-Se já usar Supabase no projeto:
-
-```ts
-// supabase/functions/chat/index.ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-serve(async (req) => {
-  const { messages, system } = await req.json()
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system, messages }),
-  })
-
-  const data = await res.json()
-  return new Response(JSON.stringify(data), {
-    headers: { "Content-Type": "application/json" },
-  })
-})
-```
-
----
-
-## Práticas de segurança aplicadas
-
-### Dados pessoais
-- Nenhum dado é enviado para servidores externos além da API Anthropic durante a geração de respostas
-- Todos os processos são armazenados exclusivamente em memória React (sem localStorage, sem banco de dados)
-- Os dados são perdidos ao recarregar a página — comportamento intencional na versão atual
-
-### Chamadas à API
-- O modelo usado é sempre `claude-sonnet-4-20250514` — sem escalada de modelo
-- `max_tokens` fixado em 1000 para limitar custo por chamada
-- Nenhuma tool use ou function calling habilitada — surface de ataque minimizada
-
-### Headers de segurança (para deploy)
-Configure no seu provedor de hospedagem:
-
-```
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=()
-Content-Security-Policy: default-src 'self'; connect-src 'self' https://api.anthropic.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
-```
-
-No Vercel, crie `vercel.json`:
-
-```json
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
-    }
-  ]
-}
-```
-
----
-
-## Rate limiting
-
-A API Anthropic tem limites de rate por padrão. Para evitar erros em uso intenso:
-
-```js
-// Adicione debounce nos botões de geração
-const [loading, setLoading] = useState(false);
-
-const generate = async () => {
-  if (loading) return; // previne duplo clique
-  setLoading(true);
-  try {
-    // chamada à API
-  } finally {
-    setLoading(false);
-  }
-};
-```
-
-O código atual já implementa esse padrão. Para rate limiting mais robusto, implemente no backend proxy com bibliotecas como `upstash/ratelimit`.
-
----
-
-## Reportar vulnerabilidades
-
-Se encontrar uma vulnerabilidade de segurança, abra uma [issue privada](https://github.com/ghiberti85/interview-command-center/security/advisories/new) no GitHub em vez de uma issue pública.
+1. Nunca chamar `https://api.anthropic.com` diretamente — sempre via proxy
+2. Nunca expor `error.message` na UI — log no console, mensagem genérica ao usuário
+3. Nunca renderizar `<a href={var}>` sem validar `https?://`
+4. Nunca INSERT/UPSERT sem `user_id: session?.user?.id`
+5. Nunca criar tabela sem RLS — aplicar as 4 políticas na mesma migration
+6. Nunca prefixar secrets com `VITE_`

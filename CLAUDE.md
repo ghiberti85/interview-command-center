@@ -2,6 +2,18 @@
 
 Este arquivo orienta o Claude (e outros assistentes de IA) sobre a arquitetura, convenções e estado atual do projeto **Interview Command Center**.
 
+## Documentação complementar
+
+| Arquivo | Conteúdo |
+|---|---|
+| `SCHEMA.md` | Tabelas, colunas, tipos, RLS, mapeadores — consulte antes de qualquer migration |
+| `PROMPTS.md` | Todos os prompts de IA usados no app — não altere sem testar o output |
+| `COMPONENTS.md` | Props, variantes e exemplos de todos os componentes reutilizáveis |
+| `SECURITY.md` | Checklist de PR, modelo de ameaças, RLS padrão, pendências de segurança |
+| `DECISIONS.md` | ADRs — arquitetura, alternativas consideradas e consequências de cada decisão |
+| `TESTING.md` | Estado atual dos testes, estrutura, comandos, mocks padronizados |
+| `ROADMAP.md` | Estado das features, dívida técnica, próximas fases |
+
 ---
 
 ## ⚠️ Regras obrigatórias de engenharia

@@ -25,8 +25,8 @@ describe("STAGE", () => {
 });
 
 describe("ACTIVE_STAGES", () => {
-  it("tem exatamente 5 itens", () => {
-    expect(ACTIVE_STAGES).toHaveLength(5);
+  it("tem exatamente 4 itens", () => {
+    expect(ACTIVE_STAGES).toHaveLength(4);
   });
 
   it("não contém rejected", () => {
@@ -37,6 +37,10 @@ describe("ACTIVE_STAGES", () => {
     expect(ACTIVE_STAGES).not.toContain("archived");
   });
 
+  it("não contém screening", () => {
+    expect(ACTIVE_STAGES).not.toContain("screening");
+  });
+
   it("todos os itens existem em STAGE", () => {
     ACTIVE_STAGES.forEach(s => {
       expect(STAGE).toHaveProperty(s);
@@ -44,7 +48,7 @@ describe("ACTIVE_STAGES", () => {
   });
 
   it("contém os stages ativos esperados", () => {
-    ["contacted", "screening", "interview", "technical", "offer"].forEach(s => {
+    ["contacted", "interview", "technical", "offer"].forEach(s => {
       expect(ACTIVE_STAGES).toContain(s);
     });
   });

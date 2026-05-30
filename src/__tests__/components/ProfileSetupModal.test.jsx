@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-// ── Mock pdfjs-dist e worker ──────────────────────────────────────────────────
-vi.mock("pdfjs-dist/build/pdf.worker.mjs?url", () => ({ default: "mock-worker.mjs" }));
+// ── Mock extractTextFromPdf (lib/ai.js carrega pdfjs dinamicamente) ───────────
+const mockExtractTextFromPdf = vi.fn();
+vi.mock("../../lib/ai.js", () => ({
+  extractTextFromPdf: (...args) => mockExtractTextFromPdf(...args),
+  callAI: vi.fn(),
+}));
 
-const mockGetDocument = vi.fn();
-vi.mock("pdfjs-dist", () => ({
-  GlobalWorkerOptions: { workerSrc: "" },
-  getDocument: (...args) => mockGetDocument(...args),
+// ── Mock supabase ─────────────────────────────────────────────────────────────
+vi.mock("../../supabase.js", () => ({
+  supabase: { auth: { updateUser: vi.fn().mockResolvedValue({ error: null }) } },
 }));
 
 // ── Import após mocks ─────────────────────────────────────────────────────────
@@ -22,19 +25,8 @@ const defaultProps = {
   initial: { stack: ["React", "TypeScript"], summary: "Dev senior", cvText: "" },
 };
 
-function makePdfDocument(pages) {
-  return {
-    promise: Promise.resolve({
-      numPages: pages.length,
-      getPage: vi.fn(async (n) => ({
-        getTextContent: async () => ({ items: pages[n - 1].map(str => ({ str })) }),
-      })),
-    }),
-  };
-}
-
 function makeFakeFile(name, content = "") {
-  return new File([content], name, { type: name.endsWith(".pdf") ? "application/pdf" : "text/plain" });
+  return new File([content], name, { type: "application/pdf" });
 }
 
 // ── Testes ───────────────────────────────────────────────────────────────────
@@ -65,9 +57,9 @@ describe("ProfileSetupModal — abas", () => {
     expect(screen.getByPlaceholderText(/Senior Full-Stack/i).value).toBe("Dev senior");
   });
 
-  it("navega para aba CV Completo", async () => {
+  it("navega para aba CV", async () => {
     render(<ProfileSetupModal {...defaultProps}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV Completo" }));
+    await userEvent.click(screen.getByRole("button", { name: "CV" }));
     expect(screen.getByText("Importar CV em PDF")).toBeInTheDocument();
   });
 });
@@ -111,17 +103,17 @@ describe("ProfileSetupModal — salvar", () => {
 describe("ProfileSetupModal — upload de PDF no cvText", () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it("exibe área 'Importar CV em PDF' na aba CV Completo", async () => {
+  it("exibe área 'Importar CV em PDF' na aba CV", async () => {
     render(<ProfileSetupModal {...defaultProps}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV Completo" }));
+    await userEvent.click(screen.getByRole("button", { name: "CV" }));
     expect(screen.getByText("Importar CV em PDF")).toBeInTheDocument();
     expect(screen.getByText(/Arraste ou clique/i)).toBeInTheDocument();
   });
 
   it("extrai texto de PDF e preenche o textarea", async () => {
-    mockGetDocument.mockReturnValue(makePdfDocument([["Texto do CV extraído do PDF"]]));
+    mockExtractTextFromPdf.mockResolvedValue("Texto do CV extraído do PDF");
     render(<ProfileSetupModal {...defaultProps}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV Completo" }));
+    await userEvent.click(screen.getByRole("button", { name: "CV" }));
 
     const input = document.querySelector('input[type="file"][accept=".pdf"]');
     const file = makeFakeFile("meu-cv.pdf");
@@ -129,19 +121,15 @@ describe("ProfileSetupModal — upload de PDF no cvText", () => {
     fireEvent.change(input);
 
     await waitFor(() => {
-      expect(mockGetDocument).toHaveBeenCalled();
-    });
-    await waitFor(() => {
       const textarea = screen.getByPlaceholderText(/Cole aqui o texto/i);
       expect(textarea.value).toContain("Texto do CV extraído do PDF");
     });
   });
 
-  it("exibe erro quando pdfjs rejeita", async () => {
-    // getDocument rejeita → handlePdf captura e exibe e.message no estado de erro
-    mockGetDocument.mockImplementation(() => ({ promise: Promise.reject(new Error("PDF corrompido")) }));
+  it("exibe erro quando extração falha", async () => {
+    mockExtractTextFromPdf.mockRejectedValue(new Error("PDF corrompido"));
     render(<ProfileSetupModal {...defaultProps}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV Completo" }));
+    await userEvent.click(screen.getByRole("button", { name: "CV" }));
 
     const input = document.querySelector('input[type="file"][accept=".pdf"]');
     const file = makeFakeFile("corrompido.pdf");
@@ -154,9 +142,9 @@ describe("ProfileSetupModal — upload de PDF no cvText", () => {
   });
 
   it("textarea permanece editável depois do upload", async () => {
-    mockGetDocument.mockReturnValue(makePdfDocument([["Texto extraído"]]));
+    mockExtractTextFromPdf.mockResolvedValue("Texto extraído");
     render(<ProfileSetupModal {...defaultProps}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV Completo" }));
+    await userEvent.click(screen.getByRole("button", { name: "CV" }));
 
     const input = document.querySelector('input[type="file"][accept=".pdf"]');
     const file = makeFakeFile("cv.pdf");
@@ -176,9 +164,9 @@ describe("ProfileSetupModal — upload de PDF no cvText", () => {
 
   it("salva cvText extraído do PDF no onSave", async () => {
     const onSave = vi.fn();
-    mockGetDocument.mockReturnValue(makePdfDocument([["Conteúdo do CV"]]));
+    mockExtractTextFromPdf.mockResolvedValue("Conteúdo do CV");
     render(<ProfileSetupModal {...defaultProps} onSave={onSave}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV Completo" }));
+    await userEvent.click(screen.getByRole("button", { name: "CV" }));
 
     const input = document.querySelector('input[type="file"][accept=".pdf"]');
     const file = makeFakeFile("cv.pdf");

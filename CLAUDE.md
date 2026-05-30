@@ -4,15 +4,56 @@ Este arquivo orienta o Claude (e outros assistentes de IA) sobre a arquitetura, 
 
 ---
 
-## ⚠️ Regra obrigatória — Atualização de documentação
+## ⚠️ Regras obrigatórias de engenharia
 
-**Após toda e qualquer implementação, correção ou mudança de comportamento, você DEVE atualizar:**
+### 1. Testes antes de qualquer entrega
 
-1. **`CLAUDE.md`** — atualizar seções de arquitetura, convenções, histórico de decisões ou tarefas frequentes que mudaram
-2. **`ROADMAP.md`** — marcar itens concluídos como feitos, adicionar novos itens descobertos, atualizar o status das fases
-3. **`TESTING.md`** — documentar novos testes criados, cenários cobertos, e atualizar o status de cobertura
+**Toda nova funcionalidade DEVE ter testes na mesma sessão/PR:**
+- Lógica pura → unit test em `src/__tests__/unit/`
+- Componente React → component test em `src/__tests__/components/`
+- Integração com Supabase/proxy IA → integration test em `src/__tests__/integration/` com MSW
 
-Esta regra vale para toda sessão, inclusive quando a mudança parece pequena. Não finalize a tarefa sem atualizar as três documentações.
+**Antes de commitar:** rode `npm run test:run` e certifique-se de que todos os testes passam. Nunca envie código com testes falhando.
+
+**Se remover uma funcionalidade:** remova também os testes correspondentes e atualize os testes que dependiam do comportamento antigo.
+
+### 2. Fluxo obrigatório para cada mudança
+
+```
+1. Implementar a mudança
+2. Escrever/atualizar testes (npm run test:run — zero falhas)
+3. npm run build (zero erros)
+4. git commit com mensagem descritiva
+5. git push para a branch de sessão E para main
+6. Abrir PR (se não existir) e fazer merge
+7. Confirmar deploy na Vercel
+8. Atualizar CLAUDE.md + ROADMAP.md + TESTING.md
+```
+
+### 3. Atualização de documentação
+
+**Após toda implementação, correção ou mudança de comportamento:**
+
+1. **`CLAUDE.md`** — atualizar arquitetura, convenções, histórico de decisões, tarefas frequentes
+2. **`ROADMAP.md`** — marcar itens concluídos, adicionar itens descobertos, atualizar status das fases
+3. **`TESTING.md`** — documentar novos testes, cenários cobertos, status de cobertura
+
+### 4. Limpeza ao remover funcionalidades
+
+Ao remover uma feature, **obrigatoriamente** remova também:
+- Arquivos de componentes/hooks/utils que não são mais usados
+- Testes dos componentes removidos
+- Referências na documentação (CLAUDE.md, ROADMAP.md, TESTING.md)
+- Imports órfãos em outros arquivos
+
+### 5. Segurança — regras invioláveis
+
+- **Nunca** adicione fallback `|| "https://api.anthropic.com/..."` no `AI_PROXY_URL`
+- **Nunca** exiba `error.message` do Supabase diretamente na UI
+- **Nunca** renderize `<a href={jobUrl}>` sem validar protocolo `https?://`
+- **Sempre** passe `user_id: session?.user?.id` em INSERT e UPSERT
+- **Nunca** chame a API Anthropic diretamente do frontend — use sempre o proxy com JWT
+- **Nunca** adicione nova tabela sem criar as 4 políticas RLS (`auth.uid() = user_id`)
 
 ---
 
@@ -336,12 +377,7 @@ const iconBtn = (extra={}) => ({
 
 ## Segurança
 
-### Regras obrigatórias
-
-- **Nunca** adicione fallback `|| "https://api.anthropic.com/..."` no `AI_PROXY_URL` — falhe explicitamente
-- **Nunca** exiba `error.message` do Supabase diretamente na UI — log no console, mensagem genérica ao usuário
-- **Nunca** renderize `<a href={jobUrl}>` sem validar o protocolo: `if (/^https?:\/\//i.test(url))`
-- **Sempre** passe `user_id: session?.user?.id` em operações de INSERT e UPSERT
+> As regras de segurança invioláveis estão na seção **Regras obrigatórias de engenharia** no topo deste arquivo.
 
 ### RLS — Row Level Security
 
@@ -460,32 +496,17 @@ Na Vercel, estas variáveis estão configuradas nas Environment Variables do pro
 
 ## Testes
 
-O projeto tem estratégia de testes documentada em `TESTING.md`.
+O projeto tem estratégia de testes documentada em `TESTING.md`. As regras de cobertura obrigatória estão na seção **Regras obrigatórias de engenharia** no topo deste arquivo.
 
-### ⚠️ Regra obrigatória — Testes junto com a funcionalidade
+**Stack atual:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E planejado).
 
-**Toda nova funcionalidade DEVE vir acompanhada de testes na mesma sessão/PR.** Nunca deixe código sem cobertura para "depois". Se o tempo não permitir implementar os testes completos, ao menos documente os cenários no TESTING.md e crie um item no ROADMAP.md com prioridade alta.
-
-**Ao implementar qualquer funcionalidade nova:**
-- Se a lógica é uma função pura → unit test em `src/__tests__/unit/`
-- Se envolve um componente React → component test em `src/__tests__/components/`
-- Se cruza auth, Supabase ou proxy de IA → integration test em `src/__tests__/integration/` com MSW
-
-**Stack:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E).
-
-**Refatorações pendentes antes de testar:**
-- Extrair `buildPrompt` de `MessagesTab` → `src/utils/buildPrompt.ts` (após migração TS)
-- Extrair `filterProcesses` do App.jsx → `src/utils/filterProcesses.ts` (após migração TS)
-- Extrair `checkRateLimit` e `corsHeaders` → `supabase/functions/anthropic-proxy/utils.ts`
-
-**Migração TypeScript planejada para v1.4:** o projeto será componentizado e migrado de `.jsx` para `.tsx` com `strict: true`. Até lá, manter o padrão `.jsx` + inline styles existente. Ver ROADMAP.md para o plano detalhado de componentização.
+**Estado atual:** 253 testes passando (unit + component + integration). CI roda `npm run test:run` antes do `npm run build` em todo PR e push para `main`.
 
 ---
 
 ## O que NÃO fazer
 
 - ❌ Não instale dependências novas sem necessidade
-- ❌ Não quebre o arquivo único em múltiplos antes da v1.4 — componentização é uma fase dedicada, não patches incrementais
 - ❌ Não use cores hardcoded — sempre use CSS vars do Signal DS
 - ❌ Não chame a API Anthropic diretamente do frontend — use sempre o proxy com token
 - ❌ Não altere o modelo de IA (`claude-sonnet-4-20250514`) sem testar os prompts
@@ -493,6 +514,9 @@ O projeto tem estratégia de testes documentada em `TESTING.md`.
 - ❌ Não exiba `error.message` do Supabase diretamente na UI
 - ❌ Não renderize links `href` sem validar protocolo `https?://`
 - ❌ Não adicione fallback de URL da API Anthropic no frontend
+- ❌ Não faça commit com testes falhando — rode `npm run test:run` antes
+- ❌ Não remova funcionalidades sem remover os testes e imports correspondentes
+- ❌ Não faça deploy sem PR + merge documentado
 
 ---
 

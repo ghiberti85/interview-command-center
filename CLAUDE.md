@@ -11,6 +11,8 @@ Este arquivo orienta o Claude (e outros assistentes de IA) sobre a arquitetura, 
 | `COMPONENTS.md` | Props, variantes e exemplos de todos os componentes reutilizáveis |
 | `SECURITY.md` | Checklist de PR, modelo de ameaças, RLS padrão, pendências de segurança |
 | `DECISIONS.md` | ADRs — arquitetura, alternativas consideradas e consequências de cada decisão |
+| `FLOWS.md` | Fluxos multi-etapa completos — leia antes de editar qualquer passo de um fluxo |
+| `ERRORS.md` | Bugs já corrigidos com causa raiz e solução — evita regressões |
 | `TESTING.md` | Estado atual dos testes, estrutura, comandos, mocks padronizados |
 | `ROADMAP.md` | Estado das features, dívida técnica, próximas fases |
 

@@ -428,7 +428,9 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
                     }}
                     onClick={()=>{
                       if (selectionMode) {
-                        setSelectedIds(ids => ids.includes(p.id) ? ids.filter(id=>id!==p.id) : [...ids, p.id]);
+                        const next = selectedIds.includes(p.id) ? selectedIds.filter(id=>id!==p.id) : [...selectedIds, p.id];
+                        setSelectedIds(next);
+                        if (next.length === 0) setSelectionMode(false);
                       } else {
                         setSelected(p); setMobileDetailTab("conversa"); setMobileScreen("detail");
                       }
@@ -453,19 +455,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
             {selectedIds.length === 0 ? "Segure para selecionar" : `${selectedIds.length} selecionado${selectedIds.length>1?"s":""}`}
           </span>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={()=>{ setSelectionMode(false); setSelectedIds([]); }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>Cancelar</button>
+            {view === "archived" && (
+              <button onClick={()=>{ setSelectionMode(false); setSelectedIds([]); }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>Cancelar</button>
+            )}
             {selectedIds.length > 0 && (<>
-              {view === "archived" ? (
-                <button onClick={()=>{
-                  selectedIds.forEach(id => {
-                    const p = processes.find(x => x.id === id);
-                    if (p) updateProcess({ ...p, stage: "contacted" });
-                  });
-                  setSelectionMode(false); setSelectedIds([]);
-                }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"var(--bg-s)", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
-                  Desarquivar
-                </button>
-              ) : (
+              {view !== "archived" && (
                 <button onClick={()=>{
                   selectedIds.forEach(id => {
                     const p = processes.find(x => x.id === id);

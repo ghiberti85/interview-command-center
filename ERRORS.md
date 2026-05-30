@@ -203,6 +203,34 @@ expect(ACTIVE_STAGES).toHaveLength(4);
 
 ---
 
+## ERR-012 — Processos sumindo ou não carregando ao abrir o app
+
+**Sintoma:** Ao abrir o app, a lista de processos aparecia vazia ou com quantidade variável (às vezes 0, às vezes todos). Recarregar resolvia temporariamente.
+
+**Causa raiz:** O `useEffect` que carrega processos do Supabase dependia apenas de `[isDemo]`. A sessão do Supabase é restaurada de forma assíncrona — o effect rodava antes de `session?.user?.id` estar disponível, fazendo chamadas não autenticadas. O RLS bloqueava essas chamadas e retornava 0 linhas.
+
+**Solução aplicada:**
+```js
+// Antes
+useEffect(() => {
+  if (isDemo) { ... return; }
+  load(); // rodava com session=undefined → RLS bloqueava
+}, [isDemo]);
+
+// Depois
+useEffect(() => {
+  if (isDemo) { ... return; }
+  if (!session?.user?.id) return; // aguarda sessão estar pronta
+  load();
+}, [isDemo, session?.user?.id]); // re-executa quando sessão chega
+```
+
+**Lição:** efeitos que fazem chamadas autenticadas ao Supabase DEVEM ter `session?.user?.id` no array de dependências e guard no início do effect.
+
+**Arquivo:** `src/App.jsx` — useEffect de carregamento inicial de processos.
+
+---
+
 ## Como usar este arquivo
 
 Ao encontrar um bug recorrente ou resolver um problema não trivial:

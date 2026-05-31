@@ -20,6 +20,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
   const [cvText, setCvText] = useState(initial?.cvText||"");
   const [tab, setTab] = useState("cvText");
   const [aiExtracting, setAiExtracting] = useState(false);
+  const [aiExtractMsg, setAiExtractMsg] = useState(null); // { ok, text }
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const pdfRef = useRef();
@@ -48,23 +49,29 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
 
   const extractProfileFromCV = async (text) => {
     setAiExtracting(true);
+    setAiExtractMsg(null);
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
+      if (!s?.access_token) throw new Error("Sessão não encontrada. Faça login para usar a extração por IA.");
       const system = "Você é um assistente que analisa currículos. Responda SOMENTE com JSON válido, sem markdown, sem texto extra.";
       const prompt = `Analise o currículo abaixo e retorne um JSON com exatamente dois campos:
 - "summary": resumo profissional em português (2-3 frases, primeira pessoa, baseado no perfil real do CV)
-- "stack": lista das tecnologias e ferramentas encontradas no CV, separadas por vírgula
+- "stack": lista das tecnologias e ferramentas encontradas no CV, separadas por vírgula (ex: "React, Node.js, TypeScript, PostgreSQL")
 
 CV:
 ${text.slice(0, 6000)}`;
-      const raw = await callAI([{ role: "user", content: prompt }], system, s?.access_token);
+      const raw = await callAI([{ role: "user", content: prompt }], system, s.access_token);
       const cleaned = raw.replace(/```json\n?|```/g, "").trim();
       let parsed;
       try { parsed = JSON.parse(cleaned); } catch { const m = cleaned.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+      if (!parsed) throw new Error("Resposta da IA não reconhecida.");
       if (parsed?.summary) setSummary(parsed.summary);
       if (parsed?.stack) setStack(parsed.stack);
-    } catch {
-      // silent — user can fill manually
+      setAiExtractMsg({ ok: true, text: "Resumo e Stack extraídos com sucesso! Confira as abas." });
+      // Navigate to Stack tab so user sees the populated value
+      setTimeout(() => setTab("stack"), 800);
+    } catch (e) {
+      setAiExtractMsg({ ok: false, text: e.message || "Erro ao extrair dados do CV. Preencha manualmente." });
     } finally {
       setAiExtracting(false);
     }
@@ -160,6 +167,15 @@ ${text.slice(0, 6000)}`;
             </div>
             {pdfError && (
               <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", fontSize:12, color:"var(--red)" }}>{pdfError}</div>
+            )}
+            {aiExtracting && <AiExtractingBanner />}
+            {aiExtractMsg && (
+              <div style={{ padding:"8px 12px", borderRadius:8, fontSize:12,
+                background: aiExtractMsg.ok ? "rgba(34,198,122,0.08)" : "rgba(255,106,106,0.08)",
+                border: `1px solid ${aiExtractMsg.ok ? "rgba(34,198,122,0.25)" : "rgba(255,106,106,0.25)"}`,
+                color: aiExtractMsg.ok ? "var(--grn)" : "var(--red)" }}>
+                {aiExtractMsg.text}
+              </div>
             )}
             <label style={{ ...T.label }}>CV completo (ou cole manualmente)</label>
             <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={12} placeholder="Cole aqui o texto do seu currículo atual, ou importe um PDF acima. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>

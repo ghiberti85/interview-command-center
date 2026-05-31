@@ -128,6 +128,7 @@ export const GLOBAL_CSS = `
   .bottom-nav-btn:active { opacity: 0.7; }
   :root { --sab: 0px; }
   @media (display-mode: standalone) { :root { --sab: env(safe-area-inset-bottom, 0px); } }
+  html[data-pwa="1"] { --sab: env(safe-area-inset-bottom, 0px); }
   @media (max-width: 768px) {
     input, textarea, select { font-size: 16px !important; }
   }

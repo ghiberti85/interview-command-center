@@ -82,6 +82,27 @@ export default function App() {
     document.body.style.color = vars["--t1"];
   }, [dark]);
 
+  // --sab: multi-mechanism PWA detection
+  // Mechanism 1 (CSS): @media (display-mode: standalone) in GLOBAL_CSS — handles initial paint
+  // Mechanism 2 (JS-iOS): navigator.standalone — most reliable on iOS Safari
+  // Mechanism 3 (JS-std): matchMedia display-mode — Android PWA + newer iOS
+  // Mechanism 4 (JS-event): matchMedia change listener — catches dynamic install
+  // JS inline style overrides CSS, so JS confirmation is authoritative
+  useEffect(() => {
+    function applySAB() {
+      const isIOSPWA = window.navigator.standalone === true;
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+      const isPWA = isIOSPWA || isStandalone;
+      const val = isPWA ? "env(safe-area-inset-bottom, 0px)" : "0px";
+      document.documentElement.style.setProperty("--sab", val);
+      document.documentElement.dataset.pwa = isPWA ? "1" : "0";
+    }
+    applySAB();
+    const mql = window.matchMedia("(display-mode: standalone)");
+    mql.addEventListener("change", applySAB);
+    return () => mql.removeEventListener("change", applySAB);
+  }, []);
+
   // Load processes
   useEffect(() => {
     if (isDemo) {

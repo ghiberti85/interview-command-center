@@ -493,7 +493,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         </div>
       )}
 
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, paddingBottom:"var(--sab)" }}>
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0, alignItems:"flex-start", paddingBottom:"var(--sab)" }}>
           <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0 4px", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:48, position:"relative" }}>
             <Ic n="plus" s={19} c="var(--t1)"/>
             <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>

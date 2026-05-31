@@ -8,7 +8,7 @@ import ConversaTab from "../tabs/ConversaTab.jsx";
 import VagaTab from "../tabs/VagaTab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
-export function ProcessDetail({ process, onUpdate, onDelete, isMobile, isPWA, navH: navHProp, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
+export function ProcessDetail({ process, onUpdate, onDelete, isMobile, navH: navHProp, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
   const [tab, setTab] = useState(initialTab || "conversa");
   useEffect(()=>setTab(initialTab || "conversa"),[process.id, initialTab]);
 

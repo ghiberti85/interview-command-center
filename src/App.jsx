@@ -49,7 +49,6 @@ function Spinner() {
 // ─── Main App ────────────────────────────────────────────────────────────────
 export default function App() {
   const isMobile = useIsMobile();
-  const isPWA = typeof window !== "undefined" && (window.matchMedia("(display-mode: standalone)").matches || !!window.navigator.standalone);
   const { dark, toggle: toggleTheme } = useTheme();
   const { session, isRecovery, clearRecovery } = useAuth();
   const [isDemo, setIsDemo] = useState(false);
@@ -82,16 +81,6 @@ export default function App() {
     document.body.style.background = vars["--bg"];
     document.body.style.color = vars["--t1"];
   }, [dark]);
-
-  // --sab (safe-area-bottom): only use env() in PWA standalone mode.
-  // viewport-fit=cover makes env(safe-area-inset-bottom) return ~34px even
-  // in the browser, where the OS chrome already handles the home indicator.
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--sab",
-      isPWA ? "env(safe-area-inset-bottom, 0px)" : "0px"
-    );
-  }, [isPWA]);
 
   // Load processes
   useEffect(() => {
@@ -443,7 +432,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} isPWA={isPWA} navH="calc(48px + var(--sab))" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="calc(48px + var(--sab))" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
             </div>
           )}
         </div>

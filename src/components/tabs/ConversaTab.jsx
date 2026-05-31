@@ -41,19 +41,13 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
   const [extraCtx, setExtraCtx] = useState(false);
   const [extraVal, setExtraVal] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sessionItems, setSessionItems] = useState([]); // unsaved generated replies
   const [copiedTs, setCopiedTs] = useState(null);
 
   const threadRef = useRef(null);
 
-  // Build thread entries: merge sentMessages + sessionItems, sort by ts
-  // For each sentMessage or session item with recruiterMsg, show recruiter bubble then reply bubble
   const buildThread = () => {
-    const saved = sentMessages.map(m => ({ ...m, _saved: true }));
-    const session = sessionItems.filter(si => !sentMessages.find(sm => sm.ts === si.ts));
-    const all = [...saved, ...session].sort((a, b) => a.ts - b.ts);
     const entries = [];
-    all.forEach(m => {
+    [...sentMessages].sort((a, b) => a.ts - b.ts).forEach(m => {
       if (m.recruiterMsg) {
         entries.push({ type: "recruiter", text: m.recruiterMsg, channel: m.channel, ts: m.ts - 1, linked: m.ts });
       }
@@ -79,11 +73,11 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
       const prompt = buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra: extraVal, cvContext });
       const raw = await callAI([{ role: "user", content: prompt }], MESSAGES_SYSTEM, s?.access_token);
       const parsed = parseAIResponse(raw);
-      const entry = { ...parsed, channel, scenario: scenLabel, recruiterMsg, ts: Date.now() };
-      setSessionItems(prev => [...prev, entry]);
+      const entry = { ...parsed, channel, scenario: scenLabel, recruiterMsg: recruiterMsg || null, ts: Date.now() };
+      persistEntry(entry);
     } catch {
-      const entry = { body: "Erro ao gerar. Tente novamente.", channel, scenario: "Erro", recruiterMsg, ts: Date.now() };
-      setSessionItems(prev => [...prev, entry]);
+      const entry = { body: "Erro ao gerar. Tente novamente.", channel, scenario: "Erro", recruiterMsg: recruiterMsg || null, ts: Date.now() };
+      persistEntry(entry);
     }
     setLoading(false);
     setComposeOpen(false);
@@ -95,7 +89,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
     setTimeout(() => setCopiedTs(null), 2000);
   };
 
-  const saveEntry = (entry) => {
+  const persistEntry = (entry) => {
     if (!onUpdate) return;
     const toSave = {
       body: entry.body,
@@ -105,8 +99,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
       recruiterMsg: entry.recruiterMsg || null,
       ts: entry.ts,
     };
-    const updated = { ...process, sentMessages: [...sentMessages, toSave].sort((a,b)=>a.ts-b.ts) };
-    onUpdate(updated);
+    onUpdate({ ...process, sentMessages: [...sentMessages, toSave].sort((a, b) => a.ts - b.ts) });
   };
 
   const deleteEntry = (ts) => {
@@ -136,14 +129,13 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
 
   const ReplyBubble = ({ entry }) => {
     const cfg = CHANNELS[entry.channel] || CHANNELS.linkedin;
-    const isSaved = !!sentMessages.find(m => m.ts === entry.ts);
     const copied = copiedTs === entry.ts;
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", maxWidth: "82%", alignSelf: "flex-end" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
           <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>{fmtTs(entry.ts)}</span>
           <span style={{ fontSize: 10, color: cfg.accent, ...T.mono, fontWeight: 600 }}>{cfg.label} · {entry.scenario}</span>
-          {isSaved && <Ic n="check" s={10} c="var(--grn)" />}
+          <Ic n="check" s={10} c="var(--grn)" />
         </div>
         {entry.subject && (
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)", marginBottom: 4, padding: "6px 10px", background: "var(--acc-d)", borderRadius: 8, border: "1px solid var(--acc-b)" }}>
@@ -154,20 +146,15 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
           {entry.body}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
-          {!isSaved && onUpdate && (
-            <button onClick={() => saveEntry(entry)} style={{ fontSize: 11, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
-              <Ic n="star" s={11} c="var(--t3)" />Salvar
-            </button>
-          )}
-          {isSaved && onUpdate && (
-            <button onClick={() => deleteEntry(entry.ts)} style={{ fontSize: 11, color: "var(--t4)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
-              <Ic n="trash" s={11} c="var(--t4)" />
-            </button>
-          )}
           <button onClick={() => copyText(entry.body, entry.ts)} style={{ fontSize: 11, color: copied ? "var(--grn)" : "var(--t3)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
             <Ic n={copied ? "check" : "copy"} s={11} c={copied ? "var(--grn)" : "var(--t3)"} />
             {copied ? "Copiado!" : "Copiar"}
           </button>
+          {onUpdate && (
+            <button onClick={() => deleteEntry(entry.ts)} style={{ fontSize: 11, color: "var(--t4)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
+              <Ic n="trash" s={11} c="var(--t4)" />
+            </button>
+          )}
         </div>
       </div>
     );

@@ -2,14 +2,24 @@ import { useState, useRef } from "react";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
-import { extractTextFromPdf } from "../../lib/ai.js";
+import { extractTextFromPdf, callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
+
+function AiExtractingBanner() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:8, background:"var(--acc-d)", border:"1px solid var(--acc-b)" }}>
+      <div style={{ width:14, height:14, borderRadius:"50%", border:"2px solid var(--acc-b)", borderTopColor:"var(--acc)", animation:"spin 0.7s linear infinite", flexShrink:0 }}/>
+      <span style={{ fontSize:12, color:"var(--acc-text)", fontFamily:"'Outfit',sans-serif" }}>IA extraindo informações do CV...</span>
+    </div>
+  );
+}
 
 export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }) {
   const [stack, setStack] = useState((initial?.stack||[]).join(", "));
   const [summary, setSummary] = useState(initial?.summary||"");
   const [cvText, setCvText] = useState(initial?.cvText||"");
-  const [tab, setTab] = useState("stack");
+  const [tab, setTab] = useState("cvText");
+  const [aiExtracting, setAiExtracting] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const pdfRef = useRef();
@@ -28,10 +38,35 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
       const text = await extractTextFromPdf(file);
       if (!text) throw new Error("Nenhum texto encontrado no PDF.");
       setCvText(text);
+      extractProfileFromCV(text);
     } catch (e) {
       setPdfError(e.message);
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+  const extractProfileFromCV = async (text) => {
+    setAiExtracting(true);
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const system = "Você é um assistente que analisa currículos. Responda SOMENTE com JSON válido, sem markdown, sem texto extra.";
+      const prompt = `Analise o currículo abaixo e retorne um JSON com exatamente dois campos:
+- "summary": resumo profissional em português (2-3 frases, primeira pessoa, baseado no perfil real do CV)
+- "stack": lista das tecnologias e ferramentas encontradas no CV, separadas por vírgula
+
+CV:
+${text.slice(0, 6000)}`;
+      const raw = await callAI([{ role: "user", content: prompt }], system, s?.access_token);
+      const cleaned = raw.replace(/```json\n?|```/g, "").trim();
+      let parsed;
+      try { parsed = JSON.parse(cleaned); } catch { const m = cleaned.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+      if (parsed?.summary) setSummary(parsed.summary);
+      if (parsed?.stack) setStack(parsed.stack);
+    } catch {
+      // silent — user can fill manually
+    } finally {
+      setAiExtracting(false);
     }
   };
 
@@ -58,9 +93,9 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
   };
 
   const TABS = [
-    ["stack","Stack"],
-    ["summary","Resumo"],
     ["cvText","CV"],
+    ["summary","Resumo"],
+    ["stack","Stack"],
     ...(!isDemo ? [["senha","Senha"]] : []),
   ];
 
@@ -84,6 +119,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
 
         {tab==="stack" && (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {aiExtracting && <AiExtractingBanner />}
             <label style={{ ...T.label }}>Tecnologias e ferramentas (separadas por vírgula ou enter)</label>
             <textarea value={stack} onChange={e=>setStack(e.target.value)} rows={6} placeholder={"React, Next.js, TypeScript, Node.js, Supabase, PostgreSQL,\nREST API, GraphQL, Jest, Cypress, Docker,\nFigma, Storybook, Tailwind CSS, CSS Modules..."} style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
             <div style={{ fontSize:11, color:"var(--t3)" }}>A IA só mencionará tecnologias desta lista ao adaptar o currículo.</div>
@@ -92,6 +128,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
 
         {tab==="summary" && (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {aiExtracting && <AiExtractingBanner />}
             <label style={{ ...T.label }}>Resumo profissional (texto base para reescritas)</label>
             <textarea value={summary} onChange={e=>setSummary(e.target.value)} rows={6} placeholder="Senior Full-Stack Engineer com 10+ anos de experiência em desenvolvimento React/Next.js e Node.js. Front-End Tech Lead com histórico de liderança de times, design systems e performance em escala..." style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
           </div>

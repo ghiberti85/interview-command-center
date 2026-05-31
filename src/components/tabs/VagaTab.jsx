@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CONTACT_CHANNELS, T } from "../../constants/index.js";
 import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
 import Ic from "../ui/Ic.jsx";
@@ -31,6 +31,63 @@ function extractContextNote(notes) {
     return { contextMsg: notes.slice(prefix.length).trim(), freeNotes: "" };
   }
   return { contextMsg: "", freeNotes: notes };
+}
+
+function DatePicker({ value, onChange, diff, urgent, soon }) {
+  const inputRef = useRef(null);
+
+  const statusColor = urgent ? "var(--red)" : soon ? "var(--amb)" : "var(--t2)";
+  const statusText = diff === null ? null
+    : diff === 0 ? "Hoje"
+    : diff < 0 ? `${Math.abs(diff)} dias atrás`
+    : `Em ${diff} dias`;
+
+  return (
+    <div>
+      <div style={{ ...T.label, marginBottom: 5 }}>Data</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <button
+          onClick={() => inputRef.current?.showPicker?.() ?? inputRef.current?.click()}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "6px 12px", borderRadius: 8,
+            border: "1.5px solid var(--border-md)",
+            background: "var(--bg-s)", cursor: "pointer",
+            color: value ? "var(--t1)" : "var(--t3)",
+            fontSize: 13, fontFamily: "'Outfit',sans-serif",
+            fontWeight: value ? 500 : 400,
+          }}
+        >
+          <Ic n="cal" s={13} c={value ? statusColor : "var(--t3)"} />
+          {value ? fmtDate(value) : "Selecionar data"}
+        </button>
+
+        {value && statusText && (
+          <span style={{ fontSize: 11, color: statusColor, ...T.mono }}>
+            {statusText}
+          </span>
+        )}
+
+        {value && (
+          <button
+            onClick={() => onChange("")}
+            style={{ display: "inline-flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: 4 }}
+          >
+            <Ic n="close" s={11} c="var(--t3)" />
+          </button>
+        )}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 0, height: 0 }}
+        tabIndex={-1}
+      />
+    </div>
+  );
 }
 
 export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
@@ -139,20 +196,13 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
           {soon && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, background: "var(--amb)", color: "#fff", ...T.mono, fontWeight: 700 }}>EM BREVE</span>}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div>
-            <div style={{ ...T.label, marginBottom: 5 }}>Data</div>
-            <input
-              type="date"
-              value={process.nextStepDate || ""}
-              onChange={e => onUpdate({ ...process, nextStepDate: e.target.value || null })}
-              style={{ ...T.input, filter: "var(--date-picker-filter)" }}
-            />
-            {process.nextStepDate && diff !== null && (
-              <div style={{ fontSize: 11, color: urgent ? "var(--red)" : soon ? "var(--amb)" : "var(--t3)", marginTop: 4, ...T.mono }}>
-                {diff === 0 ? "Hoje" : diff < 0 ? `${Math.abs(diff)} dias atrás` : `Em ${diff} dias`} — {fmtDate(process.nextStepDate)}
-              </div>
-            )}
-          </div>
+          <DatePicker
+            value={process.nextStepDate || ""}
+            onChange={val => onUpdate({ ...process, nextStepDate: val || null })}
+            diff={diff}
+            urgent={urgent}
+            soon={soon}
+          />
           <div>
             <div style={{ ...T.label, marginBottom: 6 }}>Tipo de etapa</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

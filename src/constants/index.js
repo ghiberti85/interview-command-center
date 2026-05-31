@@ -124,11 +124,8 @@ export const GLOBAL_CSS = `
   .channel-btn:hover { opacity: 0.85; }
   .scenario-btn:hover { background: var(--bg-s) !important; border-color: var(--border-md) !important; }
   .mobile-tab:hover { opacity: 0.8; }
-  .bottom-nav-btn { transition: color 0.15s; min-height: 48px; }
+  .bottom-nav-btn { transition: color 0.15s; height: 48px; }
   .bottom-nav-btn:active { opacity: 0.7; }
-  :root { --sab: 0px; }
-  @media (display-mode: standalone) { :root { --sab: env(safe-area-inset-bottom, 0px); } }
-  html[data-pwa="1"] { --sab: env(safe-area-inset-bottom, 0px); }
   @media (max-width: 768px) {
     input, textarea, select { font-size: 16px !important; }
   }

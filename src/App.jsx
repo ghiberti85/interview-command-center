@@ -82,26 +82,6 @@ export default function App() {
     document.body.style.color = vars["--t1"];
   }, [dark]);
 
-  // --sab: multi-mechanism PWA detection
-  // Mechanism 1 (CSS): @media (display-mode: standalone) in GLOBAL_CSS — handles initial paint
-  // Mechanism 2 (JS-iOS): navigator.standalone — most reliable on iOS Safari
-  // Mechanism 3 (JS-std): matchMedia display-mode — Android PWA + newer iOS
-  // Mechanism 4 (JS-event): matchMedia change listener — catches dynamic install
-  // JS inline style overrides CSS, so JS confirmation is authoritative
-  useEffect(() => {
-    function applySAB() {
-      const isIOSPWA = window.navigator.standalone === true;
-      const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-      const isPWA = isIOSPWA || isStandalone;
-      const val = isPWA ? "env(safe-area-inset-bottom, 0px)" : "0px";
-      document.documentElement.style.setProperty("--sab", val);
-      document.documentElement.dataset.pwa = isPWA ? "1" : "0";
-    }
-    applySAB();
-    const mql = window.matchMedia("(display-mode: standalone)");
-    mql.addEventListener("change", applySAB);
-    return () => mql.removeEventListener("change", applySAB);
-  }, []);
 
   // Load processes
   useEffect(() => {
@@ -367,7 +347,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         {hamburgerOpen && (
           <>
             <div onClick={()=>setHamburgerOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:199, backdropFilter:"blur(2px)" }}/>
-            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"calc(20px + var(--sab))", zIndex:200, animation:"slideUp 0.25s ease" }}>
+            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"20px", zIndex:200, animation:"slideUp 0.25s ease" }}>
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
                 { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
@@ -394,11 +374,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(48px + var(--sab) + 12px)" }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px" }}><MobileDashboard processes={processes}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"calc(48px + var(--sab) + 12px)", animation:"slideUp 0.2s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px", animation:"slideUp 0.2s ease" }}>
               <div style={{ padding:"12px 16px 8px" }}>
                 <div style={{ position:"relative" }}>
                   <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={14} c="var(--t4)"/></div>
@@ -453,14 +433,14 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="calc(48px + var(--sab))" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="48px" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
             </div>
           )}
         </div>
 
       {/* Selection mode bar */}
       {selectionMode && (
-        <div style={{ position:"fixed", bottom:"calc(48px + var(--sab))", left:0, right:0, zIndex:200, background:"var(--bg-r)", borderTop:"1px solid var(--border-md)", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+        <div style={{ position:"fixed", bottom:"48px", left:0, right:0, zIndex:200, background:"var(--bg-r)", borderTop:"1px solid var(--border-md)", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
           <span style={{ fontSize:13, color:"var(--t2)", fontFamily:"'Outfit',sans-serif" }}>
             {selectedIds.length === 0 ? "Segure para selecionar" : `${selectedIds.length} selecionado${selectedIds.length>1?"s":""}`}
           </span>
@@ -493,8 +473,8 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         </div>
       )}
 
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", flexShrink:0 }}>
-          <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start", paddingTop:8, paddingBottom:"calc(4px + var(--sab))", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:48, position:"relative" }}>
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex" }}>
+          <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", height:48, position:"relative" }}>
             <Ic n="plus" s={19} c="var(--t1)"/>
             <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>
           </button>
@@ -505,7 +485,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           ].map(n=>{
             const on = view===n.id;
             return (
-              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start", paddingTop:8, paddingBottom:"calc(4px + var(--sab))", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", minHeight:48, position:"relative" }}>
+              <button key={n.id} className="bottom-nav-btn" onClick={()=>{setView(n.id);setMobileScreen("list");}} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", height:48, position:"relative" }}>
                 {on && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:20, height:2, borderRadius:"0 0 2px 2px", background:"var(--acc)" }}/>}
                 <Ic n={n.icon} s={19} c="var(--t1)"/>
                 <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>{n.label}</span>

@@ -178,7 +178,17 @@ ${text.slice(0, 6000)}`;
               </div>
             )}
             <label style={{ ...T.label }}>CV completo (ou cole manualmente)</label>
-            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={12} placeholder="Cole aqui o texto do seu currículo atual, ou importe um PDF acima. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
+            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={10} placeholder="Cole aqui o texto do seu currículo atual, ou importe um PDF acima. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
+            {cvText.trim().length > 100 && !aiExtracting && (
+              <button
+                onClick={() => extractProfileFromCV(cvText)}
+                style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"9px 16px", borderRadius:9, border:"1px solid var(--acc-b)", background:"var(--acc-d)", color:"var(--acc-text)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"opacity 0.15s" }}
+                onMouseEnter={e=>e.currentTarget.style.opacity="0.8"}
+                onMouseLeave={e=>e.currentTarget.style.opacity="1"}
+              >
+                <Ic n="ai" s={13} c="var(--acc)"/>Extrair Stack e Resumo com IA
+              </button>
+            )}
           </div>
         )}
 

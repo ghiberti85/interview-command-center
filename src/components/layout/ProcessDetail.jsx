@@ -17,7 +17,7 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, navH: nav
     { id:"vaga",      label:"Vaga"      },
     { id:"curriculo", label:"Currículo" },
   ];
-  const navH = isMobile ? (navHProp || "calc(56px + var(--sab))") : "0px";
+  const navH = isMobile ? (navHProp || "48px") : "0px";
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
@@ -43,18 +43,8 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, navH: nav
         {tab==="conversa"  && <div style={{ height:"100%" }}><ConversaTab process={process} isMobile={isMobile} navH={navH} profile={profile} adaptation={adaptation} onUpdate={onUpdate}/></div>}
         {tab==="vaga"      && <div style={{ height:"100%" }}><VagaTab process={process} onUpdate={onUpdate} onDelete={onDelete} isMobile={isMobile}/></div>}
         {tab==="curriculo" && (
-          <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
-            <div style={{ padding:"8px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
-              <div style={{ fontSize:11, color:"var(--t3)" }}>
-                {profile.stack.length>0 ? `${profile.stack.length} tecnologias no perfil` : "Perfil não configurado"}
-              </div>
-              <button onClick={onEditProfile} style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:7, border:"1px solid var(--border)", background:"transparent", color:"var(--t2)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif" }}>
-                <Ic n="edit" s={11} c="var(--t2)"/>Editar perfil
-              </button>
-            </div>
-            <div style={{ flex:1, minHeight:0 }}>
-              <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes} adaptation={adaptation} onSaveAdaptation={onSaveAdaptation}/>
-            </div>
+          <div style={{ height:"100%", minHeight:0 }}>
+            <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes} adaptation={adaptation} onSaveAdaptation={onSaveAdaptation} onEditProfile={onEditProfile}/>
           </div>
         )}
       </div>

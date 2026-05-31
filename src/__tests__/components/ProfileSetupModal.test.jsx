@@ -11,7 +11,12 @@ vi.mock("../../lib/ai.js", () => ({
 
 // ── Mock supabase ─────────────────────────────────────────────────────────────
 vi.mock("../../supabase.js", () => ({
-  supabase: { auth: { updateUser: vi.fn().mockResolvedValue({ error: null }) } },
+  supabase: {
+    auth: {
+      updateUser: vi.fn().mockResolvedValue({ error: null }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+    },
+  },
 }));
 
 // ── Import após mocks ─────────────────────────────────────────────────────────
@@ -34,13 +39,20 @@ function makeFakeFile(name, content = "") {
 describe("ProfileSetupModal — abas", () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it("renderiza com aba Stack ativa por padrão", () => {
+  it("renderiza com aba CV ativa por padrão", () => {
     render(<ProfileSetupModal {...defaultProps}/>);
+    expect(screen.getByText("Importar CV em PDF")).toBeInTheDocument();
+  });
+
+  it("navega para aba Stack", async () => {
+    render(<ProfileSetupModal {...defaultProps}/>);
+    await userEvent.click(screen.getByRole("button", { name: "Stack" }));
     expect(screen.getByPlaceholderText(/React, Next\.js, TypeScript/i)).toBeInTheDocument();
   });
 
-  it("pré-preenche stack com valor inicial", () => {
+  it("pré-preenche stack com valor inicial", async () => {
     render(<ProfileSetupModal {...defaultProps}/>);
+    await userEvent.click(screen.getByRole("button", { name: "Stack" }));
     const textarea = screen.getByPlaceholderText(/React, Next\.js, TypeScript/i);
     expect(textarea.value).toBe("React, TypeScript");
   });
@@ -55,12 +67,6 @@ describe("ProfileSetupModal — abas", () => {
     render(<ProfileSetupModal {...defaultProps}/>);
     await userEvent.click(screen.getByRole("button", { name: "Resumo" }));
     expect(screen.getByPlaceholderText(/Senior Full-Stack/i).value).toBe("Dev senior");
-  });
-
-  it("navega para aba CV", async () => {
-    render(<ProfileSetupModal {...defaultProps}/>);
-    await userEvent.click(screen.getByRole("button", { name: "CV" }));
-    expect(screen.getByText("Importar CV em PDF")).toBeInTheDocument();
   });
 });
 
@@ -90,6 +96,7 @@ describe("ProfileSetupModal — salvar", () => {
   it("stack com vírgulas e espaços é split corretamente", async () => {
     const onSave = vi.fn();
     render(<ProfileSetupModal {...defaultProps} onSave={onSave} initial={{ stack: [], summary: "", cvText: "" }}/>);
+    await userEvent.click(screen.getByRole("button", { name: "Stack" }));
     const textarea = screen.getByPlaceholderText(/React, Next\.js, TypeScript/i);
     await userEvent.clear(textarea);
     await userEvent.type(textarea, "React, Node.js, TypeScript");

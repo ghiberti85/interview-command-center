@@ -192,12 +192,14 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           <label style={{ ...T.label }}>Job description da vaga</label>
           <textarea data-testid="textarea-jd" value={jd} onChange={e => setJd(e.target.value)} rows={isMobile ? 8 : 11} placeholder={`Cole aqui o texto completo da vaga de ${process.role} na ${process.company}...`} style={{ ...T.input, resize: "vertical", lineHeight: 1.65, fontSize: 13 }} />
         </div>
-        <div style={{ padding: "10px 12px", background: "var(--bg-o)", borderRadius: 8, border: "1px solid var(--border)" }}>
-          <div style={{ ...T.label, marginBottom: 4 }}>Stack do perfil</div>
-          <div data-testid="stack-preview" style={{ fontSize: 12, color: "var(--t2)" }}>{profile.stack.slice(0, 8).join(" · ")}{profile.stack.length > 8 ? ` · +${profile.stack.length - 8} mais` : ""}</div>
-        </div>
+        {profile.stack.length > 0 && (
+          <div style={{ padding: "10px 12px", background: "var(--bg-o)", borderRadius: 8, border: "1px solid var(--border)" }}>
+            <div style={{ ...T.label, marginBottom: 4 }}>Stack do perfil</div>
+            <div data-testid="stack-preview" style={{ fontSize: 12, color: "var(--t2)" }}>{profile.stack.slice(0, 8).join(" · ")}{profile.stack.length > 8 ? ` · +${profile.stack.length - 8} mais` : ""}</div>
+          </div>
+        )}
       </div>
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px" }}>
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)" }}>
         <Btn data-testid="btn-analyze" onClick={generateQuestions} full disabled={!jd.trim()}>Analisar job description</Btn>
       </div>
     </div>

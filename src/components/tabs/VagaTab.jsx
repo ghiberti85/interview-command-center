@@ -158,7 +158,7 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
 
   return (
     <div style={{ height:"100%", overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
-      <div style={{ padding: isMobile ? "12px" : "20px", display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ padding: isMobile ? "12px" : "20px", paddingBottom: isMobile ? "80px" : "20px", display:"flex", flexDirection:"column", gap:14 }}>
 
         {/* ── Próxima etapa ─────────────────────────────────────── */}
         <div style={{ padding: isMobile ? "12px" : "14px 16px", borderRadius:12, border:`1.5px solid ${process.nextStepDate ? (urgent ? "var(--red-b)" : "var(--amb-b)") : "var(--border)"}`, background:process.nextStepDate ? (urgent ? "var(--red-d)" : "var(--amb-d)") : "var(--bg-o)" }}>

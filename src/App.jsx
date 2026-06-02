@@ -51,6 +51,10 @@ export default function App() {
   const isMobile = useIsMobile();
   const { dark, toggle: toggleTheme } = useTheme();
   const { session, isRecovery, clearRecovery } = useAuth();
+  const isPWA = typeof window !== "undefined" && (
+    window.navigator.standalone === true ||
+    window.matchMedia("(display-mode: standalone)").matches
+  );
   const [isDemo, setIsDemo] = useState(false);
   const [processes, setProcesses] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -377,11 +381,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px" }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom: isPWA ? "calc(60px + env(safe-area-inset-bottom, 0px))" : "60px" }}><MobileDashboard processes={processes}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px", animation:"slideUp 0.2s ease" }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom: isPWA ? "calc(60px + env(safe-area-inset-bottom, 0px))" : "60px", animation:"slideUp 0.2s ease" }}>
               {/* Search + sort inline */}
               <div style={{ display:"flex", gap:8, padding:"10px 12px 0" }}>
                 <div style={{ position:"relative", flex:1 }}>
@@ -476,7 +480,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         </div>
       )}
 
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex" }}>
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg)", borderTop:"1px solid var(--border)", display:"flex", paddingBottom: isPWA ? "env(safe-area-inset-bottom, 0px)" : 0, alignItems:"flex-start" }}>
           <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", height:48, position:"relative" }}>
             <Ic n="plus" s={19} c="var(--t1)"/>
             <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>

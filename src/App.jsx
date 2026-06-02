@@ -277,7 +277,10 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
                 {processes.length===0 ? "Nenhum processo ainda" : "Sem resultados"}
               </div>
             ) : filtered.map(p=>(
-              <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}/>
+              <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}
+                onArchive={!["rejected","archived"].includes(p.stage) ? (proc) => updateProcess({...proc, stage:"archived"}) : null}
+                onDelete={(proc) => { if (window.confirm("Deletar este processo? Esta ação não pode ser desfeita.")) deleteProcess(proc.id); }}
+              />
             ))}
           </div>
           <div style={{ padding:"8px" }}>
@@ -379,27 +382,27 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
             <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px", animation:"slideUp 0.2s ease" }}>
-              <div style={{ padding:"12px 16px 8px" }}>
-                <div style={{ position:"relative" }}>
-                  <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={14} c="var(--t4)"/></div>
-                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar empresa ou cargo..." style={{ ...T.input, paddingLeft:34, fontSize:14 }}/>
+              {/* Search + sort inline */}
+              <div style={{ display:"flex", gap:8, padding:"10px 12px 0" }}>
+                <div style={{ position:"relative", flex:1 }}>
+                  <div style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={13} c="var(--t4)"/></div>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." style={{ ...T.input, paddingLeft:30, fontSize:14, padding:"9px 10px 9px 30px" }}/>
                 </div>
+                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding:"8px 8px", borderRadius:9, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", colorScheme:dark?"dark":"light", flexShrink:0 }}>
+                  <option value="urgencia">Urgência</option>
+                  <option value="empresa">Empresa</option>
+                  <option value="stage">Stage</option>
+                  <option value="recente">Recente</option>
+                </select>
               </div>
-              <div style={{ display:"flex", gap:6, padding:"0 16px 12px", overflowX:"auto", scrollbarWidth:"none" }}>
+              {/* Stage filter chips */}
+              <div style={{ display:"flex", gap:5, padding:"8px 12px 8px", overflowX:"auto", scrollbarWidth:"none" }}>
                 {[{id:"all",label:"Todos"},...ACTIVE_STAGES.map(s=>({id:s,label:STAGE[s].label}))].map(p=>{
                   const isActive = stageFilter===p.id;
                   return (
-                    <div key={p.id} onClick={()=>setStageFilter(p.id)} style={{ flexShrink:0, padding:"7px 14px", borderRadius:20, border:`1px solid ${isActive?"var(--acc)":"var(--border)"}`, background:isActive?"var(--acc)":"var(--bg-r)", color:isActive?"#EFEFEF":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap", fontWeight:isActive?600:400, transition:"all 0.15s" }}>{p.label}</div>
+                    <div key={p.id} onClick={()=>setStageFilter(p.id)} style={{ flexShrink:0, padding:"5px 12px", borderRadius:20, border:`1px solid ${isActive?"var(--acc)":"var(--border)"}`, background:isActive?"var(--acc)":"transparent", color:isActive?"#EFEFEF":"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap", fontWeight:isActive?600:400, transition:"all 0.15s" }}>{p.label}</div>
                   );
                 })}
-              </div>
-              <div style={{ padding:"0 16px 8px" }}>
-                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", colorScheme:dark?"dark":"light" }}>
-                  <option value="urgencia">Ordenar: Urgência</option>
-                  <option value="empresa">Ordenar: Empresa A–Z</option>
-                  <option value="stage">Ordenar: Stage</option>
-                  <option value="recente">Ordenar: Mais recente</option>
-                </select>
               </div>
               <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:8 }}>
                 {filtered.length===0 ? (

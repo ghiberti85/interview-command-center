@@ -4,8 +4,9 @@
   "description": "Gerencie seus processos seletivos com IA",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#111113",
-  "theme_color": "#3D20B8",
+  "theme_color": "#7C6AFF",
   "orientation": "portrait-primary",
   "icons": [
     {

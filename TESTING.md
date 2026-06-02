@@ -4,14 +4,14 @@
 
 ## 1. Estado atual
 
-**253 testes passando. Zero falhas.**
+**255 testes passando. Zero falhas.**
 
 | Camada | Arquivos | Testes |
 |---|---|---|
-| Unit | 9 arquivos | ~195 |
+| Unit | 9 arquivos | ~197 |
 | Component | 6 arquivos | ~58 |
 | Integration | 1 arquivo | — |
-| **Total** | **17 arquivos** | **253** |
+| **Total** | **17 arquivos** | **255** |
 
 **CI:** `npm run test:run` executa antes de `npm run build` em todo PR e push para `main`. Build só acontece se todos os testes passarem.
 

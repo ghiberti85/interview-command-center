@@ -54,12 +54,13 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | Deploy automático na Vercel via integração nativa GitHub | ✅ |
 | CI — `npm run test:run` + `npm run build` em todo PR/push main (testes bloqueiam build) | ✅ |
 | Layout responsivo (desktop sidebar + mobile bottom nav) | ✅ |
-| Mobile UX — touch targets 44px, bottom nav 52px, safe area iPhone | ✅ |
-| **PWA** — manifest, service worker, ícones 192/512px, meta tags Apple/Android | ✅ |
+| Mobile UX — touch targets 44px, bottom nav 48px fixo sem safe-area gap | ✅ |
+| **PWA** — manifest + display_override, service worker, ícones 192/512 maskable, meta tags Apple/Android | ✅ |
 | **Componentização** — App.jsx extraído em hooks, utils, constants, lib e components | ✅ |
 | **Hamburger menu (mobile)** — header limpo com alerta urgência + bottom sheet de ações | ✅ |
-| **Active tab contrast** — aba ativa com roxo sólido + texto branco (desktop, chips, bottom nav) | ✅ |
-| Suite de testes — 253 testes (unit + component + integration), CI bloqueia build em falha | ✅ |
+| **Mobile Pipeline compacto** — busca + sort inline, chips menores, mais espaço para cards | ✅ |
+| **Desktop hover actions** — arquivar/deletar aparecem ao hover no card sem precisar clicar+segurar | ✅ |
+| Suite de testes — 255 testes (unit + component + integration), CI bloqueia build em falha | ✅ |
 | `.env.example` com todas as variáveis documentadas | ✅ |
 
 ### Infraestrutura

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
@@ -8,12 +8,13 @@ import Ic from "../ui/Ic.jsx";
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
 const LONG_PRESS_MS = 500;
 
-export function ProcessCard({ process, onClick, selected, isMobile, selectionMode, isSelected, onLongPress }) {
+export function ProcessCard({ process, onClick, selected, isMobile, selectionMode, isSelected, onLongPress, onArchive, onDelete }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
   const longPressTimer = useRef(null);
   const didLongPress = useRef(false);
+  const [hovered, setHovered] = useState(false);
 
   const handleTouchStart = () => {
     didLongPress.current = false;
@@ -23,19 +24,21 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
     }, LONG_PRESS_MS);
   };
 
-  const handleTouchEnd = () => {
-    clearTimeout(longPressTimer.current);
-  };
+  const handleTouchEnd = () => clearTimeout(longPressTimer.current);
 
   const handleClick = () => {
     if (didLongPress.current) return;
     onClick();
   };
 
+  const isArchived = ["rejected","archived"].includes(process.stage);
+
   return (
     <div
       data-testid="card-wrapper"
       style={{ position:"relative", marginBottom:6 }}
+      onMouseEnter={() => !isMobile && setHovered(true)}
+      onMouseLeave={() => !isMobile && setHovered(false)}
     >
       <div
         data-testid="process-card"
@@ -45,25 +48,23 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
         onTouchEnd={isMobile ? handleTouchEnd : undefined}
         onTouchMove={isMobile ? () => clearTimeout(longPressTimer.current) : undefined}
         style={{
-          background:"var(--bg-r)",
-          border:`1.5px solid ${isSelected ? "var(--red-b, #7f1d1d)" : selected ? "var(--acc-b)" : "var(--border)"}`,
-          borderLeft:`3px solid ${isSelected ? "var(--red, #FF6A6A)" : s.bar}`,
+          border:`1.5px solid ${isSelected ? "var(--red-b)" : selected ? "var(--acc-b)" : "var(--border)"}`,
+          borderLeft:`3px solid ${isSelected ? "var(--red)" : s.bar}`,
           borderRadius:12,
           padding:"12px 14px", cursor:"pointer",
           transition:"border 0.15s, background 0.15s",
-          background: isSelected ? "var(--red-d, rgba(255,106,106,0.08))" : "var(--bg-r)",
+          background: isSelected ? "var(--red-d)" : "var(--bg-r)",
           position:"relative",
           userSelect:"none",
           WebkitUserSelect:"none",
         }}
       >
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
-          {/* Checkbox in selection mode */}
           {selectionMode && (
             <div style={{
               width:20, height:20, borderRadius:6, flexShrink:0, marginRight:2, marginTop:1,
-              border:`2px solid ${isSelected ? "var(--red, #FF6A6A)" : "var(--border-md)"}`,
-              background: isSelected ? "var(--red, #FF6A6A)" : "transparent",
+              border:`2px solid ${isSelected ? "var(--red)" : "var(--border-md)"}`,
+              background: isSelected ? "var(--red)" : "transparent",
               display:"flex", alignItems:"center", justifyContent:"center",
               transition:"all 0.15s",
             }}>
@@ -94,6 +95,34 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
           </div>
         )}
       </div>
+
+      {/* Desktop hover actions */}
+      {!isMobile && hovered && !selectionMode && (onArchive || onDelete) && (
+        <div style={{ position:"absolute", top:8, right:8, display:"flex", gap:4, zIndex:10 }}>
+          {onArchive && !isArchived && (
+            <button
+              onClick={e => { e.stopPropagation(); onArchive(process); }}
+              title="Arquivar"
+              style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--border-md)", background:"var(--bg-s)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"background 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.background="var(--bg-o)"}
+              onMouseLeave={e => e.currentTarget.style.background="var(--bg-s)"}
+            >
+              <Ic n="archive" s={12} c="var(--t2)"/>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(process); }}
+              title="Deletar"
+              style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--red-b)", background:"var(--red-d)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"background 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.background="var(--red-b)"}
+              onMouseLeave={e => e.currentTarget.style.background="var(--red-d)"}
+            >
+              <Ic n="trash" s={12} c="var(--red)"/>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

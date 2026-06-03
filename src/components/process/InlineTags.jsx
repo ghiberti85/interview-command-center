@@ -25,8 +25,8 @@ export function InlineTags({ process, onUpdate }) {
         onChange={e=>setNewTag(e.target.value)}
         onKeyDown={e=>{ if(e.key==="Enter"){e.preventDefault();addTag();} }}
         onBlur={addTag}
-        placeholder="+ adicionar tag"
-        style={{ padding:"3px 8px", borderRadius:6, border:"1px dashed var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:12, fontFamily:"'JetBrains Mono',monospace", outline:"none", minWidth:110, width:"auto" }}
+        placeholder="+ tag"
+        style={{ padding:"3px 10px", borderRadius:6, border:"1px dashed var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:12, fontFamily:"'JetBrains Mono',monospace", outline:"none", width:64, textAlign:"center" }}
       />
     </div>
   );

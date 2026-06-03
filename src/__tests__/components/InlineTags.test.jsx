@@ -34,7 +34,7 @@ describe("InlineTags", () => {
     const onUpdate = vi.fn();
     const process = { tags: ["react"] };
     render(<InlineTags process={process} onUpdate={onUpdate} />);
-    const input = screen.getByPlaceholderText("+ adicionar tag");
+    const input = screen.getByPlaceholderText("+ tag");
     fireEvent.change(input, { target: { value: "typescript" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onUpdate).toHaveBeenCalledWith({ tags: ["react", "typescript"] });
@@ -44,7 +44,7 @@ describe("InlineTags", () => {
     const onUpdate = vi.fn();
     const process = { tags: [] };
     render(<InlineTags process={process} onUpdate={onUpdate} />);
-    const input = screen.getByPlaceholderText("+ adicionar tag");
+    const input = screen.getByPlaceholderText("+ tag");
     fireEvent.change(input, { target: { value: "nextjs" } });
     fireEvent.blur(input);
     expect(onUpdate).toHaveBeenCalledWith({ tags: ["nextjs"] });
@@ -54,7 +54,7 @@ describe("InlineTags", () => {
     const onUpdate = vi.fn();
     const process = { tags: ["react"] };
     render(<InlineTags process={process} onUpdate={onUpdate} />);
-    const input = screen.getByPlaceholderText("+ adicionar tag");
+    const input = screen.getByPlaceholderText("+ tag");
     fireEvent.change(input, { target: { value: "react" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onUpdate).not.toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe("InlineTags", () => {
     const onUpdate = vi.fn();
     const process = { tags: ["react"] };
     render(<InlineTags process={process} onUpdate={onUpdate} />);
-    const input = screen.getByPlaceholderText("+ adicionar tag");
+    const input = screen.getByPlaceholderText("+ tag");
     fireEvent.change(input, { target: { value: "   " } });
     fireEvent.blur(input);
     expect(onUpdate).not.toHaveBeenCalled();

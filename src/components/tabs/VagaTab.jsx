@@ -66,7 +66,38 @@ function DatePicker({ value, onChange, diff, urgent, soon }) {
   );
 }
 
+function Chevron({ open }) {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
+      style={{ flexShrink:0, transition:"transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+      <path d="M6 9l6 6 6-6" stroke="var(--t3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function AccordionCard({ icon, title, badge, open, onToggle, children }) {
+  return (
+    <div style={{ borderRadius:14, border:"1px solid var(--border)", background:"var(--bg-r)", overflow:"hidden", transition:"border-color 0.15s" }}>
+      <button
+        onClick={onToggle}
+        style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"12px 16px", background:"none", border:"none", cursor:"pointer", textAlign:"left" }}
+      >
+        <Ic n={icon} s={13} c="var(--t3)" />
+        <span style={{ flex:1, ...T.label, color:"var(--t2)", fontSize:11 }}>{title}</span>
+        {badge}
+        <Chevron open={open} />
+      </button>
+      {open && (
+        <div style={{ borderTop:"1px solid var(--border)", padding:"14px 16px", display:"flex", flexDirection:"column", gap:12 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
+  const [open, setOpen]             = useState({ next: true, vaga: true, notes: true });
   const [editingField, setEditingField] = useState(null);
   const [drafts, setDrafts]             = useState({});
   const [meetingType, setMeetingType]   = useState(() => {
@@ -84,6 +115,8 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
   const diff   = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
   const soon   = diff !== null && diff >= 0 && diff <= 7 && !urgent;
+
+  const toggle = (key) => setOpen(prev => ({ ...prev, [key]: !prev[key] }));
 
   const saveField = (field, value) => {
     setEditingField(null);
@@ -144,136 +177,112 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
   const col2 = isMobile ? "1fr" : "1fr 1fr";
   const col3 = isMobile ? "1fr 1fr" : "1fr 1fr 1fr";
 
-  const sectionStyle = {
-    borderRadius:12, border:"1px solid var(--border)", background:"var(--bg-o)",
-  };
-  const sectionHeader = {
-    padding:"10px 14px", borderBottom:"1px solid var(--border)",
-    display:"flex", alignItems:"center", gap:6,
-  };
-  const sectionBody = {
-    padding: isMobile ? "12px 12px" : "14px 16px",
-    display:"flex", flexDirection:"column", gap:12,
-  };
+  const nextBadge = urgent ? (
+    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--red)", color:"#fff", ...T.mono, fontWeight:700 }}>URGENTE</span>
+  ) : soon ? (
+    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--amb)", color:"#fff", ...T.mono, fontWeight:700 }}>EM BREVE</span>
+  ) : process.nextStepDate ? (
+    <span style={{ fontSize:10, color:"var(--t3)", ...T.mono }}>{fmtDate(process.nextStepDate)}</span>
+  ) : null;
 
   return (
     <div style={{ height:"100%", overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
-      <div style={{ padding: isMobile ? "12px" : "20px", paddingBottom: isMobile ? "80px" : "20px", display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ padding: isMobile ? "12px" : "20px", paddingBottom: isMobile ? "80px" : "20px", display:"flex", flexDirection:"column", gap:10 }}>
 
         {/* ── Próxima etapa ─────────────────────────────────────── */}
-        <div style={{ padding: isMobile ? "12px" : "14px 16px", borderRadius:12, border:`1.5px solid ${process.nextStepDate ? (urgent ? "var(--red-b)" : "var(--amb-b)") : "var(--border)"}`, background:process.nextStepDate ? (urgent ? "var(--red-d)" : "var(--amb-d)") : "var(--bg-o)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:12 }}>
-            <Ic n={urgent?"alert":"cal"} s={13} c={urgent?"var(--red)":process.nextStepDate?"var(--amb)":"var(--t3)"} />
-            <span style={{ fontSize:13, fontWeight:700, color:urgent?"var(--red)":process.nextStepDate?"var(--amb)":"var(--t2)", fontFamily:"'Outfit',sans-serif" }}>Próxima etapa</span>
-            {urgent && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--red)", color:"#fff", ...T.mono, fontWeight:700 }}>URGENTE</span>}
-            {soon   && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--amb)", color:"#fff", ...T.mono, fontWeight:700 }}>EM BREVE</span>}
+        <AccordionCard icon={urgent?"alert":"cal"} title="Próxima etapa" badge={nextBadge} open={open.next} onToggle={() => toggle("next")}>
+          <DatePicker value={process.nextStepDate||""} onChange={val=>onUpdate({...process,nextStepDate:val||null})} diff={diff} urgent={urgent} soon={soon} />
+          <div>
+            <div style={{ ...T.label, marginBottom:6 }}>Tipo de etapa</div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {MEETING_TYPES.map(mt => {
+                const on = meetingType === mt.id;
+                return (
+                  <button key={mt.id} onClick={() => handleMeetingType(mt.id)} style={{ padding:"5px 12px", borderRadius:20, border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc-text)":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:on?600:400, transition:"all 0.15s" }}>
+                    {mt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            <DatePicker value={process.nextStepDate||""} onChange={val=>onUpdate({...process,nextStepDate:val||null})} diff={diff} urgent={urgent} soon={soon} />
+          <div>
+            <div style={{ ...T.label, marginBottom:5 }}>Descrição / instrução</div>
+            <input value={process.nextStepNote||""} onChange={e=>onUpdate({...process,nextStepNote:e.target.value})}
+              placeholder="Ex: Entrevista técnica com o time de plataforma" style={{ ...T.input }} />
+          </div>
+        </AccordionCard>
+
+        {/* ── Dados da vaga ─────────────────────────────────────── */}
+        <AccordionCard icon="pipeline" title="Dados da vaga" open={open.vaga} onToggle={() => toggle("vaga")}>
+          <div style={{ display:"grid", gridTemplateColumns:col2, gap:12 }}>
+            <EditableText field="company"  value={process.company}  label="Empresa" placeholder="Nome da empresa" />
+            <EditableText field="role"     value={process.role}     label="Cargo"   placeholder="Título da vaga" />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:col3, gap:10 }}>
+            <EditableText field="location" value={process.location} label="Local"   placeholder="Remoto / SP" />
+            <EditableText field="salary"   value={process.salary}   label="Salário" placeholder="—" />
             <div>
-              <div style={{ ...T.label, marginBottom:6 }}>Tipo de etapa</div>
+              <div style={{ ...T.label, marginBottom:6 }}>Origem</div>
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                {MEETING_TYPES.map(mt => {
-                  const on = meetingType === mt.id;
+                {[{value:"inbound",label:"Inbound"},{value:"outbound",label:"Outbound"}].map(opt => (
+                  <button key={opt.value} onClick={() => onUpdate({...process,origin:opt.value})}
+                    style={{ padding:"4px 10px", borderRadius:20, border:`1px solid ${(process.origin||"inbound")===opt.value?"var(--acc-b)":"var(--border)"}`, background:(process.origin||"inbound")===opt.value?"var(--acc-d)":"transparent", color:(process.origin||"inbound")===opt.value?"var(--acc-text)":"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {(process.origin||"inbound")==="inbound" && (
+            <div>
+              <div style={{ ...T.label, marginBottom:6 }}>Canal</div>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {CONTACT_CHANNELS.map(ch => {
+                  const on = (process.channel||"")===ch.value;
                   return (
-                    <button key={mt.id} onClick={() => handleMeetingType(mt.id)} style={{ padding:"5px 12px", borderRadius:20, border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc-text)":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:on?600:400, transition:"all 0.15s" }}>
-                      {mt.label}
+                    <button key={ch.value} onClick={()=>onUpdate({...process,channel:on?"":ch.value})}
+                      style={{ display:"flex", alignItems:"center", gap:4, padding:"4px 10px", borderRadius:20, border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc-text)":"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}>
+                      <Ic n={ch.icon} s={11} c={on?"var(--acc)":"var(--t3)"}/>{ch.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div>
-              <div style={{ ...T.label, marginBottom:5 }}>Descrição / instrução</div>
-              <input value={process.nextStepNote||""} onChange={e=>onUpdate({...process,nextStepNote:e.target.value})}
-                placeholder="Ex: Entrevista técnica com o time de plataforma" style={{ ...T.input }} />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Dados da vaga ─────────────────────────────────────── */}
-        <div style={sectionStyle}>
-          <div style={sectionHeader}>
-            <Ic n="pipeline" s={12} c="var(--t3)" />
-            <span style={{ ...T.label }}>Dados da vaga</span>
-          </div>
-          <div style={sectionBody}>
+          )}
+          <div style={{ borderTop:"1px solid var(--border)", paddingTop:12, display:"flex", flexDirection:"column", gap:10 }}>
             <div style={{ display:"grid", gridTemplateColumns:col2, gap:12 }}>
-              <EditableText field="company"  value={process.company}  label="Empresa" placeholder="Nome da empresa" />
-              <EditableText field="role"     value={process.role}     label="Cargo"   placeholder="Título da vaga" />
+              <EditableText field="recruiter"      value={process.recruiter}      label="Recrutador(a)" placeholder="Nome" />
+              <EditableText field="recruiterEmail" value={process.recruiterEmail} label="E-mail"        placeholder="email@empresa.com" />
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:col3, gap:10 }}>
-              <EditableText field="location" value={process.location} label="Local"   placeholder="Remoto / SP" />
-              <EditableText field="salary"   value={process.salary}   label="Salário" placeholder="—" />
-              <div>
-                <div style={{ ...T.label, marginBottom:6 }}>Origem</div>
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {[{value:"inbound",label:"Inbound"},{value:"outbound",label:"Outbound"}].map(opt => (
-                    <button key={opt.value} onClick={() => onUpdate({...process,origin:opt.value})}
-                      style={{ padding:"4px 10px", borderRadius:20, border:`1px solid ${(process.origin||"inbound")===opt.value?"var(--acc-b)":"var(--border)"}`, background:(process.origin||"inbound")===opt.value?"var(--acc-d)":"transparent", color:(process.origin||"inbound")===opt.value?"var(--acc-text)":"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {(process.origin||"inbound")==="inbound" && (
-              <div>
-                <div style={{ ...T.label, marginBottom:6 }}>Canal</div>
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {CONTACT_CHANNELS.map(ch => {
-                    const on = (process.channel||"")===ch.value;
-                    return (
-                      <button key={ch.value} onClick={()=>onUpdate({...process,channel:on?"":ch.value})}
-                        style={{ display:"flex", alignItems:"center", gap:4, padding:"4px 10px", borderRadius:20, border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc-text)":"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", transition:"all 0.15s" }}>
-                        <Ic n={ch.icon} s={11} c={on?"var(--acc)":"var(--t3)"}/>{ch.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            <EditableText field="jobUrl" value={process.jobUrl} label="Link da vaga" placeholder="https://..." />
+            {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && (
+              <a href={process.jobUrl} target="_blank" rel="noreferrer noopener"
+                style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:12, color:"var(--acc-text)", textDecoration:"none" }}>
+                <Ic n="send" s={11} c="var(--acc)"/>Abrir vaga →
+              </a>
             )}
-            <div style={{ borderTop:"1px solid var(--border)", paddingTop:12, display:"flex", flexDirection:"column", gap:10 }}>
-              <div style={{ display:"grid", gridTemplateColumns:col2, gap:12 }}>
-                <EditableText field="recruiter"      value={process.recruiter}      label="Recrutador(a)" placeholder="Nome" />
-                <EditableText field="recruiterEmail" value={process.recruiterEmail} label="E-mail"        placeholder="email@empresa.com" />
-              </div>
-              <EditableText field="jobUrl" value={process.jobUrl} label="Link da vaga" placeholder="https://..." />
-              {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && (
-                <a href={process.jobUrl} target="_blank" rel="noreferrer noopener"
-                  style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:12, color:"var(--acc-text)", textDecoration:"none" }}>
-                  <Ic n="send" s={11} c="var(--acc)"/>Abrir vaga →
-                </a>
-              )}
-            </div>
-            <div>
-              <div style={{ ...T.label, marginBottom:6 }}>Tags</div>
-              <InlineTags process={process} onUpdate={onUpdate} />
-            </div>
           </div>
-        </div>
+          <div>
+            <div style={{ ...T.label, marginBottom:6 }}>Tags</div>
+            <InlineTags process={process} onUpdate={onUpdate} />
+          </div>
+        </AccordionCard>
 
         {/* ── Anotações ──────────────────────────────────────────── */}
-        <div style={sectionStyle}>
-          <div style={sectionHeader}>
-            <Ic n="edit" s={12} c="var(--t3)" />
-            <span style={{ ...T.label }}>Anotações</span>
-          </div>
-          <div style={sectionBody}>
-            {contextMsg && (
-              <div>
-                <div style={{ ...T.label, marginBottom:5 }}>Contexto inicial</div>
-                <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6, padding:"8px 12px", background:"var(--bg-s)", borderRadius:8, border:"1px solid var(--border)" }}>
-                  {contextMsg.slice(0,200)}{contextMsg.length>200?"…":""}
-                </div>
+        <AccordionCard icon="edit" title="Anotações" open={open.notes} onToggle={() => toggle("notes")}>
+          {contextMsg && (
+            <div>
+              <div style={{ ...T.label, marginBottom:5 }}>Contexto inicial</div>
+              <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6, padding:"8px 12px", background:"var(--bg-s)", borderRadius:8, border:"1px solid var(--border)" }}>
+                {contextMsg.slice(0,200)}{contextMsg.length>200?"…":""}
               </div>
-            )}
-            <textarea value={localNotes} onChange={e=>setLocalNotes(e.target.value)} onBlur={saveNotes}
-              placeholder="Anotações livres sobre este processo..."
-              rows={isMobile ? 5 : 4}
-              style={{ ...T.input, resize:"vertical", lineHeight:1.65 }} />
-          </div>
-        </div>
+            </div>
+          )}
+          <textarea value={localNotes} onChange={e=>setLocalNotes(e.target.value)} onBlur={saveNotes}
+            placeholder="Anotações livres sobre este processo..."
+            rows={isMobile ? 5 : 4}
+            style={{ ...T.input, resize:"vertical", lineHeight:1.65 }} />
+        </AccordionCard>
 
         {/* ── Praticar para esta vaga ────────────────────────────── */}
         <a href={buildDILUrl(process)} target="_blank" rel="noopener noreferrer"

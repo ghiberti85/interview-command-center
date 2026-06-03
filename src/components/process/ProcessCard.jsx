@@ -15,6 +15,7 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
   const longPressTimer = useRef(null);
   const didLongPress = useRef(false);
   const [hovered, setHovered] = useState(false);
+  const isArchived = ["rejected","archived"].includes(process.stage);
 
   const handleTouchStart = () => {
     didLongPress.current = false;
@@ -30,8 +31,6 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
     if (didLongPress.current) return;
     onClick();
   };
-
-  const isArchived = ["rejected","archived"].includes(process.stage);
 
   return (
     <div
@@ -84,45 +83,47 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
           </div>
           <Badge stage={process.stage}/>
         </div>
-        {process.nextStepDate && (
-          <div style={{ display:"flex", marginTop:8 }}>
+        {/* Bottom row: date + desktop action button */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop: process.nextStepDate || (!isMobile && !selectionMode) ? 8 : 0 }}>
+          {process.nextStepDate ? (
             <div style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:7, background:urgent?"var(--red-d)":"var(--bg-s)", border:`1px solid ${urgent?"var(--red-b)":"var(--border)"}` }}>
               <Ic n={urgent?"alert":"cal"} s={10} c={urgent?"var(--red)":"var(--t3)"}/>
               <span style={{ fontSize:10, color:urgent?"var(--red)":"var(--t3)", ...T.mono }}>
                 {fmtDate(process.nextStepDate)}{diff!==null&&` · ${diff===0?"hoje":diff<0?`${Math.abs(diff)}d atrás`:`em ${diff}d`}`}
               </span>
             </div>
-          </div>
-        )}
-      </div>
+          ) : <div/>}
 
-      {/* Desktop hover actions */}
-      {!isMobile && hovered && !selectionMode && (onArchive || onDelete) && (
-        <div style={{ position:"absolute", top:8, right:8, display:"flex", gap:4, zIndex:10 }}>
-          {onArchive && !isArchived && (
-            <button
-              onClick={e => { e.stopPropagation(); onArchive(process); }}
-              title="Arquivar"
-              style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--border-md)", background:"var(--bg-s)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"background 0.15s" }}
-              onMouseEnter={e => e.currentTarget.style.background="var(--bg-o)"}
-              onMouseLeave={e => e.currentTarget.style.background="var(--bg-s)"}
-            >
-              <Ic n="archive" s={12} c="var(--t2)"/>
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={e => { e.stopPropagation(); onDelete(process); }}
-              title="Deletar"
-              style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--red-b)", background:"var(--red-d)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"background 0.15s" }}
-              onMouseEnter={e => e.currentTarget.style.background="var(--red-b)"}
-              onMouseLeave={e => e.currentTarget.style.background="var(--red-d)"}
-            >
-              <Ic n="trash" s={12} c="var(--red)"/>
-            </button>
+          {/* Desktop single action: archive (pipeline) or delete (archived) */}
+          {!isMobile && !selectionMode && (
+            isArchived ? (
+              onDelete && (
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(process); }}
+                  title="Deletar"
+                  style={{ width:26, height:26, borderRadius:6, border:"1px solid var(--red-b)", background:"var(--red-d)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity: hovered ? 1 : 0, transition:"opacity 0.15s, background 0.15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background="var(--red-b)"}
+                  onMouseLeave={e => e.currentTarget.style.background="var(--red-d)"}
+                >
+                  <Ic n="trash" s={11} c="var(--red)"/>
+                </button>
+              )
+            ) : (
+              onArchive && (
+                <button
+                  onClick={e => { e.stopPropagation(); onArchive(process); }}
+                  title="Arquivar"
+                  style={{ width:26, height:26, borderRadius:6, border:"1px solid var(--border-md)", background:"var(--bg-s)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity: hovered ? 1 : 0, transition:"opacity 0.15s, background 0.15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background="var(--bg-o)"}
+                  onMouseLeave={e => e.currentTarget.style.background="var(--bg-s)"}
+                >
+                  <Ic n="archive" s={11} c="var(--t2)"/>
+                </button>
+              )
+            )
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

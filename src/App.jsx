@@ -280,7 +280,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
             ) : filtered.map(p=>(
               <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}
                 onArchive={!["rejected","archived"].includes(p.stage) ? (proc) => updateProcess({...proc, stage:"archived"}) : null}
-                onDelete={(proc) => { if (window.confirm("Deletar este processo? Esta ação não pode ser desfeita.")) deleteProcess(proc.id); }}
+                onDelete={["rejected","archived"].includes(p.stage) ? (proc) => { if (window.confirm("Deletar este processo? Esta ação não pode ser desfeita.")) deleteProcess(proc.id); } : null}
               />
             ))}
           </div>

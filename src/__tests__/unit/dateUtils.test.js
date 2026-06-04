@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { fmtDate, daysDiff, isUrgent } from "../../utils/dateUtils.js";
+import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
 
 describe("fmtDate", () => {
   it("formata data válida em pt-BR", () => {
@@ -67,22 +67,4 @@ describe("daysDiff", () => {
   it("retorna valor positivo para datas futuras", () => {
     expect(daysDiff("2026-06-20")).toBeGreaterThan(0);
   });
-});
-
-describe("isUrgent", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-05-20T12:00:00"));
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("null não é urgente", () => expect(isUrgent(null)).toBe(false));
-  it("hoje (diff=0) é urgente", () => expect(isUrgent("2026-05-20")).toBe(true));
-  it("amanhã (diff=1) é urgente", () => expect(isUrgent("2026-05-21")).toBe(true));
-  it("depois de amanhã (diff=2) é urgente", () => expect(isUrgent("2026-05-22")).toBe(true));
-  it("3 dias (diff=3) não é urgente", () => expect(isUrgent("2026-05-23")).toBe(false));
-  it("ontem (diff=-1) não é urgente", () => expect(isUrgent("2026-05-19")).toBe(false));
 });

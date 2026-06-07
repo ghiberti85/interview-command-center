@@ -4,14 +4,14 @@
 
 ## 1. Estado atual
 
-**255 testes passando. Zero falhas.**
+**187 testes passando. Zero falhas.**
 
 | Camada | Arquivos | Testes |
 |---|---|---|
-| Unit | 9 arquivos | ~197 |
-| Component | 6 arquivos | ~58 |
-| Integration | 1 arquivo | — |
-| **Total** | **17 arquivos** | **255** |
+| Unit | 7 arquivos | ~155 |
+| Component | 7 arquivos | ~22 |
+| Integration | 1 arquivo | ~10 |
+| **Total** | **15 arquivos** | **187** |
 
 **CI:** `npm run test:run` executa antes de `npm run build` em todo PR e push para `main`. Build só acontece se todos os testes passarem.
 
@@ -34,28 +34,30 @@
 ```
 src/__tests__/
 ├── unit/
-│   ├── buildPrompt.test.js       # buildCVPrompt — montagem de prompt de adaptação de CV
-│   ├── channel.test.js           # CONTACT_CHANNELS — valores e ícones
-│   ├── constants.test.js         # STAGE, ACTIVE_STAGES, CHANNELS, SCENARIOS
-│   ├── dateUtils.test.js         # fmtDate, daysDiff — formatação e diff de datas
-│   ├── edgeFunction.test.js      # anthropic-proxy — rate limit, CORS, validação de payload
+│   ├── buildPrompt.test.js        # buildCVPrompt — montagem de prompt de adaptação de CV
+│   ├── channel.test.js            # CONTACT_CHANNELS — valores e ícones
+│   ├── constants.test.js          # STAGE, ACTIVE_STAGES, CHANNELS, SCENARIOS
+│   ├── dateUtils.test.js          # fmtDate, daysDiff — formatação e diff de datas
+│   ├── edgeFunction.test.js       # anthropic-proxy — rate limit, CORS, validação de payload
 │   ├── extractTextFromPdf.test.js # extractTextFromPdf — extração de texto de PDFs
-│   ├── filterProcesses.test.js   # filterProcesses — busca e filtro por stage
-│   ├── importHelpers.test.js     # parseCSV, normalizeProcess, detectFormat
-│   ├── sort.test.js              # sortProcesses — urgência, empresa, stage, recente
-│   └── supabase.test.js          # rowToProcess, processToRow — mapeadores snake_case ↔ camelCase
+│   ├── filterProcesses.test.js    # filterProcesses — busca e filtro por stage
+│   ├── sort.test.js               # sortProcesses — urgência, empresa, stage, recente
+│   └── supabase.test.js           # rowToProcess, processToRow — mapeadores snake_case ↔ camelCase
 │
 ├── components/
 │   ├── CVTab.test.jsx             # CVTab — fluxo 4 etapas (input → analyzing → review → result)
 │   ├── InlineTags.test.jsx        # InlineTags — adicionar, remover, tecla Enter/Escape
 │   ├── ProcessCard.test.jsx       # ProcessCard — render, urgência, swipe mobile, ações
 │   ├── ProfileSetupModal.test.jsx # ProfileSetupModal — abas, salvar, upload PDF
-│   ├── RecruiterMessageModal.test.jsx # RecruiterMessageModal — fluxo 3 etapas
 │   └── ResumesModal.test.jsx      # ResumesModal — listagem, criar, editar, excluir
 │
 └── integration/
     └── resumes.test.js            # useResumes hook — CRUD completo com Supabase mockado (MSW)
 ```
+
+**Removidos nesta sessão:**
+- `importHelpers.test.js` — removido junto com `importHelpers.js` (código morto)
+- `RecruiterMessageModal.test.jsx` — removido junto com `RecruiterMessageModal.jsx` (código morto)
 
 ---
 
@@ -164,5 +166,6 @@ Todo push para `main` e todo PR disparam esse pipeline. O deploy na Vercel só a
 
 | Data | Testes | Falhas | Observação |
 |---|---|---|---|
+| 2026-06-07 | 187 | 0 | Remoção de código morto: ImportModal, ImportChatGPTModal, NewProcessModal, RecruiterMessageModal, importHelpers, isUrgent; VagaTab accordion; InlineTags compact |
 | 2026-05-30 | 253 | 0 | Correção: constants.test (ACTIVE_STAGES 4 itens), ProfileSetupModal (mock extractTextFromPdf, label aba "CV") |
 | Sessão anterior | 252 | 8 | ACTIVE_STAGES esperava 5 itens; ProfileSetupModal mockava pdfjs diretamente (não funcionava com lazy import) |

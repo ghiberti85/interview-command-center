@@ -60,7 +60,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | **Hamburger menu (mobile)** — header limpo com alerta urgência + bottom sheet de ações | ✅ |
 | **Mobile Pipeline compacto** — busca + sort inline, chips menores, mais espaço para cards | ✅ |
 | **Desktop hover actions** — arquivar/deletar aparecem ao hover no card sem precisar clicar+segurar | ✅ |
-| Suite de testes — 255 testes (unit + component + integration), CI bloqueia build em falha | ✅ |
+| Suite de testes — 187 testes (unit + component + integration), CI bloqueia build em falha | ✅ |
 | `.env.example` com todas as variáveis documentadas | ✅ |
 
 ### Infraestrutura
@@ -272,3 +272,7 @@ Em produção   Componentizado      IA Avançada         Plataforma
 | `VagaTab` — dados da vaga + próxima etapa com auto-stage + notas, substituindo OverviewTab | ✅ |
 | Cards compactos sem preview de nota | ✅ |
 | Arquivos obsoletos removidos (TimelineTab, AITab, OverviewTab, MessagesTab) | ✅ |
+| **VagaTab accordion** — cards Próxima etapa / Dados da vaga / Anotações com padrão visual uniforme e abre/fecha | ✅ |
+| **InlineTags compact** — input "+ tag" compacto e centralizado, sem corte no mobile | ✅ |
+| **Desktop hover actions** — botão arquivar/deletar aparece no hover do card, sem sobreposição no Badge | ✅ |
+| **Remoção de código morto** — NewProcessModal, ImportModal, ImportChatGPTModal, RecruiterMessageModal, importHelpers, isUrgent (-1847 linhas) | ✅ |

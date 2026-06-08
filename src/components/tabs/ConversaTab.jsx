@@ -4,6 +4,7 @@ import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 import { buildPrompt } from "../../utils/buildPrompt.js";
+import { t, scenarioLabel } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
@@ -24,13 +25,14 @@ function extractMsgFromNotes(notes) {
   return "";
 }
 
-function fmtTs(ts) {
+function fmtTs(ts, lang) {
+  const locale = lang === "en" ? "en-US" : "pt-BR";
   const d = new Date(ts);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " +
-    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" }) + " " +
+    d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
-export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, navH = "0px" }) {
+export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, navH = "0px", lang = "pt" }) {
   const sentMessages = process.sentMessages || [];
   const initialMsg = extractMsgFromNotes(process.notes);
 
@@ -69,7 +71,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
       const cvContext = adaptation?.content || profile?.cvText || "";
-      const scenLabel = SCENARIOS.find(sc => sc.id === scenario)?.label || scenario;
+      const scenLabel = scenarioLabel(scenario, lang);
       const prompt = buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra: extraVal, cvContext });
       const raw = await callAI([{ role: "user", content: prompt }], MESSAGES_SYSTEM, s?.access_token);
       const parsed = parseAIResponse(raw);
@@ -117,8 +119,8 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", maxWidth: "80%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
           <Ic n={cfg.icon} s={11} c={cfg.accent} />
-          <span style={{ fontSize: 10, color: cfg.accent, ...T.mono, fontWeight: 600 }}>{process.recruiter || "Recrutador(a)"}</span>
-          <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>{fmtTs(entry.ts + 1)}</span>
+          <span style={{ fontSize: 10, color: cfg.accent, ...T.mono, fontWeight: 600 }}>{process.recruiter || t(lang, "recruiterName")}</span>
+          <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>{fmtTs(entry.ts + 1, lang)}</span>
         </div>
         <div style={{ padding: "10px 14px", borderRadius: "0 12px 12px 12px", background: "var(--bg-o)", border: "1px solid var(--border)", fontSize: 13, color: "var(--t2)", lineHeight: 1.65, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
           {entry.text}
@@ -133,7 +135,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", maxWidth: "82%", alignSelf: "flex-end" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>{fmtTs(entry.ts)}</span>
+          <span style={{ fontSize: 10, color: "var(--t4)", ...T.mono }}>{fmtTs(entry.ts, lang)}</span>
           <span style={{ fontSize: 10, color: cfg.accent, ...T.mono, fontWeight: 600 }}>{cfg.label} · {entry.scenario}</span>
           <Ic n="check" s={10} c="var(--grn)" />
         </div>
@@ -148,7 +150,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
           <button onClick={() => copyText(entry.body, entry.ts)} style={{ fontSize: 11, color: copied ? "var(--grn)" : "var(--t3)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
             <Ic n={copied ? "check" : "copy"} s={11} c={copied ? "var(--grn)" : "var(--t3)"} />
-            {copied ? "Copiado!" : "Copiar"}
+            {copied ? t(lang, "copied") : t(lang, "copy")}
           </button>
           {onUpdate && (
             <button onClick={() => deleteEntry(entry.ts)} style={{ fontSize: 11, color: "var(--t4)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
@@ -168,13 +170,13 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
       <div>
         <div style={{ ...T.label, marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
           <Ic n="msg" s={11} c="var(--t3)" />
-          Mensagem do recrutador
-          <span style={{ fontSize: 10, color: "var(--t4)", marginLeft: 2 }}>(opcional)</span>
+          {t(lang, "recruiterMsg")}
+          <span style={{ fontSize: 10, color: "var(--t4)", marginLeft: 2 }}>{t(lang, "optional")}</span>
         </div>
         <textarea
           value={recruiterMsg}
           onChange={e => setRecruiterMsg(e.target.value)}
-          placeholder="Cole aqui a mensagem recebida — a IA vai gerar a melhor resposta..."
+          placeholder={lang === "en" ? "Paste the message here — AI will generate the best reply..." : "Cole aqui a mensagem recebida — a IA vai gerar a melhor resposta..."}
           rows={isMobile ? 3 : 4}
           style={{
             ...T.input, resize: "none", lineHeight: 1.6,
@@ -186,7 +188,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
 
       {/* Channel */}
       <div>
-        <div style={{ ...T.label, marginBottom: 8 }}>Canal</div>
+        <div style={{ ...T.label, marginBottom: 8 }}>{t(lang, "channel")}</div>
         <div style={{ display: "flex", gap: 8 }}>
           {Object.entries(CHANNELS).map(([k, cfg]) => (
             <button
@@ -210,7 +212,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
 
       {/* Scenario */}
       <div>
-        <div style={{ ...T.label, marginBottom: 8 }}>Objetivo</div>
+        <div style={{ ...T.label, marginBottom: 8 }}>{t(lang, "goalLabel")}</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {SCENARIOS.map(s => (
             <button
@@ -224,7 +226,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
                 fontSize: 12, fontFamily: "'Outfit',sans-serif", transition: "all 0.15s",
               }}
             >
-              {s.label}
+              {scenarioLabel(s.id, lang)}
             </button>
           ))}
         </div>
@@ -237,7 +239,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
           style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: extraCtx ? "var(--acc-text)" : "var(--t3)", fontSize: 11, ...T.mono, padding: 0, marginBottom: extraCtx ? 8 : 0 }}
         >
           <Ic n="info" s={12} c={extraCtx ? "var(--acc-text)" : "var(--t3)"} />
-          Contexto adicional {extraCtx ? "▲" : "▼"}
+          {t(lang, "extraContext")} {extraCtx ? "▲" : "▼"}
         </button>
         {extraCtx && (
           <textarea
@@ -267,7 +269,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px", gap: 12, textAlign: "center" }}>
             <div style={{ opacity: 0.2 }}><Ic n="msg" s={32} c="var(--t2)" /></div>
             <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.65 }}>
-              Nenhuma conversa ainda.<br />Clique em <strong style={{ color: "var(--t2)" }}>Nova mensagem</strong> para começar.
+              {t(lang, "noConversation")}<br />{t(lang, "clickNew").replace("New message", `${t(lang, "newMessage")}`).replace("Nova mensagem", `${t(lang, "newMessage")}`)}
             </div>
           </div>
         )}
@@ -294,7 +296,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
         {composeOpen && (
           <div style={{ padding: "14px", background: "var(--bg-o)", borderRadius: 14, border: "1px solid var(--border)", marginTop: 4 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t2)", fontFamily: "'Outfit',sans-serif" }}>Nova mensagem</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t2)", fontFamily: "'Outfit',sans-serif" }}>{t(lang, "newMessage")}</div>
               {thread.length > 0 && (
                 <button onClick={() => setComposeOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                   <Ic n="close" s={14} c="var(--t3)" />
@@ -313,7 +315,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
             onClick={() => setComposeOpen(true)}
             style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1.5px dashed var(--acc-b)", background: "transparent", color: "var(--acc)", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
           >
-            <Ic n="plus" s={14} c="var(--acc)" />Nova mensagem
+            <Ic n="plus" s={14} c="var(--acc)" />{t(lang, "newMessage")}
           </button>
         ) : (
           <button
@@ -330,8 +332,8 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
             }}
           >
             {loading
-              ? <><div style={{ display: "flex", gap: 5 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--t3)", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}</div>Gerando...</>
-              : <><Ic n={ch.icon} s={16} c={ch.accent} />Gerar resposta</>
+              ? <><div style={{ display: "flex", gap: 5 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--t3)", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}</div>{t(lang, "generating")}</>
+              : <><Ic n={ch.icon} s={16} c={ch.accent} />{t(lang, "generateReply")}</>
             }
           </button>
         )}

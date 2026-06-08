@@ -4,6 +4,7 @@ import { supabase, rowToProcess, processToRow } from "./supabase";
 // Constants & utils
 import { DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn } from "./constants/index.js";
 import { STAGE, ACTIVE_STAGES } from "./utils/constants.js";
+import { t, stageLabel } from "./utils/i18n.js";
 import { sortProcesses } from "./utils/sort.js";
 import { filterProcesses } from "./utils/filterProcesses.js";
 import { daysDiff } from "./utils/dateUtils.js";
@@ -37,11 +38,11 @@ import ResumesModal from "./components/modals/ResumesModal.jsx";
 import NewEntryModal from "./components/modals/NewEntryModal.jsx";
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
-function Spinner() {
+function Spinner({ lang = "pt" }) {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", flexDirection:"column", gap:16, padding:40 }}>
       <div style={{ width:36, height:36, borderRadius:"50%", border:"2px solid var(--border)", borderTopColor:"var(--acc)", animation:"spin 0.7s linear infinite" }}/>
-      <div style={{ fontSize:13, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>carregando...</div>
+      <div style={{ fontSize:13, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>{t(lang, "loading")}</div>
     </div>
   );
 }
@@ -51,6 +52,13 @@ export default function App() {
   const isMobile = useIsMobile();
   const { dark, toggle: toggleTheme } = useTheme();
   const { session, isRecovery, clearRecovery } = useAuth();
+
+  const [lang, setLang] = useState(() => localStorage.getItem("icc-lang") || "en");
+  const toggleLang = () => setLang(l => {
+    const next = l === "en" ? "pt" : "en";
+    localStorage.setItem("icc-lang", next);
+    return next;
+  });
 
   const [isDemo, setIsDemo] = useState(false);
   const [processes, setProcesses] = useState([]);
@@ -161,11 +169,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         <Ic n="pipeline" s={22} c="var(--acc)"/>
       </div>
       <div>
-        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>Nenhum processo ainda</div>
-        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>Adicione um processo novo para começar a organizar sua busca.</div>
+        <div style={{ fontSize:17, fontWeight:700, color:"var(--t1)", marginBottom:6 }}>{t(lang, "noProcessesYet")}</div>
+        <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>{t(lang, "noProcessesYetSub")}</div>
       </div>
       <Btn variant="primary" onClick={()=>setShowNewEntry(true)}>
-        <Ic n="plus" s={14} c="#fff"/> Adicionar processo
+        <Ic n="plus" s={14} c="#fff"/> {t(lang, "addProcess")}
       </Btn>
     </div>
   );
@@ -175,7 +183,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
     <>
       <style>{GLOBAL_CSS}</style>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"var(--bg)" }}>
-        <Spinner/>
+        <Spinner lang={lang}/>
       </div>
     </>
   );
@@ -193,8 +201,8 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
       <style>{GLOBAL_CSS}</style>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:"var(--bg)", flexDirection:"column", gap:12 }}>
         <Ic n="alert" s={32} c="var(--red)"/>
-        <div style={{ fontSize:14, color:"var(--red)" }}>Erro ao conectar com o banco de dados</div>
-        <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>Verifique sua conexão ou tente novamente mais tarde.</div>
+        <div style={{ fontSize:14, color:"var(--red)" }}>{t(lang, "dbError")}</div>
+        <div style={{ fontSize:11, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>{t(lang, "dbErrorSub")}</div>
       </div>
     </>
   );
@@ -210,10 +218,10 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
             <div style={{ margin:"10px 10px 0", padding:"8px 12px", borderRadius:10, background:"var(--amb-d)", border:"1px solid var(--amb-b)", display:"flex", alignItems:"center", gap:8 }}>
               <Ic n="info" s={13} c="var(--amb)"/>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, color:"var(--amb)", fontWeight:600 }}>Modo demonstração</div>
-                <div style={{ fontSize:10, color:"var(--amb)", opacity:0.7 }}>Dados não são salvos</div>
+                <div style={{ fontSize:11, color:"var(--amb)", fontWeight:600 }}>{t(lang, "demoMode")}</div>
+                <div style={{ fontSize:10, color:"var(--amb)", opacity:0.7 }}>{t(lang, "demoNotSaved")}</div>
               </div>
-              <button onClick={()=>setIsDemo(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:10, color:"var(--amb)", fontFamily:"'Outfit',sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>Sair</button>
+              <button onClick={()=>setIsDemo(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:10, color:"var(--amb)", fontFamily:"'Outfit',sans-serif", fontWeight:600, whiteSpace:"nowrap" }}>{t(lang, "demoExit")}</button>
             </div>
           )}
           <div style={{ padding:"16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
@@ -225,17 +233,20 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
               <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", textTransform:"uppercase", color:"var(--t3)", marginTop:1 }}>Command Center</div>
             </div>
             <div style={{ display:"flex", gap:2 }}>
-              <button className="icon-btn" onClick={toggleTheme} style={iconBtn()} title="Alternar tema" aria-label="Alternar tema">
+              <button className="icon-btn" onClick={toggleLang} style={iconBtn()} title={t(lang, "langToggle")} aria-label={t(lang, "langToggle")}>
+                <span style={{ fontSize:13, lineHeight:1 }}>{lang === "en" ? "🇧🇷" : "🇺🇸"}</span>
+              </button>
+              <button className="icon-btn" onClick={toggleTheme} style={iconBtn()} title={dark ? t(lang, "themeLight") : t(lang, "themeDark")} aria-label="Toggle theme">
                 <Ic n={dark?"sun":"moon"} s={15} c="var(--t3)"/>
               </button>
-              <button className="icon-btn" onClick={()=>isDemo?setIsDemo(false):supabase.auth.signOut()} style={iconBtn()} title={isDemo?"Sair do demo":"Sair"} aria-label="Sair"><Ic n="logout" s={15} c="var(--t3)"/></button>
+              <button className="icon-btn" onClick={()=>isDemo?setIsDemo(false):supabase.auth.signOut()} style={iconBtn()} title={isDemo ? t(lang, "exitDemo") : t(lang, "signOut")} aria-label="Sign out"><Ic n="logout" s={15} c="var(--t3)"/></button>
             </div>
           </div>
           <div style={{ padding:"8px" }}>
             {[
-              { id:"pipeline",  icon:"pipeline", label:"Pipeline",   count:active.length, urgentCount:urgent },
-              { id:"dashboard", icon:"chart",    label:"Dashboard"   },
-              { id:"archived",  icon:"archive",  label:"Arquivados", count:archived.length },
+              { id:"pipeline",  icon:"pipeline", label:t(lang, "pipeline"),   count:active.length, urgentCount:urgent },
+              { id:"dashboard", icon:"chart",    label:t(lang, "dashboard")   },
+              { id:"archived",  icon:"archive",  label:t(lang, "archived"),   count:archived.length },
             ].map(n=>(
               <button key={n.id} onClick={()=>setView(n.id)} className={`nav-btn${view===n.id?" active":""}`} style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:9, border:"none", marginBottom:2, background:view===n.id?"var(--acc)":"transparent", color:view===n.id?"#EFEFEF":"var(--t2)", cursor:"pointer", fontSize:13, fontWeight:view===n.id?600:500, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}>
                 <Ic n={n.icon} s={15} c={view===n.id?"#EFEFEF":"var(--t3)"}/>
@@ -246,8 +257,8 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
             ))}
             <div style={{ borderTop:"1px solid var(--border)", margin:"4px 0" }}/>
             {[
-              { label:"Perfil & preferências", icon:"edit",   action:()=>setShowProfileModal(true) },
-              { label:"Gerenciar currículos",   icon:"copy",   action:()=>setShowResumes(true) },
+              { label:t(lang, "profilePrefs"),   icon:"edit", action:()=>setShowProfileModal(true) },
+              { label:t(lang, "manageResumes"),  icon:"copy", action:()=>setShowResumes(true) },
             ].map((item,i)=>(
               <button key={i} onClick={item.action} className="nav-btn" style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:9, border:"none", marginBottom:2, background:"transparent", color:"var(--t3)", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", transition:"all 0.15s", textAlign:"left" }}
                 onMouseEnter={e=>{ e.currentTarget.style.background="var(--bg-o)"; e.currentTarget.style.color="var(--t2)"; }}
@@ -261,13 +272,13 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           <div style={{ padding:"4px 8px 6px" }}>
             <div style={{ position:"relative" }}>
               <div style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}><Ic n="search" s={13} c="var(--t4)"/></div>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." aria-label="Buscar processos" style={{ ...T.input, paddingLeft:32, fontSize:13, borderRadius:9 }}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t(lang, "searchPlaceholder")} aria-label={t(lang, "searchPlaceholder")} style={{ ...T.input, paddingLeft:32, fontSize:13, borderRadius:9 }}/>
             </div>
             <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", marginTop:6, colorScheme:dark?"dark":"light" }}>
-              <option value="urgencia">Ordenar: Urgência</option>
-              <option value="empresa">Ordenar: Empresa A–Z</option>
-              <option value="stage">Ordenar: Stage</option>
-              <option value="recente">Ordenar: Mais recente</option>
+              <option value="urgencia">{t(lang, "sortUrgency")}</option>
+              <option value="empresa">{t(lang, "sortCompany")}</option>
+              <option value="stage">{t(lang, "sortStage")}</option>
+              <option value="recente">{t(lang, "sortRecent")}</option>
             </select>
           </div>
           <div style={{ flex:1, overflowY:"auto", padding:"4px 8px" }}>
@@ -275,38 +286,38 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
               <div style={{ padding:"24px 0" }}><Spinner/></div>
             ) : filtered.length===0 ? (
               <div style={{ color:"var(--t3)", fontSize:12, textAlign:"center", padding:"24px 0" }}>
-                {processes.length===0 ? "Nenhum processo ainda" : "Sem resultados"}
+                {processes.length===0 ? t(lang, "noProcessesYet") : t(lang, "noResults")}
               </div>
             ) : filtered.map(p=>(
               <ProcessCard key={p.id} process={p} onClick={()=>setSelected(p)} selected={selected?.id===p.id}
                 onArchive={!["rejected","archived"].includes(p.stage) ? (proc) => updateProcess({...proc, stage:"archived"}) : null}
-                onDelete={["rejected","archived"].includes(p.stage) ? (proc) => { if (window.confirm("Deletar este processo? Esta ação não pode ser desfeita.")) deleteProcess(proc.id); } : null}
+                onDelete={["rejected","archived"].includes(p.stage) ? (proc) => { if (window.confirm(t(lang, "confirmDelete"))) deleteProcess(proc.id); } : null}
               />
             ))}
           </div>
           <div style={{ padding:"8px" }}>
             <button className="nav-btn" onClick={()=>setShowNewEntry(true)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px dashed var(--acc-b)", background:"transparent", color:"var(--acc)", cursor:"pointer", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:600, transition:"all 0.15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7 }}>
               <Ic n="plus" s={14} c="var(--acc)"/>
-              Novo Processo
+              {t(lang, "newProcess")}
             </button>
           </div>
         </div>
 
         {/* Main */}
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
-          {dbLoading ? <Spinner/> : view==="dashboard" ? (
-            <Dashboard processes={processes}/>
+          {dbLoading ? <Spinner lang={lang}/> : view==="dashboard" ? (
+            <Dashboard processes={processes} lang={lang}/>
           ) : (
             <div style={{ flex:1, overflowY:"auto" }}>
               {selected
-                ? <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={false} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+                ? <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={false} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} adaptation={adaptation} onSaveAdaptation={saveAdaptation} lang={lang}/>
                 : <EmptyState/>
               }
             </div>
           )}
         </div>
       </div>
-      {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
+      {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo}/>}
       {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
@@ -322,7 +333,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         <div style={{ paddingTop:"12px", paddingBottom:"10px", paddingLeft:"16px", paddingRight:"16px", borderBottom:"1px solid var(--border)", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           {mobileScreen==="detail" && view!=="dashboard" ? (
             <button onClick={()=>setMobileScreen("list")} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--acc-text)", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"'Outfit',sans-serif", padding:0 }}>
-              <Ic n="back" s={16} c="var(--acc-text)"/>Voltar
+              <Ic n="back" s={16} c="var(--acc-text)"/>{t(lang, "back")}
             </button>
           ) : (
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -354,10 +365,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
             <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-r)", borderRadius:"20px 20px 0 0", borderTop:"1px solid var(--border-md)", padding:"20px 16px", paddingBottom:"20px", zIndex:200, animation:"slideUp 0.25s ease" }}>
               <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto 20px" }}/>
               {[
-                { label: dark?"Tema claro":"Tema escuro", icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
-                { label:"Perfil & preferências", icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
-                { label:"Gerenciar currículos", icon:"copy", action:()=>{ setShowResumes(true); setHamburgerOpen(false); } },
-                { label: isDemo?"Sair do modo demo":"Sair da conta", icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
+                { label: t(lang, "langToggle"), icon:"info", action:()=>{ toggleLang(); setHamburgerOpen(false); } },
+                { label: dark ? t(lang, "themeLight") : t(lang, "themeDark"), icon:dark?"sun":"moon", action:()=>{ toggleTheme(); setHamburgerOpen(false); } },
+                { label: t(lang, "profilePrefs"), icon:"edit", action:()=>{ setShowProfileModal(true); setHamburgerOpen(false); } },
+                { label: t(lang, "manageResumes"), icon:"copy", action:()=>{ setShowResumes(true); setHamburgerOpen(false); } },
+                { label: isDemo ? t(lang, "exitDemo") : t(lang, "signOut"), icon:"logout", action:()=>{ setHamburgerOpen(false); if(isDemo){setIsDemo(false);}else{supabase.auth.signOut();} }, danger:true },
               ].map((item,i)=>(
 
                 <button key={i} onClick={item.action} style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 12px", borderRadius:12, border:"none", background:"transparent", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:500, color: item.danger?"var(--red)":item.accent?"var(--acc-text)":item.linkedinBlue?"#0A66C2":"var(--t1)", textAlign:"left", transition:"background 0.15s", marginBottom:2 }}
@@ -378,7 +390,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px" }}><MobileDashboard processes={processes}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px" }}><MobileDashboard processes={processes} lang={lang}/></div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
@@ -387,18 +399,18 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
               <div style={{ display:"flex", gap:8, padding:"10px 12px 0" }}>
                 <div style={{ position:"relative", flex:1 }}>
                   <div style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)" }}><Ic n="search" s={13} c="var(--t4)"/></div>
-                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." style={{ ...T.input, paddingLeft:30, fontSize:14, padding:"9px 10px 9px 30px" }}/>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t(lang, "searchPlaceholder")} style={{ ...T.input, paddingLeft:30, fontSize:14, padding:"9px 10px 9px 30px" }}/>
                 </div>
                 <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding:"8px 8px", borderRadius:9, border:"1px solid var(--border)", background:"var(--bg-o)", color:"var(--t2)", fontSize:12, fontFamily:"'Outfit',sans-serif", cursor:"pointer", outline:"none", colorScheme:dark?"dark":"light", flexShrink:0 }}>
-                  <option value="urgencia">Urgência</option>
-                  <option value="empresa">Empresa</option>
-                  <option value="stage">Stage</option>
-                  <option value="recente">Recente</option>
+                  <option value="urgencia">{t(lang, "urgency")}</option>
+                  <option value="empresa">{t(lang, "company")}</option>
+                  <option value="stage">{t(lang, "sortStageShort")}</option>
+                  <option value="recente">{t(lang, "recent")}</option>
                 </select>
               </div>
               {/* Stage filter chips */}
               <div style={{ display:"flex", gap:5, padding:"8px 12px 8px", overflowX:"auto", scrollbarWidth:"none" }}>
-                {[{id:"all",label:"Todos"},...ACTIVE_STAGES.map(s=>({id:s,label:STAGE[s].label}))].map(p=>{
+                {[{id:"all",label:t(lang, "all")},...ACTIVE_STAGES.map(s=>({id:s,label:stageLabel(s, lang)}))].map(p=>{
                   const isActive = stageFilter===p.id;
                   return (
                     <div key={p.id} onClick={()=>setStageFilter(p.id)} style={{ flexShrink:0, padding:"5px 12px", borderRadius:20, border:`1px solid ${isActive?"var(--acc)":"var(--border)"}`, background:isActive?"var(--acc)":"transparent", color:isActive?"#EFEFEF":"var(--t3)", fontSize:11, cursor:"pointer", fontFamily:"'Outfit',sans-serif", whiteSpace:"nowrap", fontWeight:isActive?600:400, transition:"all 0.15s" }}>{p.label}</div>
@@ -407,7 +419,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
               </div>
               <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:8 }}>
                 {filtered.length===0 ? (
-                  processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>Nenhum resultado</div>
+                  processes.length===0 ? <EmptyState/> : <div style={{ color:"var(--t4)", fontSize:13, textAlign:"center", padding:"32px 0" }}>{t(lang, "noResults")}</div>
                 ) : filtered.map(p=>(
                   <ProcessCard
                     key={p.id}
@@ -437,7 +449,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="72px" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation}/>
+              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="72px" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation} lang={lang}/>
             </div>
           )}
         </div>
@@ -446,11 +458,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
       {selectionMode && (
         <div style={{ position:"fixed", bottom:"48px", left:0, right:0, zIndex:200, background:"var(--bg-r)", borderTop:"1px solid var(--border-md)", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
           <span style={{ fontSize:13, color:"var(--t2)", fontFamily:"'Outfit',sans-serif" }}>
-            {selectedIds.length === 0 ? "Segure para selecionar" : `${selectedIds.length} selecionado${selectedIds.length>1?"s":""}`}
+            {selectedIds.length === 0 ? t(lang, "selectionHint") : t(lang, "selectedN")(selectedIds.length)}
           </span>
           <div style={{ display:"flex", gap:8 }}>
             {view === "archived" && (
-              <button onClick={()=>{ setSelectionMode(false); setSelectedIds([]); }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>Cancelar</button>
+              <button onClick={()=>{ setSelectionMode(false); setSelectedIds([]); }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"transparent", color:"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>{t(lang, "cancel")}</button>
             )}
             {selectedIds.length > 0 && (<>
               {view !== "archived" && (
@@ -461,16 +473,16 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
                   });
                   setSelectionMode(false); setSelectedIds([]);
                 }} style={{ padding:"7px 14px", borderRadius:8, border:"1px solid var(--border-md)", background:"var(--bg-s)", color:"var(--t1)", fontSize:13, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
-                  Arquivar
+                  {t(lang, "archive")}
                 </button>
               )}
               <button onClick={()=>{
-                if (window.confirm(`Deletar ${selectedIds.length} processo${selectedIds.length>1?"s":""}? Esta ação não pode ser desfeita.`)) {
+                if (window.confirm(t(lang, "deleteConfirm")(selectedIds.length))) {
                   selectedIds.forEach(id => deleteProcess(id));
                   setSelectionMode(false); setSelectedIds([]);
                 }
               }} style={{ padding:"7px 14px", borderRadius:8, border:"none", background:"var(--red, #FF6A6A)", color:"#fff", fontSize:13, fontWeight:700, fontFamily:"'Outfit',sans-serif", cursor:"pointer" }}>
-                Deletar
+                {t(lang, "delete")}
               </button>
             </>)}
           </div>
@@ -480,12 +492,12 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
       <div style={{ position:"fixed", bottom:8, left:8, right:8, background:"var(--bg)", borderTop:"1px solid var(--border)", borderRadius:16, display:"flex", paddingBottom:0 }}>
           <button className="bottom-nav-btn" onClick={()=>setShowNewEntry(true)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"8px 0", gap:2, background:"none", border:"none", cursor:"pointer", color:"var(--t1)", height:48, position:"relative" }}>
             <Ic n="plus" s={19} c="var(--t1)"/>
-            <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>Novo</span>
+            <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:400, letterSpacing:"0.05em" }}>{lang === "en" ? "New" : "Novo"}</span>
           </button>
           {[
-            { id:"pipeline", icon:"pipeline", label:"Pipeline" },
-            { id:"dashboard", icon:"chart",   label:"Stats"    },
-            { id:"archived",  icon:"archive", label:"Arquivo"  },
+            { id:"pipeline", icon:"pipeline", label: t(lang, "pipeline") },
+            { id:"dashboard", icon:"chart",   label: "Stats"             },
+            { id:"archived",  icon:"archive", label: lang === "en" ? "Archive" : "Arquivo" },
           ].map(n=>{
             const on = view===n.id;
             return (
@@ -498,7 +510,7 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           })}
         </div>
       </div>
-      {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
+      {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
       {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
       {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo}/>}
 {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}

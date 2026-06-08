@@ -3,6 +3,7 @@ import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 import { STAGE } from "../../utils/constants.js";
 import { CONTACT_CHANNELS, T } from "../../constants/index.js";
+import { t, stageLabel } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
@@ -33,17 +34,17 @@ Regras:
 - Responda SEMPRE no mesmo idioma da mensagem do recrutador
 Responda SOMENTE com o texto da mensagem, sem introdução, sem aspas, sem explicações.`;
 
-// ── Manual form fields ────────────────────────────────────────────────────────
+// ── Manual form fields (i18n keys) ───────────────────────────────────────────
 
-const FIELDS = [
-  ["Empresa *",       "company"],
-  ["Cargo *",         "role"],
-  ["Localização",     "location"],
-  ["Salário / range", "salary"],
-  ["Recrutador(a)",   "recruiter"],
-  ["E-mail / contato","recruiterEmail"],
-  ["Link da vaga",    "jobUrl"],
-  ["Próximo passo",   "nextStepNote"],
+const FIELD_KEYS = [
+  ["fCompany",   "company"],
+  ["fRole",      "role"],
+  ["fLocation",  "location"],
+  ["fSalary",    "salary"],
+  ["fRecruiter", "recruiter"],
+  ["fEmail",     "recruiterEmail"],
+  ["fJobUrl",    "jobUrl"],
+  ["fNextStep",  "nextStepNote"],
 ];
 
 const INITIAL_FORM = {
@@ -54,7 +55,7 @@ const INITIAL_FORM = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function NewEntryModal({ onClose, onProcessCreated, isMobile, initialMsg = "" }) {
+export function NewEntryModal({ onClose, onProcessCreated, isMobile, initialMsg = "", lang = "pt" }) {
   // steps: choose → contact (inbound) → working → result
   //        choose → manual (outbound)
   const [step, setStep]       = useState(initialMsg ? "contact" : "choose");
@@ -128,7 +129,7 @@ Mensagem do recrutador:
     if (saved) { onClose(); return; }
     const today = new Date().toISOString().slice(0, 10);
     const tags  = extracted?.stack ? extracted.stack.split(",").map(s => s.trim()).filter(Boolean) : [];
-    const channelNote = channel ? `Contactado via ${CONTACT_CHANNELS.find(c=>c.value===channel)?.label || channel}` : "Contactado";
+    const channelNote = channel ? `Contactado via ${CONTACT_CHANNELS.find(c=>c.value===channel)?.label || channel}` : t(lang, "inboundLabel");
     const process = {
       id: crypto.randomUUID(),
       company:      extracted?.company  || "Empresa?",
@@ -167,7 +168,7 @@ Mensagem do recrutador:
       channel: "",
       contactedDate: today,
       tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
-      steps: [{ date:today, type:form.stage, note:"Aplicação enviada" }],
+      steps: [{ date:today, type:form.stage, note:t(lang, "applicationSent") }],
       aiContext: "",
       starred: false,
     });
@@ -213,11 +214,11 @@ Mensagem do recrutador:
   };
 
   const stepTitle = {
-    choose:  "Novo processo",
-    contact: "Fui contactado",
-    working: "Analisando…",
-    result:  "Pronto para responder",
-    manual:  "Me candidatei",
+    choose:  t(lang, "newEntryTitle"),
+    contact: t(lang, "inboundLabel"),
+    working: t(lang, "extracting"),
+    result:  t(lang, "readyToReply"),
+    manual:  t(lang, "outboundLabel"),
   }[step];
 
   return (
@@ -246,19 +247,19 @@ Mensagem do recrutador:
         {step === "choose" && (
           <div style={{ ...body, gap:12, justifyContent:"center" }}>
             <p style={{ fontSize:13, color:"var(--t3)", fontFamily:"'Outfit',sans-serif", margin:0, lineHeight:1.6, textAlign:"center" }}>
-              Como surgiu esta oportunidade?
+              {t(lang, "howOpportunity")}
             </p>
             {[
               {
                 value:"inbound", icon:"msg", next:"contact",
-                label:"Fui contactado",
-                sub:"Recrutador veio até mim — colo a mensagem e a IA preenche tudo",
+                label: t(lang, "inboundLabel"),
+                sub:   t(lang, "inboundSub"),
                 activeBg:"rgba(34,211,238,0.08)", activeBorder:"rgba(34,211,238,0.3)", activeColor:"var(--cyan)",
               },
               {
                 value:"outbound", icon:"send", next:"manual",
-                label:"Me candidatei",
-                sub:"Apliquei na vaga e quero registrar o processo manualmente",
+                label: t(lang, "outboundLabel"),
+                sub:   t(lang, "outboundSub"),
                 activeBg:"var(--acc-d)", activeBorder:"var(--acc-b)", activeColor:"var(--acc)",
               },
             ].map(opt => (
@@ -285,7 +286,7 @@ Mensagem do recrutador:
           <>
             <div style={body}>
               <div>
-                <div style={{ ...T.label, marginBottom:8 }}>Canal de contato</div>
+                <div style={{ ...T.label, marginBottom:8 }}>{t(lang, "contactChannel")}</div>
                 <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                   {CONTACT_CHANNELS.map(ch => {
                     const on = channel === ch.value;
@@ -300,19 +301,19 @@ Mensagem do recrutador:
                 </div>
               </div>
               <div>
-                <div style={{ ...T.label, marginBottom:8 }}>Mensagem recebida</div>
+                <div style={{ ...T.label, marginBottom:8 }}>{t(lang, "msgReceived")}</div>
                 <textarea
                   autoFocus
                   value={msg}
                   onChange={e=>setMsg(e.target.value)}
                   onKeyDown={e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"&&msg.trim()) analyze(); }}
-                  placeholder="Cole aqui a mensagem do recrutador — a IA extrai empresa, cargo, stack e gera uma resposta pronta…"
+                  placeholder={t(lang, "msgPlaceholder")}
                   rows={isMobile ? 5 : 7}
                   style={{ ...T.input, resize:"none", lineHeight:1.65, fontSize:13 }}
                 />
                 {msg.trim() && (
                   <div style={{ marginTop:5, fontSize:11, color:"var(--t3)", ...T.mono }}>
-                    {msg.trim().split(/\s+/).length} palavras · Ctrl+Enter para analisar
+                    {t(lang, "wordCount")(msg.trim().split(/\s+/).length)}
                   </div>
                 )}
               </div>
@@ -325,10 +326,10 @@ Mensagem do recrutador:
             <div style={ftr}>
               <button onClick={()=>{ setOrigin("outbound"); setStep("manual"); }}
                 style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:12, fontFamily:"'Outfit',sans-serif", padding:"6px 8px", borderRadius:8 }}>
-                Preencher manualmente
+                {t(lang, "fillManually")}
               </button>
               <Btn variant="primary" onClick={analyze} disabled={!msg.trim()}>
-                <Ic n="ai" s={14} c="#fff"/> Analisar mensagem
+                <Ic n="ai" s={14} c="#fff"/> {t(lang, "analyzeMsg")}
               </Btn>
             </div>
           </>
@@ -339,7 +340,7 @@ Mensagem do recrutador:
           <div style={{ ...body, alignItems:"center", justifyContent:"center", minHeight:200 }}>
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:14 }}>
               <div style={{ width:36, height:36, borderRadius:"50%", border:"3px solid var(--acc-b)", borderTopColor:"var(--acc)", animation:"spin 0.8s linear infinite" }}/>
-              <span style={{ fontSize:13, color:"var(--t3)", fontFamily:"'Outfit',sans-serif" }}>Extraindo informações…</span>
+              <span style={{ fontSize:13, color:"var(--t3)", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "extracting")}</span>
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
             </div>
           </div>
@@ -351,10 +352,10 @@ Mensagem do recrutador:
             <div style={body}>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 {[
-                  { key:"company", label:"Empresa" },
-                  { key:"role",    label:"Cargo"   },
-                  { key:"salary",  label:"Salário" },
-                  { key:"regime",  label:"Regime"  },
+                  { key:"company", label: t(lang, "companyLabel") },
+                  { key:"role",    label: t(lang, "roleLabel")   },
+                  { key:"salary",  label: t(lang, "salaryLabel") },
+                  { key:"regime",  label: lang === "en" ? "Mode" : "Regime" },
                 ].map(({ key, label }) => (
                   <div key={key} style={{ display:"flex", flexDirection:"column", gap:5 }}>
                     <span style={{ ...T.label }}>{label}</span>
@@ -369,14 +370,14 @@ Mensagem do recrutador:
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ ...T.label }}>Rascunho de resposta</span>
+                  <span style={{ ...T.label }}>{t(lang, "draftReplyLabel")}</span>
                   {draftLoading && (
                     <div style={{ width:12, height:12, borderRadius:"50%", border:"2px solid var(--border)", borderTopColor:"var(--acc)", animation:"spin 0.6s linear infinite", flexShrink:0 }}/>
                   )}
                 </div>
                 {draftLoading ? (
                   <div style={{ height:120, borderRadius:10, border:"1.5px solid var(--border)", background:"var(--bg-o)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <span style={{ fontSize:12, color:"var(--t4)", fontFamily:"'Outfit',sans-serif" }}>Gerando resposta…</span>
+                    <span style={{ fontSize:12, color:"var(--t4)", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "generatingDraft")}</span>
                   </div>
                 ) : draft ? (
                   <textarea readOnly value={draft}
@@ -384,7 +385,7 @@ Mensagem do recrutador:
                   />
                 ) : (
                   <div style={{ padding:14, borderRadius:10, border:"1px solid var(--border)", background:"var(--bg-o)" }}>
-                    <span style={{ fontSize:12, color:"var(--t3)", fontFamily:"'Outfit',sans-serif" }}>Não foi possível gerar a resposta. Use a aba Mensagens no processo.</span>
+                    <span style={{ fontSize:12, color:"var(--t3)", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "noReplyGen")}</span>
                   </div>
                 )}
               </div>
@@ -396,12 +397,12 @@ Mensagem do recrutador:
                   <button onClick={copyDraft}
                     style={{ display:"flex", alignItems:"center", gap:6, background:copied?"rgba(34,198,122,0.1)":"var(--bg-o)", border:`1px solid ${copied?"rgba(34,198,122,0.3)":"var(--border)"}`, borderRadius:8, cursor:"pointer", color:copied?"var(--grn)":"var(--t2)", fontSize:13, fontFamily:"'Outfit',sans-serif", padding:"8px 14px", transition:"all 0.15s", fontWeight:500 }}>
                     <Ic n={copied?"check":"copy"} s={13} c={copied?"var(--grn)":"var(--t2)"}/>
-                    {copied ? "Copiado!" : "Copiar"}
+                    {copied ? t(lang, "copied") : t(lang, "copy")}
                   </button>
                 )}
                 <Btn variant="primary" onClick={saveInbound}>
                   <Ic n={saved?"check":"plus"} s={14} c="#fff"/>
-                  {saved ? "Abrir processo" : "Salvar"}
+                  {saved ? t(lang, "openProcess") : t(lang, "save")}
                 </Btn>
               </div>
             </div>
@@ -413,28 +414,28 @@ Mensagem do recrutador:
           <>
             <div style={body}>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                {FIELDS.map(([label, field]) => (
+                {FIELD_KEYS.map(([labelKey, field]) => (
                   <div key={field} style={{ gridColumn:["company","role","nextStepNote","jobUrl"].includes(field)?"span 2":"span 1" }}>
-                    <label style={{ ...T.label, display:"block", marginBottom:6 }}>{label}</label>
+                    <label style={{ ...T.label, display:"block", marginBottom:6 }}>{t(lang, labelKey)}</label>
                     <input value={form[field]} onChange={e=>F(field,e.target.value)} style={{ ...T.input, boxSizing:"border-box" }}/>
                   </div>
                 ))}
                 <div style={{ gridColumn:"span 2" }}>
-                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>Data próxima etapa</label>
+                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>{t(lang, "fNextStepDate")}</label>
                   <input type="date" value={form.nextStepDate} onChange={e=>F("nextStepDate",e.target.value)} style={{ ...T.input, boxSizing:"border-box" }}/>
                 </div>
                 <div style={{ gridColumn:"span 2" }}>
-                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>Estágio atual</label>
+                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>{t(lang, "fCurrentStage")}</label>
                   <select value={form.stage} onChange={e=>F("stage",e.target.value)} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid var(--border)", background:"var(--bg-o)", color:"var(--t1)", fontSize:14, outline:"none", fontFamily:"'Outfit',sans-serif" }}>
-                    {Object.entries(STAGE).filter(([k])=>!["rejected","archived"].includes(k)).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+                    {Object.entries(STAGE).filter(([k])=>!["rejected","archived"].includes(k)).map(([k])=><option key={k} value={k}>{stageLabel(k, lang)}</option>)}
                   </select>
                 </div>
                 <div style={{ gridColumn:"span 2" }}>
-                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>Tags (separadas por vírgula)</label>
-                  <input value={form.tags} onChange={e=>F("tags",e.target.value)} placeholder="React, Remoto, FinTech" style={{ ...T.input, boxSizing:"border-box" }}/>
+                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>{t(lang, "fTags")}</label>
+                  <input value={form.tags} onChange={e=>F("tags",e.target.value)} placeholder={t(lang, "fTagsPlaceholder")} style={{ ...T.input, boxSizing:"border-box" }}/>
                 </div>
                 <div style={{ gridColumn:"span 2" }}>
-                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>Notas iniciais</label>
+                  <label style={{ ...T.label, display:"block", marginBottom:6 }}>{t(lang, "fNotes")}</label>
                   <textarea rows={3} value={form.notes} onChange={e=>F("notes",e.target.value)} style={{ ...T.input, resize:"vertical", boxSizing:"border-box" }}/>
                 </div>
               </div>
@@ -442,9 +443,9 @@ Mensagem do recrutador:
             <div style={ftr}>
               <div/>
               <div style={{ display:"flex", gap:8 }}>
-                <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+                <Btn variant="ghost" onClick={onClose}>{t(lang, "cancel")}</Btn>
                 <Btn variant="primary" onClick={saveOutbound} disabled={!form.company||!form.role||saving}>
-                  {saving ? "Salvando…" : "Salvar"}
+                  {saving ? t(lang, "saving") : t(lang, "save")}
                 </Btn>
               </div>
             </div>

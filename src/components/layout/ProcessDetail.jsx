@@ -8,14 +8,14 @@ import ConversaTab from "../tabs/ConversaTab.jsx";
 import VagaTab from "../tabs/VagaTab.jsx";
 import CVTab from "../tabs/CVTab.jsx";
 
-export function ProcessDetail({ process, onUpdate, onDelete, isMobile, navH: navHProp, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation }) {
+export function ProcessDetail({ process, onUpdate, onDelete, isMobile, navH: navHProp, profile, onEditProfile, resumes, onManageResumes, initialTab, adaptation, onSaveAdaptation, lang = "pt" }) {
   const [tab, setTab] = useState(initialTab || "conversa");
   useEffect(()=>setTab(initialTab || "conversa"),[process.id, initialTab]);
 
   const tabs = [
-    { id:"conversa",  label:"Conversa"  },
-    { id:"vaga",      label:"Vaga"      },
-    { id:"curriculo", label:"Currículo" },
+    { id:"conversa",  label: lang === "en" ? "Conversation" : "Conversa"  },
+    { id:"vaga",      label: lang === "en" ? "Job"          : "Vaga"      },
+    { id:"curriculo", label: lang === "en" ? "Resume"       : "Currículo" },
   ];
   const navH = isMobile ? (navHProp || "72px") : "0px";
 
@@ -32,19 +32,19 @@ export function ProcessDetail({ process, onUpdate, onDelete, isMobile, navH: nav
             </div>
             <div style={{ color:"var(--t2)", fontSize:13, marginTop:3 }}>{process.role} · {process.location}</div>
           </div>
-          <Badge stage={process.stage}/>
+          <Badge stage={process.stage} lang={lang}/>
         </div>
-        <PipelineBar stage={process.stage} onStageClick={s=>onUpdate({...process,stage:s})}/>
+        <PipelineBar stage={process.stage} onStageClick={s=>onUpdate({...process,stage:s})} lang={lang}/>
       </div>
       <div style={{ padding:"12px 20px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
         <Tabs tabs={tabs} active={tab} onChange={setTab}/>
       </div>
       <div style={{ flex:1, overflow:"hidden", minHeight:0 }}>
-        {tab==="conversa"  && <div style={{ height:"100%" }}><ConversaTab process={process} isMobile={isMobile} navH={navH} profile={profile} adaptation={adaptation} onUpdate={onUpdate}/></div>}
-        {tab==="vaga"      && <div style={{ height:"100%" }}><VagaTab process={process} onUpdate={onUpdate} onDelete={onDelete} isMobile={isMobile}/></div>}
+        {tab==="conversa"  && <div style={{ height:"100%" }}><ConversaTab process={process} isMobile={isMobile} navH={navH} profile={profile} adaptation={adaptation} onUpdate={onUpdate} lang={lang}/></div>}
+        {tab==="vaga"      && <div style={{ height:"100%" }}><VagaTab process={process} onUpdate={onUpdate} onDelete={onDelete} isMobile={isMobile} lang={lang}/></div>}
         {tab==="curriculo" && (
           <div style={{ height:"100%", minHeight:0 }}>
-            <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes} adaptation={adaptation} onSaveAdaptation={onSaveAdaptation} onEditProfile={onEditProfile}/>
+            <CVTab process={process} profile={profile} isMobile={isMobile} resumes={resumes} onManageResumes={onManageResumes} adaptation={adaptation} onSaveAdaptation={onSaveAdaptation} onEditProfile={onEditProfile} lang={lang}/>
           </div>
         )}
       </div>

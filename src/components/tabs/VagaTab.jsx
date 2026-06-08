@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { CONTACT_CHANNELS, T } from "../../constants/index.js";
 import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
+import { t, meetingTypeLabel } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 import InlineTags from "../process/InlineTags.jsx";
 
 const MEETING_TYPES = [
-  { id: "triagem",    label: "Triagem",    stage: "screening"  },
-  { id: "entrevista", label: "Entrevista", stage: "interview"  },
-  { id: "tecnica",    label: "Técnica",    stage: "technical"  },
-  { id: "proposta",   label: "Proposta",   stage: "offer"      },
-  { id: "outro",      label: "Outro",      stage: null         },
+  { id: "triagem",    stage: "screening"  },
+  { id: "entrevista", stage: "interview"  },
+  { id: "tecnica",    stage: "technical"  },
+  { id: "proposta",   stage: "offer"      },
+  { id: "outro",      stage: null         },
 ];
 
 function buildDILUrl(process) {
@@ -34,24 +35,24 @@ function extractContextNote(notes) {
   return { contextMsg: "", freeNotes: notes };
 }
 
-function DatePicker({ value, onChange, diff, urgent, soon }) {
+function DatePicker({ value, onChange, diff, urgent, soon, lang = "pt" }) {
   const inputRef = useRef(null);
   const statusColor = urgent ? "var(--red)" : soon ? "var(--amb)" : "var(--t2)";
   const statusText = diff === null ? null
-    : diff === 0 ? "Hoje"
-    : diff < 0 ? `${Math.abs(diff)}d atrás`
-    : `Em ${diff}d`;
+    : diff === 0 ? t(lang, "today")
+    : diff < 0 ? t(lang, "daysAgo")(Math.abs(diff))
+    : t(lang, "inDays")(diff);
 
   return (
     <div>
-      <div style={{ ...T.label, marginBottom: 5 }}>Data</div>
+      <div style={{ ...T.label, marginBottom: 5 }}>{t(lang, "dateLabel")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <button
           onClick={() => inputRef.current?.showPicker?.() ?? inputRef.current?.click()}
           style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 12px", borderRadius:8, border:"1.5px solid var(--border-md)", background:"var(--bg-s)", cursor:"pointer", color:value?"var(--t1)":"var(--t3)", fontSize:13, fontFamily:"'Outfit',sans-serif", fontWeight:value?500:400 }}
         >
           <Ic n="cal" s={13} c={value ? statusColor : "var(--t3)"} />
-          {value ? fmtDate(value) : "Selecionar data"}
+          {value ? fmtDate(value) : t(lang, "selectDate")}
         </button>
         {value && statusText && <span style={{ fontSize:11, color:statusColor, ...T.mono }}>{statusText}</span>}
         {value && (
@@ -96,7 +97,7 @@ function AccordionCard({ icon, title, badge, open, onToggle, children }) {
   );
 }
 
-export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
+export function VagaTab({ process, onUpdate, onDelete, isMobile, lang = "pt" }) {
   const [open, setOpen]             = useState({ next: true, vaga: true, notes: true });
   const [editingField, setEditingField] = useState(null);
   const [drafts, setDrafts]             = useState({});
@@ -178,9 +179,9 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
   const col3 = isMobile ? "1fr 1fr" : "1fr 1fr 1fr";
 
   const nextBadge = urgent ? (
-    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--red)", color:"#fff", ...T.mono, fontWeight:700 }}>URGENTE</span>
+    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--red)", color:"#fff", ...T.mono, fontWeight:700 }}>{t(lang, "urgentBadge")}</span>
   ) : soon ? (
-    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--amb)", color:"#fff", ...T.mono, fontWeight:700 }}>EM BREVE</span>
+    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:999, background:"var(--amb)", color:"#fff", ...T.mono, fontWeight:700 }}>{t(lang, "soonBadge")}</span>
   ) : process.nextStepDate ? (
     <span style={{ fontSize:10, color:"var(--t3)", ...T.mono }}>{fmtDate(process.nextStepDate)}</span>
   ) : null;
@@ -190,39 +191,39 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
       <div style={{ padding: isMobile ? "12px" : "20px", paddingBottom: isMobile ? "80px" : "20px", display:"flex", flexDirection:"column", gap:10 }}>
 
         {/* ── Próxima etapa ─────────────────────────────────────── */}
-        <AccordionCard icon={urgent?"alert":"cal"} title="Próxima etapa" badge={nextBadge} open={open.next} onToggle={() => toggle("next")}>
-          <DatePicker value={process.nextStepDate||""} onChange={val=>onUpdate({...process,nextStepDate:val||null})} diff={diff} urgent={urgent} soon={soon} />
+        <AccordionCard icon={urgent?"alert":"cal"} title={t(lang, "nextStep")} badge={nextBadge} open={open.next} onToggle={() => toggle("next")}>
+          <DatePicker value={process.nextStepDate||""} onChange={val=>onUpdate({...process,nextStepDate:val||null})} diff={diff} urgent={urgent} soon={soon} lang={lang} />
           <div>
-            <div style={{ ...T.label, marginBottom:6 }}>Tipo de etapa</div>
+            <div style={{ ...T.label, marginBottom:6 }}>{t(lang, "stepType")}</div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {MEETING_TYPES.map(mt => {
                 const on = meetingType === mt.id;
                 return (
                   <button key={mt.id} onClick={() => handleMeetingType(mt.id)} style={{ padding:"5px 12px", borderRadius:20, border:`1px solid ${on?"var(--acc-b)":"var(--border)"}`, background:on?"var(--acc-d)":"transparent", color:on?"var(--acc-text)":"var(--t3)", fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:on?600:400, transition:"all 0.15s" }}>
-                    {mt.label}
+                    {meetingTypeLabel(mt.id, lang)}
                   </button>
                 );
               })}
             </div>
           </div>
           <div>
-            <div style={{ ...T.label, marginBottom:5 }}>Descrição / instrução</div>
+            <div style={{ ...T.label, marginBottom:5 }}>{t(lang, "stepDesc")}</div>
             <input value={process.nextStepNote||""} onChange={e=>onUpdate({...process,nextStepNote:e.target.value})}
-              placeholder="Ex: Entrevista técnica com o time de plataforma" style={{ ...T.input }} />
+              placeholder={lang === "en" ? "e.g. Technical interview with the platform team" : "Ex: Entrevista técnica com o time de plataforma"} style={{ ...T.input }} />
           </div>
         </AccordionCard>
 
         {/* ── Dados da vaga ─────────────────────────────────────── */}
-        <AccordionCard icon="pipeline" title="Dados da vaga" open={open.vaga} onToggle={() => toggle("vaga")}>
+        <AccordionCard icon="pipeline" title={t(lang, "jobData")} open={open.vaga} onToggle={() => toggle("vaga")}>
           <div style={{ display:"grid", gridTemplateColumns:col2, gap:12 }}>
-            <EditableText field="company"  value={process.company}  label="Empresa" placeholder="Nome da empresa" />
-            <EditableText field="role"     value={process.role}     label="Cargo"   placeholder="Título da vaga" />
+            <EditableText field="company"  value={process.company}  label={t(lang, "companyLabel")} placeholder={lang === "en" ? "Company name" : "Nome da empresa"} />
+            <EditableText field="role"     value={process.role}     label={t(lang, "roleLabel")}    placeholder={lang === "en" ? "Job title" : "Título da vaga"} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns:col3, gap:10 }}>
-            <EditableText field="location" value={process.location} label="Local"   placeholder="Remoto / SP" />
-            <EditableText field="salary"   value={process.salary}   label="Salário" placeholder="—" />
+            <EditableText field="location" value={process.location} label={t(lang, "locationLabel")} placeholder={lang === "en" ? "Remote / NYC" : "Remoto / SP"} />
+            <EditableText field="salary"   value={process.salary}   label={t(lang, "salaryLabel")}   placeholder="—" />
             <div>
-              <div style={{ ...T.label, marginBottom:6 }}>Origem</div>
+              <div style={{ ...T.label, marginBottom:6 }}>{t(lang, "originLabel")}</div>
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {[{value:"inbound",label:"Inbound"},{value:"outbound",label:"Outbound"}].map(opt => (
                   <button key={opt.value} onClick={() => onUpdate({...process,origin:opt.value})}
@@ -235,7 +236,7 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
           </div>
           {(process.origin||"inbound")==="inbound" && (
             <div>
-              <div style={{ ...T.label, marginBottom:6 }}>Canal</div>
+              <div style={{ ...T.label, marginBottom:6 }}>{t(lang, "channelLabel")}</div>
               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {CONTACT_CHANNELS.map(ch => {
                   const on = (process.channel||"")===ch.value;
@@ -251,35 +252,35 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
           )}
           <div style={{ borderTop:"1px solid var(--border)", paddingTop:12, display:"flex", flexDirection:"column", gap:10 }}>
             <div style={{ display:"grid", gridTemplateColumns:col2, gap:12 }}>
-              <EditableText field="recruiter"      value={process.recruiter}      label="Recrutador(a)" placeholder="Nome" />
-              <EditableText field="recruiterEmail" value={process.recruiterEmail} label="E-mail"        placeholder="email@empresa.com" />
+              <EditableText field="recruiter"      value={process.recruiter}      label={t(lang, "recruiterLabel")} placeholder={lang === "en" ? "Name" : "Nome"} />
+              <EditableText field="recruiterEmail" value={process.recruiterEmail} label={t(lang, "emailLabel")}     placeholder="email@company.com" />
             </div>
-            <EditableText field="jobUrl" value={process.jobUrl} label="Link da vaga" placeholder="https://..." />
+            <EditableText field="jobUrl" value={process.jobUrl} label={t(lang, "jobLinkLabel")} placeholder="https://..." />
             {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && (
               <a href={process.jobUrl} target="_blank" rel="noreferrer noopener"
                 style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:12, color:"var(--acc-text)", textDecoration:"none" }}>
-                <Ic n="send" s={11} c="var(--acc)"/>Abrir vaga →
+                <Ic n="send" s={11} c="var(--acc)"/>{t(lang, "openJob")}
               </a>
             )}
           </div>
           <div>
-            <div style={{ ...T.label, marginBottom:6 }}>Tags</div>
+            <div style={{ ...T.label, marginBottom:6 }}>{t(lang, "tagsLabel")}</div>
             <InlineTags process={process} onUpdate={onUpdate} />
           </div>
         </AccordionCard>
 
         {/* ── Anotações ──────────────────────────────────────────── */}
-        <AccordionCard icon="edit" title="Anotações" open={open.notes} onToggle={() => toggle("notes")}>
+        <AccordionCard icon="edit" title={t(lang, "notesTitle")} open={open.notes} onToggle={() => toggle("notes")}>
           {contextMsg && (
             <div>
-              <div style={{ ...T.label, marginBottom:5 }}>Contexto inicial</div>
+              <div style={{ ...T.label, marginBottom:5 }}>{t(lang, "contextLabel")}</div>
               <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6, padding:"8px 12px", background:"var(--bg-s)", borderRadius:8, border:"1px solid var(--border)" }}>
                 {contextMsg.slice(0,200)}{contextMsg.length>200?"…":""}
               </div>
             </div>
           )}
           <textarea value={localNotes} onChange={e=>setLocalNotes(e.target.value)} onBlur={saveNotes}
-            placeholder="Anotações livres sobre este processo..."
+            placeholder={t(lang, "freeNotes")}
             rows={isMobile ? 5 : 4}
             style={{ ...T.input, resize:"vertical", lineHeight:1.65 }} />
         </AccordionCard>
@@ -290,15 +291,15 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile }) {
           onMouseEnter={e=>e.currentTarget.style.opacity="0.8"}
           onMouseLeave={e=>e.currentTarget.style.opacity="1"}
         >
-          <Ic n="ai" s={14} c="var(--acc)"/>Criar roadmap de prática para esta vaga
+          <Ic n="ai" s={14} c="var(--acc)"/>{t(lang, "practiceJob")}
         </a>
 
         {/* ── Deletar ────────────────────────────────────────────── */}
         <div style={{ display:"flex", justifyContent:"flex-end", paddingBottom:8 }}>
           <Btn variant="danger" size="sm" onClick={() => {
-            if (window.confirm("Tem certeza que deseja deletar este processo? Esta ação não pode ser desfeita.")) onDelete();
+            if (window.confirm(t(lang, "deleteProcessConfirm"))) onDelete();
           }}>
-            <Ic n="trash" s={12} c="var(--red)"/>Deletar processo
+            <Ic n="trash" s={12} c="var(--red)"/>{t(lang, "deleteProcess")}
           </Btn>
         </div>
 

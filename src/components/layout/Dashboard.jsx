@@ -1,6 +1,7 @@
 import { STAGE, ACTIVE_STAGES } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
+import { t, stageLabel } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Badge from "../ui/Badge.jsx";
 
@@ -15,7 +16,7 @@ function MetricCard({ label, value, sub, color }) {
   );
 }
 
-export function Dashboard({ processes }) {
+export function Dashboard({ processes, lang = "pt" }) {
   const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   const m = {
     active: active.length,
@@ -30,17 +31,17 @@ export function Dashboard({ processes }) {
   return (
     <div style={{ overflowY:"auto", padding:"28px 24px", height:"100%" }}>
       <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontSize:26, fontWeight:800, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>Dashboard</h1>
-        <div style={{ color:"var(--t2)", fontSize:13, marginTop:4 }}>Visão geral dos processos seletivos</div>
+        <h1 style={{ fontSize:26, fontWeight:800, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "dashTitle")}</h1>
+        <div style={{ color:"var(--t2)", fontSize:13, marginTop:4 }}>{t(lang, "dashSub")}</div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
-        <MetricCard label="Ativos"      value={m.active}     color="var(--acc)"/>
-        <MetricCard label="Entrevistas" value={m.interviews}  color="var(--amb)" sub="interview + técnica"/>
-        <MetricCard label="Propostas"   value={m.offers}      color="var(--grn)" sub={m.offers>0?"Parabéns!":""}/>
-        <MetricCard label="Urgentes"    value={m.urgent}      color="var(--red)" sub="próximas 48h"/>
+        <MetricCard label={t(lang, "activeLabel")}     value={m.active}     color="var(--acc)"/>
+        <MetricCard label={t(lang, "interviewsLabel")} value={m.interviews}  color="var(--amb)" sub={t(lang, "interviewSub")}/>
+        <MetricCard label={t(lang, "offersLabel")}     value={m.offers}      color="var(--grn)" sub={t(lang, "offerSub")(m.offers)}/>
+        <MetricCard label={t(lang, "urgentLabel")}     value={m.urgent}      color="var(--red)" sub={t(lang, "urgentSub")}/>
       </div>
       <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:14, padding:20, marginBottom:20 }}>
-        <div style={{ ...T.label, marginBottom:16 }}>Funil de processos</div>
+        <div style={{ ...T.label, marginBottom:16 }}>{t(lang, "funnelLabel")}</div>
         <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
           {byStage.map(({stage,count,bar})=>{
             const max = Math.max(...byStage.map(b=>b.count),1);
@@ -49,7 +50,7 @@ export function Dashboard({ processes }) {
               <div key={stage} style={{ flex:1, textAlign:"center" }}>
                 <div style={{ fontSize:18, fontWeight:800, color:count>0?bar:"var(--t4)", fontFamily:"'Outfit',sans-serif", marginBottom:6, letterSpacing:"-0.04em" }}>{count}</div>
                 <div style={{ height:h, borderRadius:"4px 4px 0 0", background:count>0?`${bar}20`:"var(--bg-s)", border:`1px solid ${count>0?`${bar}40`:"var(--border)"}`, transition:"height 0.3s" }}/>
-                <div style={{ ...T.label, marginTop:6, fontSize:9 }}>{STAGE[stage]?.label}</div>
+                <div style={{ ...T.label, marginTop:6, fontSize:9 }}>{stageLabel(stage, lang)}</div>
               </div>
             );
           })}
@@ -58,21 +59,21 @@ export function Dashboard({ processes }) {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
         <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:14, padding:18 }}>
           <div style={{ ...T.label, color:"#F5A623", display:"flex", alignItems:"center", gap:6, marginBottom:14 }}>
-            <Ic n="starF" s={12} c="#F5A623"/>Prioridades
+            <Ic n="starF" s={12} c="#F5A623"/>{t(lang, "prioritiesLabel")}
           </div>
-          {starred.length===0 ? <div style={{ color:"var(--t4)", fontSize:12 }}>Nenhum processo marcado</div> : starred.map(p=>(
+          {starred.length===0 ? <div style={{ color:"var(--t4)", fontSize:12 }}>{t(lang, "noStarred")}</div> : starred.map(p=>(
             <div key={p.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--border)" }}>
               <div>
                 <div style={{ fontSize:13, color:"var(--t1)", fontWeight:600 }}>{p.company}</div>
                 <div style={{ fontSize:11, color:"var(--t2)" }}>{p.role}</div>
               </div>
-              <Badge stage={p.stage}/>
+              <Badge stage={p.stage} lang={lang}/>
             </div>
           ))}
         </div>
         <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:14, padding:18 }}>
-          <div style={{ ...T.label, marginBottom:14 }}>Atividade recente</div>
-          {recentActivity.length===0 ? <div style={{ color:"var(--t4)", fontSize:12 }}>Nenhuma atividade ainda</div> : recentActivity.map((a,i)=>(
+          <div style={{ ...T.label, marginBottom:14 }}>{t(lang, "recentLabel")}</div>
+          {recentActivity.length===0 ? <div style={{ color:"var(--t4)", fontSize:12 }}>{t(lang, "noActivity")}</div> : recentActivity.map((a,i)=>(
             <div key={i} style={{ display:"flex", gap:10, padding:"7px 0", borderBottom:"1px solid var(--border)" }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:STAGE[a.type]?.bar||"var(--t4)", marginTop:4, flexShrink:0 }}/>
               <div style={{ flex:1, minWidth:0 }}>
@@ -89,7 +90,7 @@ export function Dashboard({ processes }) {
   );
 }
 
-export function MobileDashboard({ processes }) {
+export function MobileDashboard({ processes, lang = "pt" }) {
   const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
   const m = {
     active: active.length,
@@ -103,17 +104,17 @@ export function MobileDashboard({ processes }) {
   return (
     <div style={{ padding:16, display:"flex", flexDirection:"column", gap:16 }}>
       <div>
-        <h1 style={{ fontSize:22, fontWeight:800, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>Dashboard</h1>
-        <div style={{ color:"var(--t2)", fontSize:12, marginTop:3 }}>Visão geral dos processos</div>
+        <h1 style={{ fontSize:22, fontWeight:800, color:"var(--t1)", letterSpacing:"-0.03em", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "dashTitle")}</h1>
+        <div style={{ color:"var(--t2)", fontSize:12, marginTop:3 }}>{t(lang, "mobileDashSub")}</div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <MetricCard label="Ativos"      value={m.active}     color="var(--acc)"/>
-        <MetricCard label="Entrevistas" value={m.interviews}  color="var(--amb)"/>
-        <MetricCard label="Propostas"   value={m.offers}      color="var(--grn)"/>
-        <MetricCard label="Urgentes"    value={m.urgent}      color="var(--red)"/>
+        <MetricCard label={t(lang, "activeLabel")}     value={m.active}     color="var(--acc)"/>
+        <MetricCard label={t(lang, "interviewsLabel")} value={m.interviews}  color="var(--amb)"/>
+        <MetricCard label={t(lang, "offersLabel")}     value={m.offers}      color="var(--grn)"/>
+        <MetricCard label={t(lang, "urgentLabel")}     value={m.urgent}      color="var(--red)"/>
       </div>
       <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:14, padding:16 }}>
-        <div style={{ ...T.label, marginBottom:12 }}>Funil</div>
+        <div style={{ ...T.label, marginBottom:12 }}>{t(lang, "mobileFunnel")}</div>
         <div style={{ display:"flex", gap:5, alignItems:"flex-end" }}>
           {byStage.map(({stage,count,bar})=>{
             const max = Math.max(...byStage.map(b=>b.count),1);
@@ -122,15 +123,15 @@ export function MobileDashboard({ processes }) {
               <div key={stage} style={{ flex:1, textAlign:"center" }}>
                 <div style={{ fontSize:15, fontWeight:800, color:count>0?bar:"var(--t4)", fontFamily:"'Outfit',sans-serif", marginBottom:4, letterSpacing:"-0.04em" }}>{count}</div>
                 <div style={{ height:h, borderRadius:"3px 3px 0 0", background:count>0?`${bar}20`:"var(--bg-s)", border:`1px solid ${count>0?`${bar}40`:"var(--border)"}` }}/>
-                <div style={{ ...T.label, marginTop:4, fontSize:8 }}>{STAGE[stage]?.label.slice(0,5)}</div>
+                <div style={{ ...T.label, marginTop:4, fontSize:8 }}>{stageLabel(stage, lang).slice(0,5)}</div>
               </div>
             );
           })}
         </div>
       </div>
       <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:14, padding:16 }}>
-        <div style={{ ...T.label, marginBottom:12 }}>Atividade recente</div>
-        {recent.length===0 ? <div style={{ color:"var(--t4)", fontSize:12 }}>Nenhuma atividade ainda</div> : recent.map((a,i)=>(
+        <div style={{ ...T.label, marginBottom:12 }}>{t(lang, "recentLabel")}</div>
+        {recent.length===0 ? <div style={{ color:"var(--t4)", fontSize:12 }}>{t(lang, "noActivity")}</div> : recent.map((a,i)=>(
           <div key={i} style={{ display:"flex", gap:10, padding:"7px 0", borderBottom:"1px solid var(--border)" }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:STAGE[a.type]?.bar||"var(--t4)", marginTop:4, flexShrink:0 }}/>
             <div style={{ flex:1, minWidth:0 }}>

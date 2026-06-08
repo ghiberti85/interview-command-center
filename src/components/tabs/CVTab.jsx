@@ -3,6 +3,7 @@ import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
+import { t } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
@@ -17,7 +18,7 @@ REGRAS ABSOLUTAS:
 3. Adapte apenas o conteúdo textual — reescreva com foco nas habilidades confirmadas relevantes para a vaga
 4. Responda em português, a menos que o currículo base esteja em inglês`;
 
-export function CVTab({ process, profile, isMobile, resumes, onManageResumes, adaptation, onSaveAdaptation, session }) {
+export function CVTab({ process, profile, isMobile, resumes, onManageResumes, adaptation, onSaveAdaptation, session, lang = "pt" }) {
   const [jd, setJd] = useState("");
   const [step, setStep] = useState("input"); // input | analyzing | qa | generating | result
   const [questions, setQuestions] = useState([]);
@@ -128,8 +129,8 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
     <div data-testid="no-profile" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: 32, textAlign: "center", gap: 16 }}>
       <div style={{ opacity: 0.15 }}><Ic n="edit" s={36} c="var(--t2)" /></div>
       <div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t1)", marginBottom: 6 }}>Configure seu perfil primeiro</div>
-        <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>Para adaptar o currículo com segurança, precisamos saber quais tecnologias você realmente domina.</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t1)", marginBottom: 6 }}>{t(lang, "setupProfileFirst")}</div>
+        <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>{t(lang, "setupProfileSub")}</div>
       </div>
     </div>
   );
@@ -142,28 +143,28 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Ic n="check" s={13} c="var(--grn)" />
               <span style={{ fontSize: 12, color: "var(--grn)", fontFamily: "'Outfit',sans-serif" }}>
-                Adaptação salva em {new Date(adaptation.updatedAt).toLocaleDateString("pt-BR")}
+                {t(lang, "savedAdaptation")(new Date(adaptation.updatedAt).toLocaleDateString(lang === "en" ? "en-US" : "pt-BR"))}
               </span>
             </div>
             <button
               onClick={() => { setResult(adaptation.content); setStep("result"); }}
               style={{ fontSize: 11, color: "var(--grn)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", textDecoration: "underline" }}
             >
-              Ver adaptação salva
+              {t(lang, "viewSavedAdaptation")}
             </button>
           </div>
         )}
         <div style={{ padding: "12px 14px", background: "var(--acc-d)", border: "1px solid var(--acc-b)", borderRadius: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
           <Ic n="info" s={14} c="var(--acc)" />
           <div style={{ fontSize: 12, color: "var(--acc-text)", lineHeight: 1.6 }}>
-            A IA vai perguntar sobre tecnologias da vaga para garantir que o currículo inclua <strong>apenas o que você realmente domina</strong>.
+            {t(lang, "aiWillAsk")}
           </div>
         </div>
         <div style={{ padding: "12px 14px", background: "var(--bg-o)", borderRadius: 10, border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ ...T.label }}>Currículo base para adaptação</div>
+            <div style={{ ...T.label }}>{t(lang, "baseCVLabel")}</div>
             <button data-testid="btn-manage-resumes" onClick={onManageResumes} style={{ fontSize: 11, color: "var(--acc-text)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
-              <Ic n="edit" s={11} c="var(--acc)" />Gerenciar
+              <Ic n="edit" s={11} c="var(--acc)" />{t(lang, "manage")}
             </button>
           </div>
           <select
@@ -172,7 +173,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
             onChange={e => setSelectedResumeId(e.target.value)}
             style={{ ...T.input, fontSize: 12, cursor: "pointer" }}
           >
-            <option value="profile">Perfil — {profile.cvText ? "CV do perfil (texto colado)" : "resumo + stack do perfil"}</option>
+            <option value="profile">{t(lang, "profileCVLabel")(!!profile.cvText)}</option>
             {(resumes || []).map(r => (
               <option key={r.id} value={r.id}>{r.name} ({r.language === "pt" ? "PT" : r.language === "en" ? "EN" : "ES"} · {Math.round(r.content.length / 1000)}k chars)</option>
             ))}
@@ -184,23 +185,23 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           )}
           {!hasResumes && (
             <div style={{ fontSize: 11, color: "var(--t3)" }}>
-              Nenhum currículo salvo ainda. <button onClick={onManageResumes} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--acc-text)", fontSize: 11, fontFamily: "'Outfit',sans-serif" }}>Adicionar agora →</button>
+              {t(lang, "noResumesSaved")} <button onClick={onManageResumes} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--acc-text)", fontSize: 11, fontFamily: "'Outfit',sans-serif" }}>{t(lang, "addNow")}</button>
             </div>
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ ...T.label }}>Job description da vaga</label>
-          <textarea data-testid="textarea-jd" value={jd} onChange={e => setJd(e.target.value)} rows={isMobile ? 8 : 11} placeholder={`Cole aqui o texto completo da vaga de ${process.role} na ${process.company}...`} style={{ ...T.input, resize: "vertical", lineHeight: 1.65, fontSize: 13 }} />
+          <label style={{ ...T.label }}>{t(lang, "jobDescLabel")}</label>
+          <textarea data-testid="textarea-jd" value={jd} onChange={e => setJd(e.target.value)} rows={isMobile ? 8 : 11} placeholder={t(lang, "jdPlaceholder")(process.role, process.company)} style={{ ...T.input, resize: "vertical", lineHeight: 1.65, fontSize: 13 }} />
         </div>
         {profile.stack.length > 0 && (
           <div style={{ padding: "10px 12px", background: "var(--bg-o)", borderRadius: 8, border: "1px solid var(--border)" }}>
-            <div style={{ ...T.label, marginBottom: 4 }}>Stack do perfil</div>
+            <div style={{ ...T.label, marginBottom: 4 }}>{t(lang, "profileStackLabel")}</div>
             <div data-testid="stack-preview" style={{ fontSize: 12, color: "var(--t2)" }}>{profile.stack.slice(0, 8).join(" · ")}{profile.stack.length > 8 ? ` · +${profile.stack.length - 8} mais` : ""}</div>
           </div>
         )}
       </div>
       <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)" }}>
-        <Btn data-testid="btn-analyze" onClick={generateQuestions} full disabled={!jd.trim()}>Analisar job description</Btn>
+        <Btn data-testid="btn-analyze" onClick={generateQuestions} full disabled={!jd.trim()}>{t(lang, "analyzeJd")}</Btn>
       </div>
     </div>
   );
@@ -209,7 +210,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
     <div data-testid="step-analyzing" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 16 }}>
       <div style={{ display: "flex", gap: 6 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--acc)", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}</div>
       <div style={{ fontSize: 13, color: "var(--t3)" }}>
-        {step === "analyzing" ? "Analisando a vaga e gerando perguntas…" : "Gerando currículo adaptado…"}
+        {step === "analyzing" ? t(lang, "analyzingJob") : t(lang, "generatingCV")}
       </div>
     </div>
   );
@@ -219,7 +220,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
       <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "14px" : "20px", display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ padding: "10px 14px", background: "var(--acc-d)", border: "1px solid var(--acc-b)", borderRadius: 10 }}>
           <span style={{ fontSize: 12, color: "var(--acc-text)", fontFamily: "'Outfit',sans-serif" }}>
-            Responda sobre sua experiência real com cada item. O currículo adaptado vai usar <strong>apenas o que você confirmar</strong>.
+            {t(lang, "respondExperience")}
           </span>
         </div>
         {questions.map((q, idx) => (
@@ -235,7 +236,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
                 style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${answers[q.id] === true ? "rgba(34,198,122,0.4)" : "var(--border)"}`, background: answers[q.id] === true ? "rgba(34,198,122,0.12)" : "var(--bg-s)", color: answers[q.id] === true ? "var(--grn)" : "var(--t2)", cursor: "pointer", fontSize: 13, fontFamily: "'Outfit',sans-serif", fontWeight: answers[q.id] === true ? 600 : 400, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
               >
                 {answers[q.id] === true && <Ic n="check" s={13} c="var(--grn)" />}
-                Sim
+                {t(lang, "yes")}
               </button>
               <button
                 data-testid={`qa-no-${q.id}`}
@@ -243,19 +244,19 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
                 style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${answers[q.id] === false ? "rgba(255,106,106,0.3)" : "var(--border)"}`, background: answers[q.id] === false ? "rgba(255,106,106,0.08)" : "var(--bg-s)", color: answers[q.id] === false ? "var(--red)" : "var(--t2)", cursor: "pointer", fontSize: 13, fontFamily: "'Outfit',sans-serif", fontWeight: answers[q.id] === false ? 600 : 400, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
               >
                 {answers[q.id] === false && <Ic n="close" s={13} c="var(--red)" />}
-                Não
+                {t(lang, "no")}
               </button>
             </div>
           </div>
         ))}
         <div style={{ fontSize: 11, color: "var(--t4)", textAlign: "center", fontFamily: "'JetBrains Mono',monospace" }}>
-          {questions.filter(q => answers[q.id] !== null).length}/{questions.length} respondidas
+          {t(lang, "answeredCount")(questions.filter(q => answers[q.id] !== null).length, questions.length)}
         </div>
       </div>
       <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px", display: "flex", gap: 8 }}>
         <Btn data-testid="btn-back-to-input" variant="ghost" onClick={() => setStep("input")} size="sm"><Ic n="back" s={13} c="var(--t2)" /></Btn>
         <Btn data-testid="btn-generate" onClick={generateCV} full disabled={!allAnswered}>
-          {allAnswered ? "Gerar currículo adaptado" : `Responda todas as perguntas (${questions.filter(q => answers[q.id] !== null).length}/${questions.length})`}
+          {allAnswered ? t(lang, "generateAdaptedCV") : t(lang, "answerAllFirst")(questions.filter(q => answers[q.id] !== null).length, questions.length)}
         </Btn>
       </div>
     </div>
@@ -267,7 +268,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
         {saved && (
           <div style={{ padding: "10px 14px", background: "rgba(34,198,122,0.08)", border: "1px solid rgba(34,198,122,0.2)", borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}>
             <Ic n="check" s={13} c="var(--grn)" />
-            <span style={{ fontSize: 12, color: "var(--grn)", fontFamily: "'Outfit',sans-serif" }}>Adaptação salva neste processo</span>
+            <span style={{ fontSize: 12, color: "var(--grn)", fontFamily: "'Outfit',sans-serif" }}>{t(lang, "adaptationSaved")}</span>
           </div>
         )}
         <div data-testid="result-text" style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "var(--t1)", lineHeight: 1.75, padding: "16px", background: "var(--bg-o)", borderRadius: 12, border: "1px solid var(--border)" }}>
@@ -277,14 +278,14 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
       <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px", display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Btn data-testid="btn-back-to-qa" variant="ghost" onClick={() => setStep("qa")} size="sm"><Ic n="back" s={13} c="var(--t2)" /></Btn>
         <Btn data-testid="btn-copy" onClick={copyResult} variant={copied ? "secondary" : "primary"}>
-          <Ic n={copied ? "check" : "copy"} s={14} c={copied ? "var(--grn)" : "#fff"} />{copied ? "Copiado!" : "Copiar"}
+          <Ic n={copied ? "check" : "copy"} s={14} c={copied ? "var(--grn)" : "#fff"} />{copied ? t(lang, "copied") : t(lang, "copy")}
         </Btn>
         {onSaveAdaptation && !saved && (
           <Btn data-testid="btn-save" onClick={saveAdaptation} variant="secondary">
-            <Ic n="check" s={14} c="var(--t1)" />Salvar adaptação
+            <Ic n="check" s={14} c="var(--t1)" />{t(lang, "saveAdaptation")}
           </Btn>
         )}
-        <Btn data-testid="btn-new-analysis" variant="ghost" size="sm" onClick={() => { setStep("input"); setJd(""); setQuestions([]); setAnswers({}); setResult(""); setSaved(false); }}>Nova análise</Btn>
+        <Btn data-testid="btn-new-analysis" variant="ghost" size="sm" onClick={() => { setStep("input"); setJd(""); setQuestions([]); setAnswers({}); setResult(""); setSaved(false); }}>{t(lang, "newAnalysis")}</Btn>
       </div>
     </div>
   );

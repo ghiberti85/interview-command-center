@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "../../supabase.js";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
@@ -10,6 +10,11 @@ export function SetPasswordModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    dialogRef.current?.querySelector("input, button")?.focus();
+  }, []);
 
   const inputFocus = e => { e.target.style.borderColor="var(--acc)"; e.target.style.boxShadow="0 0 0 3px var(--acc-d)"; };
   const inputBlur  = e => { e.target.style.borderColor="var(--border)"; e.target.style.boxShadow="none"; };
@@ -28,9 +33,9 @@ export function SetPasswordModal({ onClose, onSuccess }) {
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:24 }} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28, width:"100%", maxWidth:380, animation:"slideUp 0.2s ease" }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="setpwd-title" style={{ background:"var(--bg-r)", border:"1px solid var(--border)", borderRadius:16, padding:28, width:"100%", maxWidth:380, animation:"slideUp 0.2s ease" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
-          <div style={{ fontWeight:700, fontSize:16, color:"var(--t1)", letterSpacing:"-0.02em" }}>Definir senha</div>
+          <div id="setpwd-title" style={{ fontWeight:700, fontSize:16, color:"var(--t1)", letterSpacing:"-0.02em" }}>Definir senha</div>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", padding:4, borderRadius:6 }}><Ic n="close" s={16} c="var(--t3)"/></button>
         </div>
         {done ? (

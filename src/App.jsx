@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase, rowToProcess, processToRow } from "./supabase";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { supabase } from "./supabase";
 
 // Constants & utils
-import { DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn } from "./constants/index.js";
+import { DARK_VARS, LIGHT_VARS, GLOBAL_CSS, T, iconBtn } from "./constants/index.js";
 import { STAGE, ACTIVE_STAGES } from "./utils/constants.js";
 import { t, stageLabel } from "./utils/i18n.js";
 import { sortProcesses } from "./utils/sort.js";
@@ -16,6 +16,8 @@ import { useTheme } from "./hooks/useTheme.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
 import { useResumes } from "./hooks/useResumes.js";
 import { useCVAdaptations } from "./hooks/useCVAdaptations.js";
+import { useDebounce } from "./hooks/useDebounce.js";
+import { useProcesses } from "./hooks/useProcesses.js";
 
 // UI components
 import Ic from "./components/ui/Ic.jsx";
@@ -62,7 +64,6 @@ export default function App() {
   });
 
   const [isDemo, setIsDemo] = useState(false);
-  const [processes, setProcesses] = useState([]);
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState("pipeline");
   const [showNewEntry, setShowNewEntry] = useState(false);
@@ -74,9 +75,9 @@ export default function App() {
   const [mobileDetailTab, setMobileDetailTab] = useState("conversa");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [dbLoading, setDbLoading] = useState(true);
-  const [dbError, setDbError] = useState(null);
   const [showSetPassword, setShowSetPassword] = useState(false);
+  const { processes, setProcesses, dbLoading, dbError, updateProcess: _updateProcess, deleteProcess: _deleteProcess, addProcess: _addProcess } = useProcesses(session, isDemo);
+  const initialSelectDone = useRef(false);
   const { profile, saveProfile } = useUserProfile(session);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
@@ -93,29 +94,13 @@ export default function App() {
   }, [dark]);
 
 
-  // Load processes
+  // Select first process on initial load
   useEffect(() => {
-    if (isDemo) {
-      setProcesses(DEMO_PROCESSES);
-      setSelected(DEMO_PROCESSES[0]);
-      setDbLoading(false);
-      return;
+    if (!dbLoading && !initialSelectDone.current && processes.length > 0) {
+      initialSelectDone.current = true;
+      setSelected(processes[0]);
     }
-    if (!session?.user?.id) return; // aguarda sessão estar pronta
-    async function load() {
-      setDbLoading(true);
-      const { data, error } = await supabase
-        .from("processes")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) { console.error("[ICC] DB load error:", error); setDbError(true); setDbLoading(false); return; }
-      const mapped = (data || []).map(rowToProcess);
-      setProcesses(mapped);
-      if (mapped.length > 0) setSelected(mapped[0]);
-      setDbLoading(false);
-    }
-    load();
-  }, [isDemo, session?.user?.id]);
+  }, [dbLoading, processes]);
 
   // Auto-show set password modal after password recovery redirect
   useEffect(() => {
@@ -123,46 +108,37 @@ export default function App() {
   }, [isRecovery]);
 
   const updateProcess = useCallback(async (updated) => {
-    setProcesses(prev => prev.map(p => p.id === updated.id ? updated : p));
+    await _updateProcess(updated);
     setSelected(updated);
-    if (!isDemo) await supabase.from("processes").upsert({ ...processToRow(updated), user_id: session?.user?.id });
-  }, [isDemo, session]);
+  }, [_updateProcess]);
 
   const deleteProcess = useCallback(async (id) => {
     const targetId = id || selected?.id;
     if (!targetId) return;
-    if (!isDemo) await supabase.from("processes").delete().eq("id", targetId);
-    setProcesses(prev => {
-      const next = prev.filter(p => p.id !== targetId);
-      if (!id) setSelected(next[0] || null); // só reposiciona selected quando deleta o atual
-      return next;
-    });
-    if (!id && isMobile) setMobileScreen("list");
-  }, [selected, isMobile, isDemo]);
+    const isCurrentlySelected = !id;
+    const nextSelected = isCurrentlySelected ? (processes.find(p => p.id !== targetId) || null) : selected;
+    await _deleteProcess(targetId);
+    if (isCurrentlySelected) {
+      setSelected(nextSelected);
+      if (isMobile) setMobileScreen("list");
+    }
+  }, [selected, processes, isMobile, _deleteProcess]);
 
   const addProcess = useCallback(async (p) => {
-    if (isDemo) {
-      setProcesses(prev => [p, ...prev]);
-      setSelected(p);
-      setView("pipeline");
-      if (isMobile) setMobileScreen("detail");
-      return;
-    }
-    const row = { ...processToRow(p), user_id: session?.user?.id };
-    const { error } = await supabase.from("processes").insert(row);
-    if (!error) {
-      setProcesses(prev => [p, ...prev]);
+    const { ok } = await _addProcess(p);
+    if (ok) {
       setSelected(p);
       setView("pipeline");
       if (isMobile) setMobileScreen("detail");
     }
-  }, [isMobile, session]);
+  }, [isMobile, _addProcess]);
 
-const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
-  const archived = processes.filter(p=>["rejected","archived"].includes(p.stage));
-  const listSrc = view==="archived" ? archived : active;
-  const filtered = sortProcesses(filterProcesses(listSrc, search, stageFilter), sortBy);
-  const urgent = active.filter(p=>{ const d=daysDiff(p.nextStepDate); return d!==null&&d>=0&&d<=2; }).length;
+const debouncedSearch = useDebounce(search, 200);
+  const active   = useMemo(() => processes.filter(p => !["rejected","archived"].includes(p.stage)), [processes]);
+  const archived = useMemo(() => processes.filter(p =>  ["rejected","archived"].includes(p.stage)), [processes]);
+  const listSrc  = view === "archived" ? archived : active;
+  const filtered = useMemo(() => sortProcesses(filterProcesses(listSrc, debouncedSearch, stageFilter), sortBy), [listSrc, debouncedSearch, stageFilter, sortBy]);
+  const urgent   = useMemo(() => active.filter(p => { const d = daysDiff(p.nextStepDate); return d !== null && d >= 0 && d <= 2; }).length, [active]);
 
   const EmptyState = () => (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:16, padding:"48px 32px", maxWidth:400, margin:"0 auto", textAlign:"center" }}>

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { T, iconBtn } from "../../constants/index.js";
 import { extractTextFromPdf } from "../../lib/ai.js";
 import Ic from "../ui/Ic.jsx";
@@ -23,6 +23,11 @@ export function ResumesModal({ onClose, isMobile, resumes, onAdd, onUpdate, onDe
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef();
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    dialogRef.current?.querySelector("button, input, textarea")?.focus();
+  }, [view]);
 
   const resetForm = () => { setName(""); setLanguage("pt"); setContent(""); setEditing(null); setError(""); };
 
@@ -70,7 +75,7 @@ export function ResumesModal({ onClose, isMobile, resumes, onAdd, onUpdate, onDe
 
   return (
     <div data-testid="resumes-modal" style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:isMobile?"flex-end":"center", justifyContent:"center", zIndex:300, backdropFilter:"blur(6px)" }}>
-      <div style={{ background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:isMobile?"20px 20px 0 0":16, width:isMobile?"100%":580, maxHeight:isMobile?"92dvh":"88vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="resumes-title" style={{ background:"var(--bg-r)", border:"1px solid var(--border-md)", borderRadius:isMobile?"20px 20px 0 0":16, width:isMobile?"100%":580, maxHeight:isMobile?"92dvh":"88vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
         {/* Header */}
         <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid var(--border)", flexShrink:0, display:"flex", alignItems:"center", gap:10 }}>
@@ -80,7 +85,7 @@ export function ResumesModal({ onClose, isMobile, resumes, onAdd, onUpdate, onDe
             </button>
           )}
           <div style={{ flex:1 }}>
-            <div data-testid="modal-title" style={{ fontSize:15, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>
+            <div data-testid="modal-title" id="resumes-title" style={{ fontSize:15, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>
               {view==="list" ? "Meus Currículos" : view==="new" ? "Novo Currículo" : "Editar Currículo"}
             </div>
             <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>

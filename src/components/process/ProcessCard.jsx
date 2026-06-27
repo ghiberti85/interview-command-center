@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, memo } from "react";
 import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { fmtDate, daysDiff } from "../../utils/dateUtils.js";
@@ -8,7 +8,7 @@ import Ic from "../ui/Ic.jsx";
 const CHANNEL_ICONS = { linkedin:"linkedin", email:"email", whatsapp:"whatsapp", indicacao:"star" };
 const LONG_PRESS_MS = 500;
 
-export function ProcessCard({ process, onClick, selected, isMobile, selectionMode, isSelected, onLongPress, onArchive, onDelete }) {
+export const ProcessCard = memo(function ProcessCard({ process, onClick, selected, isMobile, selectionMode, isSelected, onLongPress, onArchive, onDelete }) {
   const s = STAGE[process.stage] || STAGE.archived;
   const diff = daysDiff(process.nextStepDate);
   const urgent = diff !== null && diff >= 0 && diff <= 2;
@@ -101,6 +101,7 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
                 <button
                   onClick={e => { e.stopPropagation(); onDelete(process); }}
                   title="Deletar"
+                  aria-label="Deletar processo"
                   style={{ width:26, height:26, borderRadius:6, border:"1px solid var(--red-b)", background:"var(--red-d)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity: hovered ? 1 : 0, transition:"opacity 0.15s, background 0.15s" }}
                   onMouseEnter={e => e.currentTarget.style.background="var(--red-b)"}
                   onMouseLeave={e => e.currentTarget.style.background="var(--red-d)"}
@@ -113,6 +114,7 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
                 <button
                   onClick={e => { e.stopPropagation(); onArchive(process); }}
                   title="Arquivar"
+                  aria-label="Arquivar processo"
                   style={{ width:26, height:26, borderRadius:6, border:"1px solid var(--border-md)", background:"var(--bg-s)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity: hovered ? 1 : 0, transition:"opacity 0.15s, background 0.15s" }}
                   onMouseEnter={e => e.currentTarget.style.background="var(--bg-o)"}
                   onMouseLeave={e => e.currentTarget.style.background="var(--bg-s)"}
@@ -126,6 +128,6 @@ export function ProcessCard({ process, onClick, selected, isMobile, selectionMod
       </div>
     </div>
   );
-}
+});
 
 export default ProcessCard;

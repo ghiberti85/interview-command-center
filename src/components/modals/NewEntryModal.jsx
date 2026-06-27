@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 import { STAGE } from "../../utils/constants.js";
@@ -70,6 +70,11 @@ export function NewEntryModal({ onClose, onProcessCreated, isMobile, initialMsg 
   const [saved, setSaved]     = useState(false);
   const [form, setForm]       = useState(INITIAL_FORM);
   const [saving, setSaving]   = useState(false);
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    dialogRef.current?.querySelector("button, input, textarea")?.focus();
+  }, [step]);
 
   const F = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -223,7 +228,7 @@ Mensagem do recrutador:
 
   return (
     <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={sheet}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="newentry-title" style={sheet}>
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div style={hdr}>
           {isMobile && <div style={{ position:"absolute", top:8, left:"50%", transform:"translateX(-50%)", width:36, height:4, background:"var(--border-md)", borderRadius:2 }}/>}
@@ -236,7 +241,7 @@ Mensagem do recrutador:
                 <Ic n="back" s={15} c="var(--t3)"/>
               </button>
             )}
-            <span style={{ fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:"var(--t1)" }}>{stepTitle}</span>
+            <span id="newentry-title" style={{ fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:"var(--t1)" }}>{stepTitle}</span>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:4, borderRadius:6, display:"flex" }}>
             <Ic n="close" s={16} c="var(--t3)"/>

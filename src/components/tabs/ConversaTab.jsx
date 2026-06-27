@@ -46,6 +46,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
   const [copiedTs, setCopiedTs] = useState(null);
 
   const threadRef = useRef(null);
+  const controllerRef = useRef(null);
 
   const buildThread = () => {
     const entries = [];
@@ -66,23 +67,32 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
     }
   }, [thread.length, loading]);
 
+  const cancel = () => controllerRef.current?.abort();
+
   const generate = async () => {
+    controllerRef.current = new AbortController();
     setLoading(true);
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
       const cvContext = adaptation?.content || profile?.cvText || "";
       const scenLabel = scenarioLabel(scenario, lang);
       const prompt = buildPrompt({ process, channel, scenario, scenLabel, recruiterMsg, extra: extraVal, cvContext });
-      const raw = await callAI([{ role: "user", content: prompt }], MESSAGES_SYSTEM, s?.access_token);
+      const raw = await callAI([{ role: "user", content: prompt }], MESSAGES_SYSTEM, s?.access_token, controllerRef.current.signal);
       const parsed = parseAIResponse(raw);
       const entry = { ...parsed, channel, scenario: scenLabel, recruiterMsg: recruiterMsg || null, ts: Date.now() };
       persistEntry(entry);
-    } catch {
-      const entry = { body: "Erro ao gerar. Tente novamente.", channel, scenario: "Erro", recruiterMsg: recruiterMsg || null, ts: Date.now() };
-      persistEntry(entry);
+      setComposeOpen(false);
+    } catch (e) {
+      if (e.message !== "aborted") {
+        const entry = { body: "Erro ao gerar. Tente novamente.", channel, scenario: "Erro", recruiterMsg: recruiterMsg || null, ts: Date.now() };
+        persistEntry(entry);
+        setComposeOpen(false);
+      }
+      // aborted: stay on compose, user can retry
+    } finally {
+      setLoading(false);
+      controllerRef.current = null;
     }
-    setLoading(false);
-    setComposeOpen(false);
   };
 
   const copyText = async (text, ts) => {
@@ -318,24 +328,34 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
             <Ic n="plus" s={14} c="var(--acc)" />{t(lang, "newMessage")}
           </button>
         ) : (
-          <button
-            onClick={generate}
-            disabled={loading}
-            style={{
-              flex: 1, padding: 13, borderRadius: 12,
-              border: `1px solid ${ch.border}`,
-              background: loading ? "var(--bg-o)" : ch.bg,
-              color: loading ? "var(--t3)" : ch.accent,
-              cursor: loading ? "not-allowed" : "pointer",
-              fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-              transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-            }}
-          >
-            {loading
-              ? <><div style={{ display: "flex", gap: 5 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--t3)", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}</div>{t(lang, "generating")}</>
-              : <><Ic n={ch.icon} s={16} c={ch.accent} />{t(lang, "generateReply")}</>
-            }
-          </button>
+          <>
+            <button
+              onClick={generate}
+              disabled={loading}
+              style={{
+                flex: 1, padding: 13, borderRadius: 12,
+                border: `1px solid ${ch.border}`,
+                background: loading ? "var(--bg-o)" : ch.bg,
+                color: loading ? "var(--t3)" : ch.accent,
+                cursor: loading ? "not-allowed" : "pointer",
+                fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+                transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              }}
+            >
+              {loading
+                ? <><div style={{ display: "flex", gap: 5 }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--t3)", animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}</div>{t(lang, "generating")}</>
+                : <><Ic n={ch.icon} s={16} c={ch.accent} />{t(lang, "generateReply")}</>
+              }
+            </button>
+            {loading && (
+              <button
+                onClick={cancel}
+                style={{ padding: "13px 16px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-o)", color: "var(--t3)", cursor: "pointer", fontSize: 13, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}
+              >
+                {t(lang, "cancel")}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

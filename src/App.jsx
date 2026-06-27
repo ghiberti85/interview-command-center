@@ -30,6 +30,7 @@ import ProcessDetail from "./components/layout/ProcessDetail.jsx";
 
 // Auth
 import LoginScreen from "./components/auth/LoginScreen.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 // Modals
 import SetPasswordModal from "./components/modals/SetPasswordModal.jsx";
@@ -306,11 +307,15 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
         {/* Main */}
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
           {dbLoading ? <Spinner lang={lang}/> : view==="dashboard" ? (
-            <Dashboard processes={processes} lang={lang}/>
+            <ErrorBoundary label="Dashboard failed to render">
+              <Dashboard processes={processes} lang={lang}/>
+            </ErrorBoundary>
           ) : (
             <div style={{ flex:1, overflowY:"auto" }}>
               {selected
-                ? <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={false} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} adaptation={adaptation} onSaveAdaptation={saveAdaptation} lang={lang}/>
+                ? <ErrorBoundary label="Process detail failed to render">
+                    <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={false} profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} adaptation={adaptation} onSaveAdaptation={saveAdaptation} lang={lang}/>
+                  </ErrorBoundary>
                 : <EmptyState/>
               }
             </div>
@@ -390,7 +395,11 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
           {dbLoading && <Spinner/>}
 
           {!dbLoading && view==="dashboard" && (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px" }}><MobileDashboard processes={processes} lang={lang}/></div>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:"60px" }}>
+              <ErrorBoundary label="Dashboard failed to render">
+                <MobileDashboard processes={processes} lang={lang}/>
+              </ErrorBoundary>
+            </div>
           )}
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="list" && (
@@ -449,7 +458,9 @@ const active = processes.filter(p=>!["rejected","archived"].includes(p.stage));
 
           {!dbLoading && view!=="dashboard" && mobileScreen==="detail" && selected && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", animation:"slideUp 0.22s ease" }}>
-              <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="72px" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation} lang={lang}/>
+              <ErrorBoundary label="Process detail failed to render">
+                <ProcessDetail process={processes.find(p=>p.id===selected.id)||selected} onUpdate={updateProcess} onDelete={deleteProcess} isMobile={true} navH="72px" profile={profile} onEditProfile={()=>setShowProfileModal(true)} resumes={resumes} onManageResumes={()=>setShowResumes(true)} initialTab={mobileDetailTab} adaptation={adaptation} onSaveAdaptation={saveAdaptation} lang={lang}/>
+              </ErrorBoundary>
             </div>
           )}
         </div>

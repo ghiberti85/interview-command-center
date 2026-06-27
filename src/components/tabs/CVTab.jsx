@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
@@ -28,6 +28,11 @@ export function CVTab({ process, profile, isMobile, resumes, onManageResumes, ad
   const [saved, setSaved] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState("profile");
 
+  const controllerRef = useRef(null);
+  const cancel = () => {
+    controllerRef.current?.abort();
+  };
+
   const hasProfile = profile.stack.length > 0 || profile.summary;
   const hasResumes = resumes && resumes.length > 0;
   const selectedResume = resumes?.find(r => r.id === selectedResumeId);
@@ -38,6 +43,7 @@ export function CVTab({ process, profile, isMobile, resumes, onManageResumes, ad
 
   const generateQuestions = async () => {
     if (!jd.trim()) return;
+    controllerRef.current = new AbortController();
     setStep("analyzing");
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
@@ -61,7 +67,7 @@ Retorne EXATAMENTE este JSON:
   ]
 }`;
 
-      const raw = await callAI([{ role: "user", content: prompt }], QA_SYSTEM, s?.access_token);
+      const raw = await callAI([{ role: "user", content: prompt }], QA_SYSTEM, s?.access_token, controllerRef.current.signal);
       const parsed = JSON.parse(raw.replace(/```json\n?|\n?```/g, "").trim());
       const qs = parsed.questions || [];
       setQuestions(qs);
@@ -69,13 +75,16 @@ Retorne EXATAMENTE este JSON:
       qs.forEach(q => { initialAnswers[q.id] = null; });
       setAnswers(initialAnswers);
       setStep("qa");
-    } catch {
+    } catch (e) {
       setStep("input");
-      alert("Erro ao analisar a vaga. Verifique a conexão e tente novamente.");
+      if (e.message !== "aborted") alert("Erro ao analisar a vaga. Verifique a conexão e tente novamente.");
+    } finally {
+      controllerRef.current = null;
     }
   };
 
   const generateCV = async () => {
+    controllerRef.current = new AbortController();
     setStep("generating");
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
@@ -102,13 +111,15 @@ RESUMO DO CANDIDATO: ${profile.summary || "(não informado)"}
 
 Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não use JSON.`;
 
-      const reply = await callAI([{ role: "user", content: prompt }], CV_SYSTEM, s?.access_token);
+      const reply = await callAI([{ role: "user", content: prompt }], CV_SYSTEM, s?.access_token, controllerRef.current.signal);
       setResult(reply);
       setSaved(false);
       setStep("result");
-    } catch {
+    } catch (e) {
       setStep("qa");
-      alert("Erro ao gerar o currículo. Tente novamente.");
+      if (e.message !== "aborted") alert("Erro ao gerar o currículo. Tente novamente.");
+    } finally {
+      controllerRef.current = null;
     }
   };
 
@@ -212,6 +223,12 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
       <div style={{ fontSize: 13, color: "var(--t3)" }}>
         {step === "analyzing" ? t(lang, "analyzingJob") : t(lang, "generatingCV")}
       </div>
+      <button
+        onClick={cancel}
+        style={{ marginTop: 4, padding: "7px 18px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-o)", color: "var(--t3)", cursor: "pointer", fontSize: 12, fontFamily: "'Outfit',sans-serif" }}
+      >
+        {t(lang, "cancel")}
+      </button>
     </div>
   );
 

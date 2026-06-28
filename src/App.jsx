@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { supabase } from "./supabase";
 
 // Constants & utils
@@ -34,11 +34,11 @@ import ProcessDetail from "./components/layout/ProcessDetail.jsx";
 import LoginScreen from "./components/auth/LoginScreen.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
-// Modals
-import SetPasswordModal from "./components/modals/SetPasswordModal.jsx";
-import ProfileSetupModal from "./components/modals/ProfileSetupModal.jsx";
-import ResumesModal from "./components/modals/ResumesModal.jsx";
-import NewEntryModal from "./components/modals/NewEntryModal.jsx";
+// Modals (lazy-loaded — only fetched when first opened)
+const SetPasswordModal  = lazy(() => import("./components/modals/SetPasswordModal.jsx"));
+const ProfileSetupModal = lazy(() => import("./components/modals/ProfileSetupModal.jsx"));
+const ResumesModal      = lazy(() => import("./components/modals/ResumesModal.jsx"));
+const NewEntryModal     = lazy(() => import("./components/modals/NewEntryModal.jsx"));
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner({ lang = "pt" }) {
@@ -46,6 +46,14 @@ function Spinner({ lang = "pt" }) {
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", flexDirection:"column", gap:16, padding:40 }}>
       <div style={{ width:36, height:36, borderRadius:"50%", border:"2px solid var(--border)", borderTopColor:"var(--acc)", animation:"spin 0.7s linear infinite" }}/>
       <div style={{ fontSize:13, color:"var(--t3)", fontFamily:"'JetBrains Mono',monospace" }}>{t(lang, "loading")}</div>
+    </div>
+  );
+}
+
+function ModalFallback() {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
+      <div style={{ width:32, height:32, borderRadius:"50%", border:"2px solid var(--border)", borderTopColor:"var(--acc)", animation:"spin 0.7s linear infinite" }}/>
     </div>
   );
 }
@@ -298,10 +306,12 @@ const debouncedSearch = useDebounce(search, 200);
           )}
         </div>
       </div>
-      {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
-      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo}/>}
-      {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+      <Suspense fallback={<ModalFallback/>}>
+        {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
+        {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
+        {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo}/>}
+        {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+      </Suspense>
     </>
   );
 
@@ -497,10 +507,12 @@ const debouncedSearch = useDebounce(search, 200);
           })}
         </div>
       </div>
-      {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
-      {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-      {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo}/>}
-{showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+      <Suspense fallback={<ModalFallback/>}>
+        {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
+        {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
+        {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo}/>}
+        {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+      </Suspense>
     </>
   );
 }

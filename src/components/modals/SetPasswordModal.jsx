@@ -3,6 +3,7 @@ import { supabase } from "../../supabase.js";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
+import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 
 export function SetPasswordModal({ onClose, onSuccess }) {
   const [password, setPassword] = useState("");
@@ -11,6 +12,7 @@ export function SetPasswordModal({ onClose, onSuccess }) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
   const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     dialogRef.current?.querySelector("input, button")?.focus();

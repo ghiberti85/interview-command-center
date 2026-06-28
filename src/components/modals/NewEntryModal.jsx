@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 import { STAGE } from "../../utils/constants.js";
@@ -71,6 +72,7 @@ export function NewEntryModal({ onClose, onProcessCreated, isMobile, initialMsg 
   const [form, setForm]       = useState(INITIAL_FORM);
   const [saving, setSaving]   = useState(false);
   const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     dialogRef.current?.querySelector("button, input, textarea")?.focus();

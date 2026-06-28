@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 import { T } from "../../constants/index.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
@@ -25,6 +26,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
   const [pdfError, setPdfError] = useState("");
   const pdfRef = useRef();
   const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     dialogRef.current?.querySelector("button, input, textarea")?.focus();

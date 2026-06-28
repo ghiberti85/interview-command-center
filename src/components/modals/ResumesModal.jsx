@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 import { T, iconBtn } from "../../constants/index.js";
 import { extractTextFromPdf } from "../../lib/ai.js";
 import Ic from "../ui/Ic.jsx";
@@ -24,6 +25,7 @@ export function ResumesModal({ onClose, isMobile, resumes, onAdd, onUpdate, onDe
   const [error, setError] = useState("");
   const fileRef = useRef();
   const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     dialogRef.current?.querySelector("button, input, textarea")?.focus();

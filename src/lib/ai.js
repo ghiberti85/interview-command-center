@@ -27,7 +27,11 @@ export async function callAI(messages, system, token, signal) {
 
   if (!res.ok) {
     const err = await res.json().catch(()=>({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    const msg = err.error || `HTTP ${res.status}`;
+    if (res.status === 429) throw new Error("rate_limited");
+    if (res.status === 401) throw new Error("unauthorized");
+    if (res.status >= 500) throw new Error("server_error");
+    throw new Error(msg);
   }
   const d = await res.json();
   return d.content?.find(b=>b.type==="text")?.text || "Erro.";

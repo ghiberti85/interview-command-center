@@ -4,14 +4,14 @@
 
 ## 1. Estado atual
 
-**187 testes passando. Zero falhas.**
+**204 testes passando. Zero falhas.**
 
 | Camada | Arquivos | Testes |
 |---|---|---|
-| Unit | 7 arquivos | ~155 |
+| Unit | 9 arquivos | ~172 |
 | Component | 7 arquivos | ~22 |
 | Integration | 1 arquivo | ~10 |
-| **Total** | **15 arquivos** | **187** |
+| **Total** | **17 arquivos** | **204** |
 
 **CI:** `npm run test:run` executa antes de `npm run build` em todo PR e push para `main`. Build só acontece se todos os testes passarem.
 
@@ -42,7 +42,9 @@ src/__tests__/
 │   ├── extractTextFromPdf.test.js # extractTextFromPdf — extração de texto de PDFs
 │   ├── filterProcesses.test.js    # filterProcesses — busca e filtro por stage
 │   ├── sort.test.js               # sortProcesses — urgência, empresa, stage, recente
-│   └── supabase.test.js           # rowToProcess, processToRow — mapeadores snake_case ↔ camelCase
+│   ├── supabase.test.js           # rowToProcess, processToRow — mapeadores snake_case ↔ camelCase
+│   ├── useDebounce.test.js        # useDebounce — delay, atualização, cleanup de timeout (6 testes)
+│   └── useProcesses.test.js       # useProcesses — CRUD demo/autenticado, Supabase mockado (12 testes)
 │
 ├── components/
 │   ├── CVTab.test.jsx             # CVTab — fluxo 4 etapas (input → analyzing → review → result)
@@ -92,31 +94,30 @@ npm run test:e2e:ui       # Playwright com UI interativa
 
 ```
          /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
-        /    E2E  (0)      \    ← planejado, ainda não implementado
+        /  E2E Playwright  \   ← 5 spec files (login, demo, crud, mobile, theme)
        /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
       /  Integration (~10)   \  RTL + MSW — Supabase mockado
      /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
     /      Unit + Component    \  Vitest puro — funções e componentes isolados
-   /       (~243 testes)        \
+   /          (194 testes)      \
   /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
 ```
 
 ---
 
-## 7. Testes E2E planejados (Playwright)
+## 7. Testes E2E — Playwright (implementados)
 
-Quando implementados, cobrirão:
+Arquivos em `e2e/`. Usar `npm run test:e2e` com servidor rodando (`npm run preview`).
 
-| Fluxo | Prioridade |
+| Spec | Fluxos cobertos |
 |---|---|
-| Login email+senha → ver lista de processos | Alta |
-| Modo demonstração → navegar entre processos | Alta |
-| Criar processo via RecruiterMessageModal | Alta |
-| Swipe to archive no mobile (viewport 390px) | Média |
-| Encerrar e excluir processo no desktop | Média |
-| Upload de PDF no perfil | Média |
-| Dark/light mode — persistência no reload | Baixa |
-| Auth — magic link (requer email real) | Baixa |
+| `login.spec.ts` | Tela login, email+senha, erro de credenciais, magic link, esqueci senha |
+| `demo.spec.ts` | Banner demo, processos fake visíveis, sair do demo retorna ao login |
+| `crud.spec.ts` | Criar processo, editar stage via PipelineBar, marcar como favorito |
+| `mobile.spec.ts` | Viewport mobile, bottom nav, long-press para seleção |
+| `theme.spec.ts` | Toggle dark/light, persistência no reload |
+
+Config em `playwright.config.ts`: base URL `http://localhost:4173`, Chromium + iPhone 12, `webServer` com `npm run preview`.
 
 ---
 
@@ -166,6 +167,7 @@ Todo push para `main` e todo PR disparam esse pipeline. O deploy na Vercel só a
 
 | Data | Testes | Falhas | Observação |
 |---|---|---|---|
+| 2026-06-28 | 204 | 0 | Boas práticas 2026: useDebounce (6), useProcesses (12); hooks useFocusTrap, useMemo, lazy() modals; translateAIError; CVTab inline errors; jobUrl sanitize; Playwright E2E scaffold (5 specs) |
 | 2026-06-07 | 187 | 0 | Remoção de código morto: ImportModal, ImportChatGPTModal, NewProcessModal, RecruiterMessageModal, importHelpers, isUrgent; VagaTab accordion; InlineTags compact |
 | 2026-05-30 | 253 | 0 | Correção: constants.test (ACTIVE_STAGES 4 itens), ProfileSetupModal (mock extractTextFromPdf, label aba "CV") |
 | Sessão anterior | 252 | 8 | ACTIVE_STAGES esperava 5 itens; ProfileSetupModal mockava pdfjs diretamente (não funcionava com lazy import) |

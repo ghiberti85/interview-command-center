@@ -3,7 +3,7 @@ import { STAGE } from "../../utils/constants.js";
 import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
-import { t } from "../../utils/i18n.js";
+import { t, translateAIError } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
@@ -27,6 +27,7 @@ export function CVTab({ process, profile, isMobile, resumes, onManageResumes, ad
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState("profile");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const controllerRef = useRef(null);
   const cancel = () => {
@@ -43,6 +44,7 @@ export function CVTab({ process, profile, isMobile, resumes, onManageResumes, ad
 
   const generateQuestions = async () => {
     if (!jd.trim()) return;
+    setErrorMsg("");
     controllerRef.current = new AbortController();
     setStep("analyzing");
     try {
@@ -77,13 +79,14 @@ Retorne EXATAMENTE este JSON:
       setStep("qa");
     } catch (e) {
       setStep("input");
-      if (e.message !== "aborted") alert("Erro ao analisar a vaga. Verifique a conexão e tente novamente.");
+      if (e.message !== "aborted") setErrorMsg(translateAIError(e, lang));
     } finally {
       controllerRef.current = null;
     }
   };
 
   const generateCV = async () => {
+    setErrorMsg("");
     controllerRef.current = new AbortController();
     setStep("generating");
     try {
@@ -117,7 +120,7 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
       setStep("result");
     } catch (e) {
       setStep("qa");
-      if (e.message !== "aborted") alert("Erro ao gerar o currículo. Tente novamente.");
+      if (e.message !== "aborted") setErrorMsg(translateAIError(e, lang));
     } finally {
       controllerRef.current = null;
     }
@@ -211,7 +214,8 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           </div>
         )}
       </div>
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)" }}>
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+        {errorMsg && <div data-testid="cv-error" style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(255,106,106,0.08)", border: "1px solid rgba(255,106,106,0.2)", fontSize: 12, color: "var(--red)", fontFamily: "'Outfit',sans-serif" }}>{errorMsg}</div>}
         <Btn data-testid="btn-analyze" onClick={generateQuestions} full disabled={!jd.trim()}>{t(lang, "analyzeJd")}</Btn>
       </div>
     </div>
@@ -270,11 +274,14 @@ Retorne o currículo adaptado em texto puro, mantendo a estrutura original. Não
           {t(lang, "answeredCount")(questions.filter(q => answers[q.id] !== null).length, questions.length)}
         </div>
       </div>
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px", display: "flex", gap: 8 }}>
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderTop: "1px solid var(--border)", paddingBottom: isMobile ? "calc(14px + var(--sab))" : "14px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {errorMsg && <div data-testid="cv-error" style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(255,106,106,0.08)", border: "1px solid rgba(255,106,106,0.2)", fontSize: 12, color: "var(--red)", fontFamily: "'Outfit',sans-serif" }}>{errorMsg}</div>}
+        <div style={{ display: "flex", gap: 8 }}>
         <Btn data-testid="btn-back-to-input" variant="ghost" onClick={() => setStep("input")} size="sm"><Ic n="back" s={13} c="var(--t2)" /></Btn>
         <Btn data-testid="btn-generate" onClick={generateCV} full disabled={!allAnswered}>
           {allAnswered ? t(lang, "generateAdaptedCV") : t(lang, "answerAllFirst")(questions.filter(q => answers[q.id] !== null).length, questions.length)}
         </Btn>
+        </div>
       </div>
     </div>
   );

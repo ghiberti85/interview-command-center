@@ -60,7 +60,7 @@ Estado atual, próximas fases e visão de longo prazo do projeto.
 | **Hamburger menu (mobile)** — header limpo com alerta urgência + bottom sheet de ações | ✅ |
 | **Mobile Pipeline compacto** — busca + sort inline, chips menores, mais espaço para cards | ✅ |
 | **Desktop hover actions** — arquivar/deletar aparecem ao hover no card sem precisar clicar+segurar | ✅ |
-| Suite de testes — 187 testes (unit + component + integration), CI bloqueia build em falha | ✅ |
+| Suite de testes — 204 testes (unit + component + integration), CI bloqueia build em falha | ✅ |
 | `.env.example` com todas as variáveis documentadas | ✅ |
 
 ### Infraestrutura
@@ -233,7 +233,7 @@ Objetivo: transformar o app em algo que vale compartilhar e, potencialmente, em 
 | Configurar `ALLOWED_ORIGIN` na Edge Function | 🔴 Alta | v1.5 |
 | Aumentar senha mínima para 12 chars (Supabase dashboard) | 🔴 Alta | v1.5 |
 | Migrar para TypeScript (`.tsx`) com `strict: true` | 🟡 Média | v1.5 |
-| Completar suite de testes E2E com Playwright | 🟡 Média | v1.5 |
+| ~~Completar suite de testes E2E com Playwright~~ | ✅ Concluído | v1.5 |
 | Integrar Sentry para monitoramento de erros em produção | 🟡 Média | v1.5 |
 | Rate limiting persistente na Edge Function (Supabase KV) | 🟡 Média | v1.5 |
 | Lazy import de JSZip (reduzir bundle inicial) | 🟢 Baixa | v1.5 |

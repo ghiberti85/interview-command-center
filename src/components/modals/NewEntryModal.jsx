@@ -8,6 +8,8 @@ import { t, stageLabel } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
+const sanitizeUrl = (url) => (url && /^https?:\/\//i.test(url.trim()) ? url.trim() : "");
+
 // ── AI prompts ────────────────────────────────────────────────────────────────
 
 const EXTRACTION_SYSTEM = `Você é um assistente especializado em analisar mensagens de recrutadores de tecnologia.
@@ -174,6 +176,7 @@ Mensagem do recrutador:
       origin: "outbound",
       channel: "",
       contactedDate: today,
+      jobUrl: sanitizeUrl(form.jobUrl),
       tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
       steps: [{ date:today, type:form.stage, note:t(lang, "applicationSent") }],
       aiContext: "",

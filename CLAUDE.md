@@ -115,12 +115,10 @@ src/
 │   ├── auth/
 │   │   └── LoginScreen.jsx    # Login (senha / magic link / forgot password + demo)
 │   └── modals/
-│       ├── NewProcessModal.jsx
+│       ├── NewEntryModal.jsx      # Inbound (colar msg + IA) ou Outbound (form manual)
 │       ├── SetPasswordModal.jsx
 │       ├── ProfileSetupModal.jsx  # upload de PDF na aba "CV Completo" (pdfjs lazy)
-│       ├── ResumesModal.jsx
-│       ├── ImportModal.jsx        # importação genérica: JSON/CSV/PDF/ZIP/texto colado
-│       └── RecruiterMessageModal.jsx  # colar msg LinkedIn → IA extrai campos → cria processo + draft
+│       └── ResumesModal.jsx
 │
 ├── hooks/
 │   ├── useAuth.js             # Sessão Supabase + detecção PASSWORD_RECOVERY
@@ -128,7 +126,10 @@ src/
 │   ├── useTheme.js            # Dark/light com persistência localStorage
 │   ├── useUserProfile.js      # Perfil (stack, resumo, CV base) em localStorage
 │   ├── useResumes.js          # CRUD de currículos na tabela `resumes` do Supabase
-│   └── useCVAdaptations.js    # CRUD de adaptações de CV na tabela `cv_adaptations`
+│   ├── useCVAdaptations.js    # CRUD de adaptações de CV na tabela `cv_adaptations`
+│   ├── useProcesses.js        # Camada de dados: CRUD de processos + Supabase sync
+│   ├── useDebounce.js         # Debounce genérico (200ms padrão) para inputs de busca
+│   └── useFocusTrap.js        # WCAG 2.1 AA: cicla Tab/Shift+Tab dentro de modais
 │
 ├── constants/
 │   └── index.js               # DARK_VARS, LIGHT_VARS, GLOBAL_CSS, DEMO_PROCESSES, T, iconBtn
@@ -138,10 +139,11 @@ src/
 │   ├── sort.js                # sortProcesses (urgencia/empresa/stage/recente)
 │   ├── filterProcesses.js     # filterProcesses (busca + filtro de stage)
 │   ├── dateUtils.js           # fmtDate, daysDiff
-│   └── buildPrompt.js         # buildCVPrompt para o CVTab
+│   ├── buildPrompt.js         # buildCVPrompt para o CVTab
+│   └── i18n.js                # t(lang, key) + translateAIError(error, lang) — PT/EN
 │
 └── lib/
-    └── ai.js                  # callAI — helper de chamada ao proxy Anthropic
+    └── ai.js                  # callAI — erros tipados: "rate_limited"/"unauthorized"/"server_error"
 
 public/
 ├── favicon.svg    # Ícone de pipeline roxo (Signal DS accent)
@@ -650,6 +652,14 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | `VagaTab` com auto-stage via meeting type | Selecionar o tipo da próxima etapa já atualiza o stage — zero esforço para manter o pipeline sincronizado |
 | Cards sem preview de nota | Menos ruído visual — a nota fica na aba Vaga, não no card da lista |
 | `buildDILUrl` movido para `VagaTab` | Segue o componente que exibe dados da vaga — mais coeso que ficar no OverviewTab removido |
+| `useProcesses` hook — camada de dados | Separa CRUD/Supabase de App.jsx; App mantém wrappers com navegação; hook é puro + testável |
+| `useDebounce(200ms)` no campo de busca | Evita re-render a cada tecla; 200ms é imperceptível para o usuário e reduz chamadas ao filtro |
+| `useFocusTrap` em todos os modais | WCAG 2.1 AA — Tab/Shift+Tab cicla dentro do modal; sem biblioteca externa; apenas 20 linhas |
+| Modais com `React.lazy + Suspense` | Code splitting: bundle principal caiu de 555KB → 519KB; modais carregados só quando abertos |
+| `translateAIError(error, lang)` centralizado | Erros tipados (`rate_limited`, `unauthorized`, `server_error`) mapeados para string localizada — sem hardcode espalhado |
+| `sanitizeUrl` inline em VagaTab e NewEntryModal | Descarta URLs inválidas (sem `https?://`) na origem; sem biblioteca extra; sem dependência compartilhada |
+| `ProcessCard` com `React.memo` | Evita re-render de todos os cards quando o estado global muda; sem quebrar funcionalidade |
+| `vercel.json` com `immutable` para assets | Hashed assets (`.js/.css`) servidos com `max-age=31536000, immutable`; HTML/routes com `no-cache` |
 
 ---
 

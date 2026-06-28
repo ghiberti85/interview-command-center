@@ -199,6 +199,11 @@ export const I18N = {
     noDate:           "No date",
     // Confirm dialog
     confirmDelete:    "Delete this process? This action cannot be undone.",
+    // AI errors
+    aiErrRateLimit:   "Rate limit reached. Wait a minute and try again.",
+    aiErrUnauthorized:"Session expired. Reload the page to continue.",
+    aiErrServer:      "AI service temporarily unavailable. Try again shortly.",
+    aiErrGeneric:     "Error generating. Try again.",
   },
 
   pt: {
@@ -397,6 +402,11 @@ export const I18N = {
     noDate:           "Sem data",
     // Confirm dialog
     confirmDelete:    "Deletar este processo? Esta ação não pode ser desfeita.",
+    // AI errors
+    aiErrRateLimit:   "Limite de requisições atingido. Aguarde 1 minuto e tente novamente.",
+    aiErrUnauthorized:"Sessão expirada. Recarregue a página para continuar.",
+    aiErrServer:      "Serviço de IA temporariamente indisponível. Tente novamente em instantes.",
+    aiErrGeneric:     "Erro ao gerar. Tente novamente.",
   },
 };
 
@@ -405,6 +415,14 @@ export const t = (lang, key) => {
   const v = I18N[lang]?.[key];
   if (v !== undefined) return v;
   return I18N.en[key] ?? key;
+};
+
+// AI error code → localized user-facing message
+export const translateAIError = (error, lang) => {
+  if (error?.message === "rate_limited")  return t(lang, "aiErrRateLimit");
+  if (error?.message === "unauthorized")  return t(lang, "aiErrUnauthorized");
+  if (error?.message === "server_error")  return t(lang, "aiErrServer");
+  return t(lang, "aiErrGeneric");
 };
 
 // Stage key → localized label

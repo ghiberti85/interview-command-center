@@ -4,7 +4,7 @@ import { T } from "../../constants/index.js";
 import { callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 import { buildPrompt } from "../../utils/buildPrompt.js";
-import { t, scenarioLabel } from "../../utils/i18n.js";
+import { t, scenarioLabel, translateAIError } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 
@@ -84,7 +84,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
       setComposeOpen(false);
     } catch (e) {
       if (e.message !== "aborted") {
-        const entry = { body: "Erro ao gerar. Tente novamente.", channel, scenario: "Erro", recruiterMsg: recruiterMsg || null, ts: Date.now() };
+        const entry = { body: translateAIError(e, lang), channel, scenario: "Erro", recruiterMsg: recruiterMsg || null, ts: Date.now() };
         persistEntry(entry);
         setComposeOpen(false);
       }

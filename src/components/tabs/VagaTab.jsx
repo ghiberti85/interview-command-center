@@ -14,6 +14,8 @@ const MEETING_TYPES = [
   { id: "outro",      stage: null         },
 ];
 
+const sanitizeUrl = (url) => (url && /^https?:\/\//i.test(url.trim()) ? url.trim() : "");
+
 function buildDILUrl(process) {
   const base = "https://devinterviewlab.vercel.app/roadmap";
   const params = new URLSearchParams();
@@ -122,7 +124,8 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile, lang = "pt" }) 
   const saveField = (field, value) => {
     setEditingField(null);
     setDrafts(prev => { const n = {...prev}; delete n[field]; return n; });
-    onUpdate({ ...process, [field]: value });
+    const safe = field === "jobUrl" ? sanitizeUrl(value) : value;
+    onUpdate({ ...process, [field]: safe });
   };
 
   const handleMeetingType = (typeId) => {
@@ -256,6 +259,11 @@ export function VagaTab({ process, onUpdate, onDelete, isMobile, lang = "pt" }) 
               <EditableText field="recruiterEmail" value={process.recruiterEmail} label={t(lang, "emailLabel")}     placeholder="email@company.com" />
             </div>
             <EditableText field="jobUrl" value={process.jobUrl} label={t(lang, "jobLinkLabel")} placeholder="https://..." />
+            {drafts.jobUrl !== undefined && drafts.jobUrl && !/^https?:\/\//i.test(drafts.jobUrl) && (
+              <div style={{ fontSize:11, color:"var(--amb)", fontFamily:"'Outfit',sans-serif" }}>
+                {lang === "en" ? "URL must start with https:// — will be discarded if invalid." : "URL deve começar com https:// — será descartada se inválida."}
+              </div>
+            )}
             {process.jobUrl && /^https?:\/\//i.test(process.jobUrl) && (
               <a href={process.jobUrl} target="_blank" rel="noreferrer noopener"
                 style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:12, color:"var(--acc-text)", textDecoration:"none" }}>

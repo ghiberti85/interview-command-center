@@ -167,6 +167,7 @@ Todo push para `main` e todo PR disparam esse pipeline. O deploy na Vercel só a
 
 | Data | Testes | Falhas | Observação |
 |---|---|---|---|
+| 2026-06-28 | 204 | 0 | i18n ResumesModal + ProfileSetupModal; ARIA aria-labels (close/back/edit/delete/compose); ErrorBoundary root; ProfileSetupModal.test atualizado para string i18n |
 | 2026-06-28 | 204 | 0 | Boas práticas 2026: useDebounce (6), useProcesses (12); hooks useFocusTrap, useMemo, lazy() modals; translateAIError; CVTab inline errors; jobUrl sanitize; Playwright E2E scaffold (5 specs) |
 | 2026-06-07 | 187 | 0 | Remoção de código morto: ImportModal, ImportChatGPTModal, NewProcessModal, RecruiterMessageModal, importHelpers, isUrgent; VagaTab accordion; InlineTags compact |
 | 2026-05-30 | 253 | 0 | Correção: constants.test (ACTIVE_STAGES 4 itens), ProfileSetupModal (mock extractTextFromPdf, label aba "CV") |

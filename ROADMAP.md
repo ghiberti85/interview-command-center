@@ -276,3 +276,6 @@ Em produção   Componentizado      IA Avançada         Plataforma
 | **InlineTags compact** — input "+ tag" compacto e centralizado, sem corte no mobile | ✅ |
 | **Desktop hover actions** — botão arquivar/deletar aparece no hover do card, sem sobreposição no Badge | ✅ |
 | **Remoção de código morto** — NewProcessModal, ImportModal, ImportChatGPTModal, RecruiterMessageModal, importHelpers, isUrgent (-1847 linhas) | ✅ |
+| **i18n ResumesModal + ProfileSetupModal** — `lang` prop, todas strings via `t(lang, key)`, aria-labels em botões de ícone, erros de PDF via i18n (sem `e.message` exposto) | ✅ |
+| **ARIA melhorias** — aria-label em fechar composição (ConversaTab), fechar/voltar/editar/excluir (ResumesModal), fechar (ProfileSetupModal) | ✅ |
+| **ErrorBoundary root** — `main.jsx` envolve `<App>` em `<ErrorBoundary>` (complementa boundaries por seção já existentes) | ✅ |

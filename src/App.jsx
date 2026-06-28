@@ -309,8 +309,8 @@ const debouncedSearch = useDebounce(search, 200);
       <Suspense fallback={<ModalFallback/>}>
         {showNewEntry && <NewEntryModal isMobile={false} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); }}/>}
         {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-        {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo}/>}
-        {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+        {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={false} initial={profile} isDemo={isDemo} lang={lang}/>}
+        {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={false} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading} lang={lang}/>}
       </Suspense>
     </>
   );
@@ -510,8 +510,8 @@ const debouncedSearch = useDebounce(search, 200);
       <Suspense fallback={<ModalFallback/>}>
         {showNewEntry && <NewEntryModal isMobile={true} initialMsg={newEntryInitialMsg} lang={lang} onClose={()=>{ setShowNewEntry(false); setNewEntryInitialMsg(""); }} onProcessCreated={(p)=>{ addProcess(p); setShowNewEntry(false); setNewEntryInitialMsg(""); setSelected(p); setMobileScreen("detail"); }}/>}
         {showSetPassword && <SetPasswordModal onClose={()=>setShowSetPassword(false)} onSuccess={clearRecovery}/>}
-        {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo}/>}
-        {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading}/>}
+        {showProfileModal && <ProfileSetupModal onClose={()=>setShowProfileModal(false)} onSave={saveProfile} isMobile={true} initial={profile} isDemo={isDemo} lang={lang}/>}
+        {showResumes && <ResumesModal onClose={()=>setShowResumes(false)} isMobile={true} resumes={resumes} onAdd={addResume} onUpdate={updateResume} onDelete={removeResume} loading={resumesLoading} lang={lang}/>}
       </Suspense>
     </>
   );

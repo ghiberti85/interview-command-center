@@ -144,7 +144,7 @@ describe("ProfileSetupModal — upload de PDF no cvText", () => {
     fireEvent.change(input);
 
     await waitFor(() => {
-      expect(screen.getByText("PDF corrompido")).toBeInTheDocument();
+      expect(screen.getByText("Não foi possível extrair o texto. Tente colar o conteúdo manualmente.")).toBeInTheDocument();
     });
   });
 

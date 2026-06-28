@@ -1,21 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap.js";
 import { T } from "../../constants/index.js";
+import { t } from "../../utils/i18n.js";
 import Ic from "../ui/Ic.jsx";
 import Btn from "../ui/Btn.jsx";
 import { extractTextFromPdf, callAI } from "../../lib/ai.js";
 import { supabase } from "../../supabase.js";
 
-function AiExtractingBanner() {
+function AiExtractingBanner({ lang }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", borderRadius:8, background:"var(--acc-d)", border:"1px solid var(--acc-b)" }}>
       <div style={{ width:14, height:14, borderRadius:"50%", border:"2px solid var(--acc-b)", borderTopColor:"var(--acc)", animation:"spin 0.7s linear infinite", flexShrink:0 }}/>
-      <span style={{ fontSize:12, color:"var(--acc-text)", fontFamily:"'Outfit',sans-serif" }}>IA extraindo informações do CV...</span>
+      <span style={{ fontSize:12, color:"var(--acc-text)", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "aiExtractingBanner")}</span>
     </div>
   );
 }
 
-export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }) {
+export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo, lang = "pt" }) {
   const [stack, setStack] = useState((initial?.stack||[]).join(", "));
   const [summary, setSummary] = useState(initial?.summary||"");
   const [cvText, setCvText] = useState(initial?.cvText||"");
@@ -44,11 +45,11 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
     setPdfError("");
     try {
       const text = await extractTextFromPdf(file);
-      if (!text) throw new Error("Nenhum texto encontrado no PDF.");
+      if (!text) { setPdfError(t(lang, "noPdfText")); return; }
       setCvText(text);
       extractProfileFromCV(text);
-    } catch (e) {
-      setPdfError(e.message);
+    } catch {
+      setPdfError(t(lang, "resumeExtractError"));
     } finally {
       setPdfLoading(false);
     }
@@ -59,7 +60,7 @@ export function ProfileSetupModal({ onClose, onSave, isMobile, initial, isDemo }
     setAiExtractMsg(null);
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
-      if (!s?.access_token) throw new Error("Sessão não encontrada. Faça login para usar a extração por IA.");
+      if (!s?.access_token) throw new Error(t(lang, "sessionNotFoundError"));
       const system = "Você é um assistente que analisa currículos. Responda SOMENTE com JSON válido, sem markdown, sem texto extra.";
       const prompt = `Analise o currículo abaixo e retorne um JSON com exatamente dois campos:
 - "summary": resumo profissional em português (2-3 frases, primeira pessoa, baseado no perfil real do CV)
@@ -71,14 +72,13 @@ ${text.slice(0, 6000)}`;
       const cleaned = raw.replace(/```json\n?|```/g, "").trim();
       let parsed;
       try { parsed = JSON.parse(cleaned); } catch { const m = cleaned.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
-      if (!parsed) throw new Error("Resposta da IA não reconhecida.");
+      if (!parsed) throw new Error(t(lang, "aiExtractFailed"));
       if (parsed?.summary) setSummary(parsed.summary);
       if (parsed?.stack) setStack(parsed.stack);
-      setAiExtractMsg({ ok: true, text: "Resumo e Stack extraídos com sucesso! Confira as abas." });
-      // Navigate to Stack tab so user sees the populated value
+      setAiExtractMsg({ ok: true, text: t(lang, "aiExtractSuccess") });
       setTimeout(() => setTab("stack"), 800);
     } catch (e) {
-      setAiExtractMsg({ ok: false, text: e.message || "Erro ao extrair dados do CV. Preencha manualmente." });
+      setAiExtractMsg({ ok: false, text: e.message || t(lang, "aiExtractFailed") });
     } finally {
       setAiExtracting(false);
     }
@@ -91,15 +91,15 @@ ${text.slice(0, 6000)}`;
   };
 
   const changePassword = async () => {
-    if (newPassword.length < 6) { setPwdMsg({ ok:false, text:"A senha precisa ter ao menos 6 caracteres." }); return; }
-    if (newPassword !== confirmPassword) { setPwdMsg({ ok:false, text:"As senhas não conferem." }); return; }
+    if (newPassword.length < 6) { setPwdMsg({ ok:false, text:t(lang, "passwordMinLength") }); return; }
+    if (newPassword !== confirmPassword) { setPwdMsg({ ok:false, text:t(lang, "passwordMismatch") }); return; }
     setPwdLoading(true);
     setPwdMsg(null);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
-      setPwdMsg({ ok:false, text:"Erro ao atualizar senha. Tente novamente." });
+      setPwdMsg({ ok:false, text:t(lang, "passwordUpdateError") });
     } else {
-      setPwdMsg({ ok:true, text:"Senha atualizada com sucesso!" });
+      setPwdMsg({ ok:true, text:t(lang, "passwordUpdateSuccess") });
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -107,10 +107,10 @@ ${text.slice(0, 6000)}`;
   };
 
   const TABS = [
-    ["cvText","CV"],
-    ["summary","Resumo"],
-    ["stack","Stack"],
-    ...(!isDemo ? [["senha","Senha"]] : []),
+    ["cvText", t(lang, "tabCv")],
+    ["summary", t(lang, "tabSummary")],
+    ["stack", t(lang, "tabStack")],
+    ...(!isDemo ? [["senha", t(lang, "tabPassword")]] : []),
   ];
 
   return (
@@ -119,10 +119,10 @@ ${text.slice(0, 6000)}`;
         {isMobile && <div style={{ width:36, height:4, background:"var(--border-md)", borderRadius:2, margin:"0 auto -4px" }}/>}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
-            <h3 id="profile-title" style={{ margin:0, fontSize:17, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>Perfil & preferências</h3>
-            <div style={{ fontSize:12, color:"var(--t3)", marginTop:3 }}>Usado para adaptar o currículo com precisão</div>
+            <h3 id="profile-title" style={{ margin:0, fontSize:17, fontWeight:700, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>{t(lang, "profilePrefs")}</h3>
+            <div style={{ fontSize:12, color:"var(--t3)", marginTop:3 }}>{t(lang, "profilePrefsSub")}</div>
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}><Ic n="close" s={16} c="var(--t3)"/></button>
+          <button aria-label={t(lang, "close")} onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}><Ic n="close" s={16} c="var(--t3)"/></button>
         </div>
 
         <div style={{ display:"flex", gap:4, background:"var(--bg-o)", borderRadius:10, padding:4 }}>
@@ -133,17 +133,17 @@ ${text.slice(0, 6000)}`;
 
         {tab==="stack" && (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {aiExtracting && <AiExtractingBanner />}
-            <label style={{ ...T.label }}>Tecnologias e ferramentas (separadas por vírgula ou enter)</label>
+            {aiExtracting && <AiExtractingBanner lang={lang} />}
+            <label style={{ ...T.label }}>{t(lang, "stackLabel")}</label>
             <textarea value={stack} onChange={e=>setStack(e.target.value)} rows={6} placeholder={"React, Next.js, TypeScript, Node.js, Supabase, PostgreSQL,\nREST API, GraphQL, Jest, Cypress, Docker,\nFigma, Storybook, Tailwind CSS, CSS Modules..."} style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
-            <div style={{ fontSize:11, color:"var(--t3)" }}>A IA só mencionará tecnologias desta lista ao adaptar o currículo.</div>
+            <div style={{ fontSize:11, color:"var(--t3)" }}>{t(lang, "stackHint")}</div>
           </div>
         )}
 
         {tab==="summary" && (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {aiExtracting && <AiExtractingBanner />}
-            <label style={{ ...T.label }}>Resumo profissional (texto base para reescritas)</label>
+            {aiExtracting && <AiExtractingBanner lang={lang} />}
+            <label style={{ ...T.label }}>{t(lang, "summaryLabel")}</label>
             <textarea value={summary} onChange={e=>setSummary(e.target.value)} rows={6} placeholder="Senior Full-Stack Engineer com 10+ anos de experiência em desenvolvimento React/Next.js e Node.js. Front-End Tech Lead com histórico de liderança de times, design systems e performance em escala..." style={{ ...T.input, resize:"vertical", lineHeight:1.7, fontSize:13 }}/>
           </div>
         )}
@@ -166,16 +166,16 @@ ${text.slice(0, 6000)}`;
               </div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", fontFamily:"'Outfit',sans-serif" }}>
-                  {pdfLoading ? "Extraindo texto do PDF..." : "Importar CV em PDF"}
+                  {pdfLoading ? t(lang, "importCvPdfLoading") : t(lang, "importCvPdf")}
                 </div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>Arraste ou clique · O texto será extraído e preenchido abaixo</div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>{t(lang, "importCvPdfHint")}</div>
               </div>
               <input ref={pdfRef} type="file" accept=".pdf" style={{ display:"none" }} onChange={e=>handlePdf(e.target.files[0])}/>
             </div>
             {pdfError && (
               <div style={{ padding:"8px 12px", borderRadius:8, background:"var(--red-d)", border:"1px solid var(--red-b)", fontSize:12, color:"var(--red)" }}>{pdfError}</div>
             )}
-            {aiExtracting && <AiExtractingBanner />}
+            {aiExtracting && <AiExtractingBanner lang={lang} />}
             {aiExtractMsg && (
               <div style={{ padding:"8px 12px", borderRadius:8, fontSize:12,
                 background: aiExtractMsg.ok ? "rgba(34,198,122,0.08)" : "rgba(255,106,106,0.08)",
@@ -184,8 +184,8 @@ ${text.slice(0, 6000)}`;
                 {aiExtractMsg.text}
               </div>
             )}
-            <label style={{ ...T.label }}>CV completo (ou cole manualmente)</label>
-            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={10} placeholder="Cole aqui o texto do seu currículo atual, ou importe um PDF acima. Quanto mais contexto, melhor a adaptação." style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
+            <label style={{ ...T.label }}>{t(lang, "cvTextLabel")}</label>
+            <textarea value={cvText} onChange={e=>setCvText(e.target.value)} rows={10} placeholder={t(lang, "cvTextPlaceholder")} style={{ ...T.input, resize:"vertical", lineHeight:1.6, fontSize:12 }}/>
             {cvText.trim().length > 100 && !aiExtracting && (
               <button
                 onClick={() => extractProfileFromCV(cvText)}
@@ -193,7 +193,7 @@ ${text.slice(0, 6000)}`;
                 onMouseEnter={e=>e.currentTarget.style.opacity="0.8"}
                 onMouseLeave={e=>e.currentTarget.style.opacity="1"}
               >
-                <Ic n="ai" s={13} c="var(--acc)"/>Extrair Stack e Resumo com IA
+                <Ic n="ai" s={13} c="var(--acc)"/>{t(lang, "extractStackBtn")}
               </button>
             )}
           </div>
@@ -201,24 +201,24 @@ ${text.slice(0, 6000)}`;
 
         {tab==="senha" && (
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>Defina ou altere a senha da sua conta.</div>
+            <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.6 }}>{t(lang, "passwordChangeSub")}</div>
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <label style={{ ...T.label }}>Nova senha</label>
+              <label style={{ ...T.label }}>{t(lang, "newPasswordLabel")}</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={e=>{ setNewPassword(e.target.value); setPwdMsg(null); }}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={t(lang, "newPasswordPlaceholder")}
                 style={{ ...T.input }}
               />
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <label style={{ ...T.label }}>Confirmar nova senha</label>
+              <label style={{ ...T.label }}>{t(lang, "confirmPasswordLabel")}</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={e=>{ setConfirmPassword(e.target.value); setPwdMsg(null); }}
-                placeholder="Repita a nova senha"
+                placeholder={t(lang, "confirmPasswordPlaceholder")}
                 style={{ ...T.input }}
               />
             </div>
@@ -231,19 +231,19 @@ ${text.slice(0, 6000)}`;
               </div>
             )}
             <Btn onClick={changePassword} disabled={pwdLoading || !newPassword} full>
-              {pwdLoading ? "Salvando..." : "Atualizar senha"}
+              {pwdLoading ? t(lang, "saving") : t(lang, "updatePassword")}
             </Btn>
           </div>
         )}
 
         {tab !== "senha" && (
           <div style={{ display:"flex", gap:8, paddingTop:4 }}>
-            <Btn onClick={save} full>Salvar perfil</Btn>
-            <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+            <Btn onClick={save} full>{t(lang, "saveProfile")}</Btn>
+            <Btn variant="ghost" onClick={onClose}>{t(lang, "cancel")}</Btn>
           </div>
         )}
         {tab === "senha" && (
-          <Btn variant="ghost" onClick={onClose} full>Fechar</Btn>
+          <Btn variant="ghost" onClick={onClose} full>{t(lang, "close")}</Btn>
         )}
       </div>
     </div>

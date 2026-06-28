@@ -163,7 +163,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
             {copied ? t(lang, "copied") : t(lang, "copy")}
           </button>
           {onUpdate && (
-            <button onClick={() => deleteEntry(entry.ts)} style={{ fontSize: 11, color: "var(--t4)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
+            <button aria-label={lang === "en" ? "Delete message" : "Excluir mensagem"} onClick={() => deleteEntry(entry.ts)} style={{ fontSize: 11, color: "var(--t4)", background: "none", border: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 3 }}>
               <Ic n="trash" s={11} c="var(--t4)" />
             </button>
           )}
@@ -308,7 +308,7 @@ export function ConversaTab({ process, isMobile, profile, adaptation, onUpdate, 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t2)", fontFamily: "'Outfit',sans-serif" }}>{t(lang, "newMessage")}</div>
               {thread.length > 0 && (
-                <button onClick={() => setComposeOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                <button aria-label={lang === "en" ? "Close compose" : "Fechar composição"} onClick={() => setComposeOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                   <Ic n="close" s={14} c="var(--t3)" />
                 </button>
               )}

@@ -76,7 +76,7 @@ Ao remover uma feature, **obrigatoriamente** remova também:
 Aplicação React de gestão de processos seletivos para profissionais de tecnologia. O usuário central é **Fernando**, Senior Full-Stack Engineer / Front-End Tech Lead, frequentemente contactado por recrutadores (inbound) e que precisa gerenciar múltiplos processos simultaneamente.
 
 **Stack completa:**
-- **Frontend:** React 19 + Vite 6, deploy na Vercel
+- **Frontend:** React 19 + Vite 8, deploy na Vercel
 - **Banco de dados:** Supabase (PostgreSQL) — projeto `sumzkwjthwcdtjqheehn` (sa-east-1)
 - **Auth:** Supabase Auth — email+senha (principal) + magic link (alternativo) + password reset
 - **IA:** Anthropic Claude API (`claude-sonnet-4-20250514`), roteada via Supabase Edge Function
@@ -92,7 +92,7 @@ Aplicação React de gestão de processos seletivos para profissionais de tecnol
 src/
 ├── App.jsx                    # Orquestrador — estado global + lógica de negócio (~426 linhas)
 ├── supabase.js                # Client Supabase + mapeadores rowToProcess / processToRow
-├── main.jsx                   # Entry point React
+├── main.jsx                   # Entry point React — envolve App em ErrorBoundary
 ├── index.css                  # Reset CSS mínimo + safe area vars
 │
 ├── components/
@@ -514,9 +514,9 @@ Na Vercel, estas variáveis estão configuradas nas Environment Variables do pro
 
 O projeto tem estratégia de testes documentada em `TESTING.md`. As regras de cobertura obrigatória estão na seção **Regras obrigatórias de engenharia** no topo deste arquivo.
 
-**Stack atual:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E planejado).
+**Stack atual:** Vitest + React Testing Library + MSW (unit/integration) / Playwright (E2E).
 
-**Estado atual:** 253 testes passando (unit + component + integration). CI roda `npm run test:run` antes do `npm run build` em todo PR e push para `main`.
+**Estado atual:** 204 testes passando (unit + component + integration) + 5 specs E2E (Playwright). CI roda `npm run test:run` antes do `npm run build` em todo PR e push para `main`.
 
 ---
 
@@ -559,7 +559,7 @@ O estado `sortBy` vive no App root junto com `search` e `stageFilter`.
 
 Mapeadores já tratam: `rowToProcess` → `channel: row.channel || ""`, `processToRow` → `channel: p.channel || null`.
 
-A constante `CONTACT_CHANNELS` define os valores disponíveis com label e ícone. O seletor aparece no `VagaTab` (somente quando `origin === "inbound"`) e no `NewProcessModal`.
+A constante `CONTACT_CHANNELS` define os valores disponíveis com label e ícone. O seletor aparece no `VagaTab` (somente quando `origin === "inbound"`) e no `NewEntryModal`.
 
 ### Tags editáveis inline
 
@@ -634,19 +634,11 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | pdfjs worker via `import ?url` no topo | Vite só resolve `new URL()` em contexto estático; padrão dinâmico falha no build Vercel |
 | CI simplificado para `npm run build` | Vercel tem integração nativa com GitHub — o workflow de deploy via Vercel CLI era redundante e quebrava por falta de secrets |
 | CVs salvos no Supabase (tabela `resumes`) | Permite múltiplos CVs por idioma, reutilizáveis entre processos diferentes |
-| `ImportModal` genérico substituindo `ImportChatGPTModal` | Suporta múltiplos formatos (JSON/CSV/PDF/ZIP/texto) sem prender o usuário ao ChatGPT |
-| `importHelpers.js` separado do modal | Funções puras (`parseCSV`, `normalizeProcess`, etc.) ficam testáveis sem montar o componente |
-| `RecruiterMessageModal` independente do `NewProcessModal` | Fluxo completamente diferente — Cole→Extrair→Revisar→Criar não cabe como tab do modal existente |
 | CVTab com Q&A em vez de checkboxes de tech | Mais intuitivo e gera contexto rico: a pergunta é direta ("Você usou X?") e a resposta vai no payload da 2ª chamada IA |
 | Duas chamadas IA no CVTab (perguntas → CV) | Separa responsabilidades — usuário revisa antes da geração final; evita CV com techs não confirmadas |
 | `cv_adaptations.content` como text, não arquivo | Conteúdo gerado por IA não precisa de Storage — o usuário pode copiar e exportar manualmente |
 | `process_id` em `cv_adaptations` como `text` | Coluna `id` da tabela `processes` é `text`, não `uuid` — FK deve ter tipo compatível |
 | Integração ICC→DIL via query params, sem banco | Unidirecional e zero acoplamento — ICC abre DIL com `?role=&company=&stack=` e DIL lê sem depender de API compartilhada |
-| `buildDILUrl` em `OverviewTab` usa tags como stack | Tags já representam as tecnologias do processo; reutilizá-las evita campo extra e mantém o modelo de dados simples |
-| `RecruiterMessageModal` 3 etapas em vez de 4 | `paste→working→result` — review e draft colapsados; draft gerado em paralelo com a exibição dos campos; menos friction |
-| Draft do recruiter em plain text, não JSON | `DRAFT_SYSTEM` explícito retorna só o texto — elimina parse frágil que causava draft vazio em produção |
-| `initialMsg` prop no `RecruiterMessageModal` | Permite pré-preencher a mensagem via `EmptyState` ou qualquer outro ponto de entrada sem estado global extra |
-| `EmptyState` com área de cole inline | Primeira ação do usuário (colar mensagem LinkedIn) está disponível diretamente na tela inicial, sem precisar abrir modal |
 | 3 abas em vez de 5 (Conversa / Vaga / Currículo) | Reduz complexidade cognitiva — Overview + Timeline + Messages + AI colapsados em 2 abas naturais |
 | `ConversaTab` como thread cronológico | Mensagem do recrutador + resposta gerada ficam no mesmo contexto visual — mais natural que abas separadas |
 | `VagaTab` com auto-stage via meeting type | Selecionar o tipo da próxima etapa já atualiza o stage — zero esforço para manter o pipeline sincronizado |
@@ -660,6 +652,10 @@ novoIcone: <><path d="..." stroke={c} strokeWidth="1.5" /></>,
 | `sanitizeUrl` inline em VagaTab e NewEntryModal | Descarta URLs inválidas (sem `https?://`) na origem; sem biblioteca extra; sem dependência compartilhada |
 | `ProcessCard` com `React.memo` | Evita re-render de todos os cards quando o estado global muda; sem quebrar funcionalidade |
 | `vercel.json` com `immutable` para assets | Hashed assets (`.js/.css`) servidos com `max-age=31536000, immutable`; HTML/routes com `no-cache` |
+| Prop `lang` em `ResumesModal` e `ProfileSetupModal` | Todos os modais recebem `lang` e usam `t(lang, key)` — zero hardcoded strings; padrão `"pt"` mantém comportamento sem quebrar testes |
+| `aria-label` em todos os botões de ícone | WCAG 2.1 AA: botões sem texto visível (fechar, voltar, editar, excluir, fechar composição) têm `aria-label` para leitores de tela |
+| `ErrorBoundary` no root (`main.jsx`) | Captura exceções em todo o tree além das fronteiras por seção já existentes no `App.jsx` — fallback visual em vez de tela branca |
+| Erros de PDF via i18n em vez de `e.message` | `ProfileSetupModal` e `ResumesModal` nunca expõem mensagens internas de biblioteca na UI — sempre string localizada |
 
 ---
 

@@ -65,9 +65,9 @@ Most job tracking tools assume you are actively applying. This project tackles t
 - Priority list (starred processes)
 - Recent activity feed
 
-### Import & Profile
-- Paste recruiter message → AI extracts fields → creates process with draft reply
-- Import processes from JSON, CSV, PDF, or ZIP archive
+### Import & New Process
+- Paste recruiter message → AI extracts company, role, stack and generates a draft reply → process created in one step
+- Manual form for outbound applications
 - Profile setup: stack, summary, base CV (with PDF extraction via pdfjs)
 - Multiple saved resumes (named, by language), managed in Supabase
 
@@ -86,7 +86,6 @@ Most job tracking tools assume you are actively applying. This project tackles t
 | AI | Anthropic Claude Sonnet 4 (`claude-sonnet-4-20250514`) |
 | AI routing | Supabase Edge Function (`anthropic-proxy`) with JWT + rate limiting |
 | PDF parsing | pdfjs-dist (lazy-loaded) |
-| Archive import | jszip |
 | Design system | Signal DS (custom CSS variables) |
 | Typography | Outfit + JetBrains Mono (Google Fonts) |
 | Icons | Inline SVG (custom icon system) |

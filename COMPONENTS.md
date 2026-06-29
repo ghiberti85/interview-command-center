@@ -260,6 +260,94 @@ Painel de detalhes do processo — sidebar no desktop, tela full no mobile.
 
 ---
 
+## Modais (`src/components/modals/`)
+
+Todos os modais usam `useFocusTrap` (foco cicla internamente), `role="dialog"`, `aria-modal="true"` e `aria-labelledby`.
+
+### `ResumesModal`
+
+Gerenciamento de currículos salvos no Supabase.
+
+```jsx
+<ResumesModal
+  onClose={() => setShowResumes(false)}
+  isMobile={isMobile}
+  resumes={resumes}
+  onAdd={addResume}
+  onUpdate={updateResume}
+  onDelete={removeResume}
+  loading={resumesLoading}
+  lang={lang}
+/>
+```
+
+| Prop | Tipo | Descrição |
+|---|---|---|
+| `onClose` | function | Fecha o modal |
+| `isMobile` | boolean | Layout bottom-sheet vs centrado |
+| `resumes` | Resume[] | Lista de currículos do hook `useResumes` |
+| `onAdd` | function | `({ name, language, content }) => { error }` |
+| `onUpdate` | function | `(id, { name, language, content }) => { error }` |
+| `onDelete` | function | `(id) => void` |
+| `loading` | boolean | Exibe spinner durante fetch inicial |
+| `lang` | `"pt" \| "en"` | Idioma da UI — padrão `"pt"` |
+
+**Views internas:** `list` → `new` / `edit`. Suporta upload PDF/TXT com extração de texto via `extractTextFromPdf`.
+
+---
+
+### `ProfileSetupModal`
+
+Perfil do usuário: CV completo, resumo profissional, stack tecnológica e troca de senha.
+
+```jsx
+<ProfileSetupModal
+  onClose={() => setShowProfileModal(false)}
+  onSave={saveProfile}
+  isMobile={isMobile}
+  initial={profile}
+  isDemo={isDemo}
+  lang={lang}
+/>
+```
+
+| Prop | Tipo | Descrição |
+|---|---|---|
+| `onClose` | function | Fecha o modal |
+| `onSave` | function | `({ stack, summary, cvText }) => void` — persiste em `useUserProfile` |
+| `isMobile` | boolean | Layout bottom-sheet vs centrado |
+| `initial` | `{ stack, summary, cvText }` | Valores atuais do perfil |
+| `isDemo` | boolean | Esconde aba "Senha" no modo demonstração |
+| `lang` | `"pt" \| "en"` | Idioma da UI — padrão `"pt"` |
+
+**Abas:** CV (upload PDF + extração por IA) · Resumo · Stack · Senha (oculta em demo).
+
+**Extração por IA:** cola ou sobe PDF → `callAI` extrai `summary` e `stack` como JSON → preenche as abas automaticamente.
+
+---
+
+### `NewEntryModal`
+
+Cria um novo processo: fluxo inbound (colar msg do recrutador → IA extrai + gera rascunho) ou outbound (form manual).
+
+```jsx
+<NewEntryModal
+  isMobile={isMobile}
+  initialMsg=""
+  lang={lang}
+  onClose={() => setShowNewEntry(false)}
+  onProcessCreated={(p) => { addProcess(p); setSelected(p); }}
+/>
+```
+
+---
+
+### `SetPasswordModal`
+
+Troca de senha pós-`PASSWORD_RECOVERY`. Não aceita prop `lang` — exibido apenas durante o fluxo de reset, sempre em português.
+
+---
+
 ## Convenções gerais
 
 - **Nunca use valores hardcoded de cor** — sempre `var(--token)`

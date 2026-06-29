@@ -186,6 +186,58 @@ document.documentElement.style.setProperty(
 
 ---
 
+## ADR-011 — Prop `lang` em modais + i18n via `t(lang, key)`
+
+**Status:** Ativo  
+**Data:** v1.5.2
+
+**Contexto:** `ResumesModal` e `ProfileSetupModal` tinham todas as strings hardcoded em português. Com o toggle EN/PT implementado no resto do app, os modais ficaram como ilha fora do sistema de i18n.
+
+**Decisão:** Adicionar prop `lang = "pt"` em ambos os modais; todas as strings passam por `t(lang, key)`. Erros de extração de PDF usam chave i18n em vez de `e.message` (que expõe mensagens internas de biblioteca).
+
+**Alternativas consideradas:**
+- React Context para `lang` — adicionaria complexidade sem benefício para 2 modais
+- Manter strings em PT e traduzir sob demanda — geraria inconsistência quando o usuário altera o idioma
+
+**Consequências:**
+- ✅ Modais respondem ao toggle de idioma igual ao resto da UI
+- ✅ Nenhuma mensagem interna de biblioteca exposta na UI (`e.message` de `extractTextFromPdf` substituído por string i18n)
+- ✅ Default `"pt"` mantém backward-compatibility sem quebrar testes existentes
+
+---
+
+## ADR-012 — ARIA labels em todos os botões de ícone
+
+**Status:** Ativo  
+**Data:** v1.5.2
+
+**Contexto:** Botões que renderizam apenas `<Ic>` (fechar modal, voltar, editar currículo, excluir currículo, fechar área de composição) não tinham nome acessível — leitores de tela anunciavam "botão" sem contexto.
+
+**Decisão:** `aria-label` em todos os botões de ícone; valor usa `t(lang, key)` para refletir o idioma atual.
+
+**Consequências:**
+- ✅ WCAG 2.1 AA — Success Criterion 4.1.2 (Name, Role, Value)
+- ✅ Sem biblioteca de acessibilidade extra
+- ❌ Requer atenção ao adicionar novos botões de ícone no futuro
+
+---
+
+## ADR-013 — `ErrorBoundary` no root (`main.jsx`)
+
+**Status:** Ativo  
+**Data:** v1.5.2
+
+**Contexto:** `App.jsx` já envolvia `Dashboard` e `ProcessDetail` em `ErrorBoundary` por seção, mas o próprio `App` não era protegido — erros no orquestrador causavam tela branca sem fallback.
+
+**Decisão:** `main.jsx` envolve `<App>` em `<ErrorBoundary>` como camada de proteção total.
+
+**Consequências:**
+- ✅ Nenhuma exceção não capturada resulta em tela branca
+- ✅ `ErrorBoundary` já existia — mudança de 3 linhas
+- ❌ `ErrorBoundary` de classe não captura erros em event handlers ou Promises (comportamento padrão do React)
+
+---
+
 ## ADR-010 — `cv_adaptations.content` como texto, não arquivo no Storage
 
 **Status:** Ativo  
